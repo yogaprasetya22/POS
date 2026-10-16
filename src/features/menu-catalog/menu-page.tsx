@@ -387,27 +387,27 @@ export function MenuPage() {
       {count > 0 && !checkout && (
         <div className="fixed inset-x-0 bottom-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 pointer-events-none">
           <div className="mx-auto w-full max-w-md pointer-events-auto">
-            <div className="flex items-center justify-between gap-3 rounded-2xl sm:rounded-full border border-border/80 bg-slate-950/95 dark:bg-card/95 text-white dark:text-foreground p-3 sm:px-5 backdrop-blur-xl shadow-2xl shadow-black/40 transition-all animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center justify-between gap-3 rounded-2xl sm:rounded-full border border-border bg-card/95 text-foreground p-3 sm:px-5 backdrop-blur-xl shadow-xl shadow-black/10 transition-all animate-in slide-in-from-bottom-4 duration-200">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="relative grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground font-black text-sm shadow-md shadow-primary/30 shrink-0">
+                <div className="relative grid size-10 place-items-center rounded-xl sm:rounded-full bg-primary text-primary-foreground font-black text-sm shadow-md shadow-primary/25 shrink-0">
                   <ShoppingBag className="size-4.5" />
-                  <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-slate-950 ring-2 ring-slate-950">
+                  <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white ring-2 ring-card shadow-xs">
                     {count}
                   </span>
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-slate-400 dark:text-muted-foreground uppercase tracking-wider">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {count} Menu Dipilih
                     </span>
-                    <span className="inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="inline-block size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <div className="text-base sm:text-lg font-black tracking-tight text-white dark:text-foreground">
+                    <div className="text-base sm:text-lg font-black tracking-tight text-foreground">
                       {rupiah(discountedTotal)}
                     </div>
                     {promo.discount > 0 && (
-                      <span className="text-xs text-slate-400 line-through">
+                      <span className="text-xs text-muted-foreground line-through">
                         {rupiah(totalPrice)}
                       </span>
                     )}
@@ -418,7 +418,7 @@ export function MenuPage() {
               <Button
                 size="default"
                 onClick={() => setCheckout(true)}
-                className="rounded-xl sm:rounded-full px-5 h-10 gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/30 shrink-0 text-xs sm:text-sm active:scale-95 transition-transform"
+                className="rounded-xl sm:rounded-full px-5 h-10 gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/25 shrink-0 text-xs sm:text-sm active:scale-95 transition-transform cursor-pointer"
               >
                 <span>Checkout</span>
                 <ArrowRight className="size-3.5" />
