@@ -2,6 +2,7 @@ import {
   Check,
   MessageCircle,
   ShoppingBag,
+  Sparkles,
   Trash2,
   User,
   UtensilsCrossed,
@@ -208,7 +209,7 @@ export function CheckoutPanel({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-base">🍽️</span>
+                <UtensilsCrossed className="size-4 text-primary" />
                 {orderType === 'DINE_IN' && (
                   <span className="size-4 rounded-full bg-primary text-primary-foreground grid place-items-center">
                     <Check className="size-2.5" />
@@ -228,7 +229,7 @@ export function CheckoutPanel({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-base">🛍️</span>
+                <ShoppingBag className="size-4 text-primary" />
                 {orderType === 'TAKEAWAY' && (
                   <span className="size-4 rounded-full bg-primary text-primary-foreground grid place-items-center">
                     <Check className="size-2.5" />
@@ -274,10 +275,10 @@ export function CheckoutPanel({
           </div>
         )}
 
-        {/* Hint promo jika ada (misal kurang 1 lagi untuk Beli 2 Gratis 1) */}
+        {/* Hint promo jika ada */}
         {promo.hints.length > 0 && (
           <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-            <span className="text-sm shrink-0">💡</span>
+            <Sparkles className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
             <span className="font-medium text-[11px] sm:text-xs">{promo.hints[0]}</span>
           </div>
         )}

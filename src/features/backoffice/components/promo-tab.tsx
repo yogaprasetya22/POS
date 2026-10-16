@@ -2,13 +2,16 @@ import {
   Banknote,
   CheckCircle2,
   Edit2,
+  Folder,
   Gift,
   Info,
   Percent,
   Plus,
+  ShoppingBag,
   Sparkles,
   Tag,
   Trash2,
+  UtensilsCrossed,
   X,
   Zap,
 } from 'lucide-react'
@@ -195,16 +198,16 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
       {/* Header Banner Modern */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card via-card to-primary/5 border p-5 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
-              <Sparkles className="size-3.5" />
-              <span>Otomatisasi Penjualan & Promosi</span>
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              <Sparkles className="size-3" />
+              <span>Program Promo</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Program Promo & Diskon
+              Promo & Diskon
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Atur promo Beli 2 Gratis 1, diskon persentase, atau potongan harga langsung. Promo aktif otomatis terpotong di keranjang pelanggan & tercatat di kasir.
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Atur promo dan diskon otomatis untuk pesanan pelanggan.
             </p>
           </div>
 
@@ -241,8 +244,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             <Gift className="size-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">Buy X Get Y (Gratis)</p>
-            <p className="text-xl font-black text-foreground">{b2g1Count} <span className="text-xs font-normal text-muted-foreground">program</span></p>
+            <p className="text-xs font-semibold text-muted-foreground">Beli X Gratis Y</p>
+            <p className="text-xl font-black text-foreground">{b2g1Count}</p>
           </div>
         </div>
 
@@ -252,7 +255,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
           </div>
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Diskon & Potongan</p>
-            <p className="text-xl font-black text-foreground">{discountCount} <span className="text-xs font-normal text-muted-foreground">program</span></p>
+            <p className="text-xl font-black text-foreground">{discountCount}</p>
           </div>
         </div>
       </div>
@@ -269,9 +272,9 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
           <div className="grid size-14 place-items-center rounded-2xl bg-muted mx-auto mb-3 text-muted-foreground/60">
             <Tag className="size-7" />
           </div>
-          <h3 className="font-bold text-lg text-foreground">Belum ada promo yang dibuat</h3>
+          <h3 className="font-bold text-lg text-foreground">Belum ada promo</h3>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-5">
-            Buat program promo seperti Beli 2 Gratis 1 untuk memikat pelanggan memesan lebih banyak menu.
+            Buat promo untuk menarik pelanggan.
           </p>
           <Button onClick={openCreateDrawer} className="rounded-xl gap-2 font-bold px-5">
             <Plus className="size-4" />
@@ -318,13 +321,22 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                         <h4 className="font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
                           {p.name}
                         </h4>
-                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-0.5">
                           {p.scope === 'CART_TOTAL' ? (
-                            <span>🛒 Total Belanja</span>
+                            <>
+                              <ShoppingBag className="size-3 text-muted-foreground/70" />
+                              <span>Total Belanja</span>
+                            </>
                           ) : p.scope === 'CATEGORY' ? (
-                            <span>📂 {targetName(p)}</span>
+                            <>
+                              <Folder className="size-3 text-muted-foreground/70" />
+                              <span>{targetName(p)}</span>
+                            </>
                           ) : (
-                            <span>🍽️ {targetName(p)}</span>
+                            <>
+                              <UtensilsCrossed className="size-3 text-muted-foreground/70" />
+                              <span>{targetName(p)}</span>
+                            </>
                           )}
                         </p>
                       </div>
@@ -351,7 +363,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   >
                     <span>
                       {isB2G1
-                        ? `Beli ${p.buy_qty} Otomatis Gratis ${p.get_qty}`
+                        ? `Beli ${p.buy_qty} Gratis ${p.get_qty}`
                         : isPercent
                         ? `Diskon ${p.discount_percent}%`
                         : `Potongan ${rupiah(p.discount_amount)}`}
@@ -368,7 +380,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     {p.min_spend > 0 ? (
                       <span>Min. Belanja: <strong className="text-foreground">{rupiah(p.min_spend)}</strong></span>
                     ) : (
-                      <span>Tanpa minimal belanja</span>
+                      <span>Tanpa min. belanja</span>
                     )}
                   </div>
 
@@ -416,13 +428,13 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary">
                   <Sparkles className="size-3.5" />
-                  <span>{editing ? 'Detail & Pengaturan Promo' : 'Buat Promo Baru'}</span>
+                  <span>{editing ? 'Detail Promo' : 'Buat Promo'}</span>
                 </div>
                 <DrawerTitle className="text-lg sm:text-xl font-bold">
-                  {editing ? editing.name : 'Formulir Program Promo'}
+                  {editing ? editing.name : 'Formulir Promo'}
                 </DrawerTitle>
                 <DrawerDescription className="text-xs text-muted-foreground">
-                  Konfigurasikan aturan promo yang akan otomatis terpotong di keranjang pelanggan.
+                  Atur ketentuan program promo.
                 </DrawerDescription>
               </div>
               <Button
@@ -453,7 +465,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             {/* Live Catalog Preview Box */}
             <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/40 p-3.5 space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                Pratinjau Tampilan di Katalog Pelanggan
+                Pratinjau
               </span>
               <div className="flex items-center gap-2.5">
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground font-bold text-[10px] px-2.5 py-0.5 shadow-xs">
@@ -473,24 +485,21 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             {/* Nama Promo */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Nama Program Promo
+                Nama Promo
               </Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Beli 2 Gratis 1 Kopi Susu Aren"
+                placeholder="Contoh: Beli 2 Gratis 1 Kopi Susu"
                 className="h-10 text-xs sm:text-sm rounded-xl font-medium"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">
-                Nama ini akan terlihat pada badge produk di katalog dan struk kasir.
-              </p>
             </div>
 
-            {/* Pilihan Jenis Promo (Interactive Cards) */}
+            {/* Pilihan Jenis Promo */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Jenis Program Promo
+                Jenis Promo
               </Label>
               <div className="grid grid-cols-3 gap-2.5">
                 <button
@@ -504,7 +513,6 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 >
                   <Gift className={`size-5 mb-1.5 ${type === 'BUY_X_GET_Y' ? 'text-violet-600 dark:text-violet-400' : ''}`} />
                   <div className="font-bold text-xs text-foreground">Beli X Gratis Y</div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Contoh: Beli 2 Gratis 1</p>
                 </button>
 
                 <button
@@ -518,7 +526,6 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 >
                   <Percent className={`size-5 mb-1.5 ${type === 'PERCENTAGE' ? 'text-amber-600' : ''}`} />
                   <div className="font-bold text-xs text-foreground">Diskon %</div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Potongan persentase</p>
                 </button>
 
                 <button
@@ -532,7 +539,6 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 >
                   <Banknote className={`size-5 mb-1.5 ${type === 'FIXED_AMOUNT' ? 'text-emerald-600' : ''}`} />
                   <div className="font-bold text-xs text-foreground">Potongan Rp</div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Nominal rupiah tetap</p>
                 </button>
               </div>
             </div>
@@ -541,7 +547,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             {type === 'BUY_X_GET_Y' && (
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl border bg-muted/20">
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Syarat Beli (X item)</Label>
+                  <Label className="text-xs font-semibold">Syarat Beli (X)</Label>
                   <Input
                     type="number"
                     min={1}
@@ -551,10 +557,9 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     className="h-10 text-xs sm:text-sm rounded-xl font-bold"
                     required
                   />
-                  <p className="text-[10px] text-muted-foreground">Minimal beli untuk dapat bonus</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Jumlah Gratis (Y item)</Label>
+                  <Label className="text-xs font-semibold">Jumlah Gratis (Y)</Label>
                   <Input
                     type="number"
                     min={1}
@@ -564,14 +569,13 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     className="h-10 text-xs sm:text-sm rounded-xl font-bold"
                     required
                   />
-                  <p className="text-[10px] text-muted-foreground">Jumlah item yang digratiskan</p>
                 </div>
               </div>
             )}
 
             {type === 'PERCENTAGE' && (
               <div className="p-3.5 rounded-2xl border bg-muted/20 space-y-1">
-                <Label className="text-xs font-semibold">Besar Persentase Diskon (%)</Label>
+                <Label className="text-xs font-semibold">Besar Diskon (%)</Label>
                 <div className="relative">
                   <Input
                     type="number"
@@ -584,13 +588,12 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   />
                   <Percent className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Contoh: 20 untuk diskon 20%</p>
               </div>
             )}
 
             {type === 'FIXED_AMOUNT' && (
               <div className="p-3.5 rounded-2xl border bg-muted/20 space-y-1">
-                <Label className="text-xs font-semibold">Nominal Potongan Harga (Rp)</Label>
+                <Label className="text-xs font-semibold">Nominal Diskon (Rp)</Label>
                 <Input
                   type="number"
                   min={100}
@@ -600,14 +603,13 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   className="h-10 text-xs sm:text-sm rounded-xl font-bold"
                   required
                 />
-                <p className="text-[10px] text-muted-foreground">Contoh: 10000 untuk potongan Rp10.000</p>
               </div>
             )}
 
             {/* Target / Ruang Lingkup Promo */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Target Menu yang Berlaku
+                Target Promo
               </Label>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -616,13 +618,14 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     setScope('PRODUCT')
                     if (!targetId && products[0]) setTargetId(products[0].id)
                   }}
-                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer ${
+                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     scope === 'PRODUCT'
                       ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                       : 'border-border bg-card text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  🍽️ Menu Spesifik
+                  <UtensilsCrossed className="size-3.5" />
+                  <span>Menu</span>
                 </button>
                 <button
                   type="button"
@@ -630,24 +633,26 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     setScope('CATEGORY')
                     if (categories[0]) setTargetId(categories[0].id)
                   }}
-                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer ${
+                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     scope === 'CATEGORY'
                       ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                       : 'border-border bg-card text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  📂 Kategori
+                  <Folder className="size-3.5" />
+                  <span>Kategori</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setScope('CART_TOTAL')}
-                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer ${
+                  className={`rounded-xl border p-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     scope === 'CART_TOTAL'
                       ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                       : 'border-border bg-card text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  🛒 Total Belanja
+                  <ShoppingBag className="size-3.5" />
+                  <span>Total Belanja</span>
                 </button>
               </div>
 
@@ -691,7 +696,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             {/* Syarat Minimal Belanja */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Minimal Total Belanja <span className="text-muted-foreground/80 font-normal">(opsional)</span>
+                Minimal Belanja <span className="text-muted-foreground/80 font-normal">(opsional)</span>
               </Label>
               <Input
                 type="number"
@@ -702,17 +707,14 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 placeholder="0 = Tanpa minimal belanja"
                 className="h-10 text-xs sm:text-sm rounded-xl font-medium"
               />
-              <p className="text-[11px] text-muted-foreground">
-                Diskon hanya akan aktif jika total belanja pelanggan mencapai nominal ini.
-              </p>
             </div>
 
             {/* Toggle Status Aktif */}
             <div className="flex items-center justify-between rounded-2xl border p-4 bg-muted/20">
               <div>
                 <span className="block font-bold text-xs sm:text-sm text-foreground">Status Promo</span>
-                <span className="text-[11px] text-muted-foreground">
-                  {isActive ? 'Promo sedang aktif dan berlaku di katalog' : 'Promo nonaktif (tidak berlaku)'}
+                <span className="text-xs text-muted-foreground">
+                  {isActive ? 'Aktif di katalog' : 'Nonaktif'}
                 </span>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} />

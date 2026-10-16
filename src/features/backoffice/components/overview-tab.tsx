@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ChefHat,
@@ -214,12 +215,14 @@ export function OverviewTab({
             <div className="text-2xl font-black tracking-tight">{activeProductsCount} / {products.length} Menu</div>
             <div className="mt-1 flex items-center gap-1.5 text-xs">
               {soldOutProducts.length > 0 ? (
-                <span className="font-semibold text-destructive">
-                  ⚠️ {soldOutProducts.length} menu bertanda habis
+                <span className="font-semibold text-destructive flex items-center gap-1">
+                  <AlertTriangle className="size-3.5" />
+                  <span>{soldOutProducts.length} menu habis</span>
                 </span>
               ) : (
-                <span className="font-medium text-emerald-600">
-                  ✓ Semua menu siap dipesan
+                <span className="font-medium text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>Semua menu siap</span>
                 </span>
               )}
             </div>
