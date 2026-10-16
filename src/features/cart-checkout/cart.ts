@@ -1,3 +1,4 @@
+import type { BonusItem } from '@shared/lib/promo'
 import type { CartLine, Choice, Product } from '@shared/types/contracts'
 
 /** Baris keranjang + data tampilan. Harga di sini hanya preview; server menghitung ulang. */
@@ -23,5 +24,15 @@ export const setItemQty = (items: CartItem[], key: string, qty: number) =>
 
 export const cartTotal = (items: CartItem[]) => items.reduce((s, x) => s + x.unit_price * x.qty, 0)
 
-export const toLines = (items: CartItem[]): CartLine[] =>
-  items.map(({ product_id, qty, choices, note }) => ({ product_id, qty, choices, note }))
+export const toLines = (items: CartItem[], bonusItem?: BonusItem | null): CartLine[] => {
+  const lines: CartLine[] = items.map(({ product_id, qty, choices, note }) => ({ product_id, qty, choices, note }))
+  if (bonusItem && bonusItem.qty > 0) {
+    lines.push({
+      product_id: bonusItem.productId,
+      qty: bonusItem.qty,
+      choices: bonusItem.choices ?? [],
+      note: `[BONUS GRATIS] Promo: ${bonusItem.promoName}`,
+    })
+  }
+  return lines
+}

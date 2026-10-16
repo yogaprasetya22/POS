@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CheckoutSchema, type Product } from '@shared/types/contracts'
-import { addItem, itemKey, setItemQty, unitPrice, type CartItem } from './cart'
+import { addItem, itemKey, setItemQty, toLines, unitPrice, type CartItem } from './cart'
 import { buildWaText, waUrl } from './wa-message'
 
 const product: Product = {
@@ -35,6 +35,24 @@ describe('cart', () => {
     expect(items[0].qty).toBe(99)
     expect(setItemQty(items, a, 0)).toHaveLength(0)
   })
+
+  it('toLines menyertakan bonus item gratis ke dalam baris pesanan', () => {
+    const item: CartItem = { key: '1', product_id: product.id, qty: 2, choices: [], note: '', name: 'Es Kopi', unit_price: 18000 }
+    const linesWithoutBonus = toLines([item])
+    expect(linesWithoutBonus).toHaveLength(1)
+
+    const linesWithBonus = toLines([item], {
+      productId: product.id,
+      name: 'Es Kopi',
+      qty: 1,
+      unitPrice: 18000,
+      promoName: 'Beli 2 Gratis 1',
+    })
+    expect(linesWithBonus).toHaveLength(2)
+    expect(linesWithBonus[1].product_id).toBe(product.id)
+    expect(linesWithBonus[1].qty).toBe(1)
+    expect(linesWithBonus[1].note).toContain('[BONUS GRATIS]')
+  })
 })
 
 describe('checkout', () => {
@@ -60,5 +78,34 @@ describe('wa message', () => {
     expect(text).toContain('2x Es Kopi (Boba) — Rp46.000')
     expect(text).toContain('Catatan: tanpa es')
     expect(waUrl('628123', text)).toMatch(/^https:\/\/wa\.me\/628123\?text=\*PESANAN%20A-042/)
+  })
+
+  it('memuat rincian bonus item dan diskon promo di pesan WA', () => {
+    const text = buildWaText({
+      queue_code: 'A-001',
+      customer_name: 'Yoga',
+      order_type: 'TAKEAWAY',
+      table_no: '',
+      subtotal: 122000,
+      discount_amount: 29000,
+      promo_name: 'Beli 2 Gratis 1 Nasi Goreng Spesial',
+      total: 93000,
+      bonus_item: {
+        productId: product.id,
+        name: 'Nasi Goreng Spesial',
+        qty: 1,
+        unitPrice: 29000,
+        promoName: 'Beli 2 Gratis 1 Nasi Goreng Spesial',
+      },
+      items: [
+        { name: 'Nasi Goreng Spesial', qty: 2, unit_price: 29000, note: '', choices: [] },
+        { name: 'Cookies Coklat', qty: 1, unit_price: 15000, note: '', choices: [] },
+        { name: 'Kentang Goreng', qty: 1, unit_price: 20000, note: '', choices: [] },
+      ],
+    })
+    expect(text).toContain('🎁 1x Nasi Goreng Spesial [BONUS GRATIS] — Gratis (Rp0)')
+    expect(text).toContain('Subtotal: Rp122.000')
+    expect(text).toContain('Promo (Beli 2 Gratis 1 Nasi Goreng Spesial): -Rp29.000')
+    expect(text).toContain('*Total: Rp93.000*')
   })
 })

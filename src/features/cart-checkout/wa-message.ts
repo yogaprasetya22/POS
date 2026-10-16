@@ -1,3 +1,4 @@
+import type { BonusItem } from '@shared/lib/promo'
 import type { OrderType } from '@shared/types/contracts'
 import { rupiah } from '@shared/lib/utils'
 
@@ -10,6 +11,7 @@ type WaOrder = {
   subtotal?: number
   discount_amount?: number
   promo_name?: string | null
+  bonus_item?: BonusItem | null
   items: { name: string; qty: number; unit_price: number; note: string; choices: { option: string }[] }[]
 }
 
@@ -19,6 +21,12 @@ export function buildWaText(o: WaOrder) {
     const note = i.note ? `\n   Catatan: ${i.note}` : ''
     return `• ${i.qty}x ${i.name}${opts} — ${rupiah(i.unit_price * i.qty)}${note}`
   })
+
+  if (o.bonus_item && o.bonus_item.qty > 0) {
+    lines.push(
+      `🎁 ${o.bonus_item.qty}x ${o.bonus_item.name} [BONUS GRATIS] — Gratis (Rp0)\n   Promo: ${o.bonus_item.promoName}`
+    )
+  }
 
   const discountLines =
     (o.discount_amount ?? 0) > 0

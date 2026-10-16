@@ -47,7 +47,11 @@ export function CheckoutPanel({
   const count = items.reduce((n, i) => n + i.qty, 0)
   const subtotal = cartTotal(items)
   const promo = calculatePromo(items, promotions, products)
-  const total = Math.max(0, subtotal - promo.discount)
+  const bonusValue = promo.bonusItem ? promo.bonusItem.unitPrice * promo.bonusItem.qty : 0
+  const grossSubtotal = subtotal + bonusValue
+  const totalDiscount = promo.discount + bonusValue
+  const total = Math.max(0, grossSubtotal - totalDiscount)
+  const totalItemCount = count + (promo.bonusItem?.qty ?? 0)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -56,7 +60,7 @@ export function CheckoutPanel({
       customer_name: name,
       order_type: orderType,
       table_no: orderType === 'DINE_IN' ? table : '',
-      lines: toLines(items),
+      lines: toLines(items, promo.bonusItem),
     })
     if (!parsed.success) return setError(parsed.error.issues[0].message)
     const v = parsed.data
@@ -79,9 +83,10 @@ export function CheckoutPanel({
       order_type: v.order_type,
       table_no: v.table_no,
       total: created.total,
-      subtotal,
-      discount_amount: created.discount_amount ?? promo.discount,
+      subtotal: grossSubtotal,
+      discount_amount: created.discount_amount ?? totalDiscount,
       promo_name: created.promo_name ?? promo.appliedPromo?.name,
+      bonus_item: promo.bonusItem,
       items,
     })
     clear()
@@ -95,7 +100,7 @@ export function CheckoutPanel({
         <div className="flex items-center gap-1.5">
           <span>Keranjang Pesanan</span>
           <Badge variant="secondary" className="text-[11px] font-bold px-2 py-0.5 rounded-full">
-            {count}
+            {totalItemCount}
           </Badge>
         </div>
       }
@@ -109,9 +114,9 @@ export function CheckoutPanel({
               <span className="text-base sm:text-lg font-black text-primary leading-tight">
                 {rupiah(total)}
               </span>
-              {promo.discount > 0 && (
+              {totalDiscount > 0 && (
                 <span className="text-xs text-muted-foreground line-through font-medium">
-                  {rupiah(subtotal)}
+                  {rupiah(grossSubtotal)}
                 </span>
               )}
             </div>
@@ -209,6 +214,42 @@ export function CheckoutPanel({
                 </div>
               </li>
             ))}
+            {promo.bonusItem && (
+              <li className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-2.5 shadow-2xs">
+                <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800 grid place-items-center text-lg select-none">
+                  🎁
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="truncate font-bold text-xs sm:text-sm text-foreground">
+                      {promo.bonusItem.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 text-[10px] px-1.5 py-0 font-bold"
+                    >
+                      GRATIS
+                    </Badge>
+                  </div>
+                  <div className="truncate text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                    Promo: {promo.bonusItem.promoName}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                    <span>Gratis (Rp0)</span>
+                    <span className="text-[10px] font-normal text-muted-foreground line-through">
+                      {rupiah(promo.bonusItem.unitPrice * promo.bonusItem.qty)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right px-2 shrink-0">
+                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                    x{promo.bonusItem.qty}
+                  </span>
+                </div>
+              </li>
+            )}
           </ul>
         )}
       </div>
@@ -298,8 +339,18 @@ export function CheckoutPanel({
         )}
 
         {/* Banner Promo Aktif atau Hint */}
-        {promo.discount > 0 ? (
-          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+        {promo.bonusItem ? (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-semibold truncate">Promo: {promo.appliedPromo?.name}</span>
+            </div>
+            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
+              +{promo.bonusItem.qty} Gratis (Hemat {rupiah(bonusValue)})
+            </span>
+          </div>
+        ) : promo.discount > 0 ? (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0">
               <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="font-semibold truncate">Promo: {promo.appliedPromo?.name}</span>
@@ -318,19 +369,30 @@ export function CheckoutPanel({
         {/* Rincian Pembayaran */}
         <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3 space-y-1.5 text-xs">
           <div className="flex items-center justify-between text-muted-foreground text-[11px] sm:text-xs">
-            <span>Subtotal ({count} item)</span>
-            <span className="font-medium text-foreground">{rupiah(subtotal)}</span>
+            <span>Subtotal ({totalItemCount} item)</span>
+            <span className="font-medium text-foreground">{rupiah(grossSubtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-[11px] sm:text-xs">
-            <span className="text-muted-foreground">Diskon Promo</span>
-            {promo.discount > 0 ? (
+            <span className="text-muted-foreground">
+              Diskon Promo {promo.appliedPromo ? `(${promo.appliedPromo.name})` : ''}
+            </span>
+            {totalDiscount > 0 ? (
               <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                -{rupiah(promo.discount)}
+                -{rupiah(totalDiscount)}
               </span>
             ) : (
               <span className="text-muted-foreground/70">Rp0</span>
             )}
           </div>
+          {promo.bonusItem && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-md">
+              <span className="flex items-center gap-1 min-w-0">
+                <span>🎁</span>
+                <span className="font-medium truncate">1 Menu Gratis ({promo.bonusItem.name})</span>
+              </span>
+              <span className="font-bold shrink-0">Gratis (Rp0)</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-muted-foreground text-[11px] sm:text-xs">
             <span>Biaya Layanan</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">Gratis (Rp0)</span>
@@ -339,13 +401,17 @@ export function CheckoutPanel({
             <span className="font-bold text-foreground">Total Tagihan</span>
             <div className="text-right">
               <span className="font-bold text-primary">{rupiah(total)}</span>
-              {promo.discount > 0 && (
-                <span className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  Hemat {rupiah(promo.discount)}
-                </span>
-              )}
             </div>
           </div>
+          {totalDiscount > 0 && (
+            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/25 p-1.5 text-center text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1 mt-1">
+              <span>🎉</span>
+              <span>
+                Anda hemat {rupiah(totalDiscount)}
+                {promo.bonusItem ? ' (termasuk 1 menu gratis)' : ''}!
+              </span>
+            </div>
+          )}
         </div>
 
         <ErrorAlert message={error} />

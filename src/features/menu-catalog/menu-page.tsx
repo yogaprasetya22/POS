@@ -396,10 +396,15 @@ export function MenuPage() {
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {count} Menu Dipilih
                     </span>
+                    {promo.bonusItem && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full">
+                        +{promo.bonusItem.qty} Gratis
+                      </span>
+                    )}
                     <span className="inline-block size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                   <div className="flex items-baseline gap-2">

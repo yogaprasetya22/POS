@@ -44,11 +44,17 @@ describe('calculatePromo', () => {
       is_active: true,
     }
 
-    // 2 item: belum dapat gratis, tapi ada hint
+    // 1 item: belum dapat gratis, ada hint beli 1 lagi
+    const res1 = calculatePromo([{ ...dummyItem, qty: 1 }], [promo], [dummyProduct])
+    expect(res1.discount).toBe(0)
+    expect(res1.hints.length).toBeGreaterThan(0)
+    expect(res1.hints[0]).toContain('Beli 1 item lagi')
+
+    // 2 item: otomatis dapat 1 item bonus gratis
     const res2 = calculatePromo([{ ...dummyItem, qty: 2 }], [promo], [dummyProduct])
-    expect(res2.discount).toBe(0)
-    expect(res2.hints.length).toBeGreaterThan(0)
-    expect(res2.hints[0]).toContain('Tambah 1 lagi')
+    expect(res2.bonusItem).not.toBeNull()
+    expect(res2.bonusItem?.qty).toBe(1)
+    expect(res2.bonusItem?.name).toBe('Kopi Susu Gula Aren')
 
     // 3 item: dapat gratis 1 item (potongan Rp15.000)
     const res3 = calculatePromo([{ ...dummyItem, qty: 3 }], [promo], [dummyProduct])
