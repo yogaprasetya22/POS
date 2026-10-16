@@ -63,6 +63,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
 
   // Form states
   const [name, setName] = useState('')
+  const [code, setCode] = useState('')
   const [type, setType] = useState<PromotionType>('BUY_X_GET_Y')
   const [scope, setScope] = useState<PromotionScope>('PRODUCT')
   const [targetId, setTargetId] = useState<string>('')
@@ -71,6 +72,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   const [discountPercent, setDiscountPercent] = useState(15)
   const [discountAmount, setDiscountAmount] = useState(5000)
   const [minSpend, setMinSpend] = useState(0)
+  const [startAt, setStartAt] = useState('')
+  const [endAt, setEndAt] = useState('')
   const [isActive, setIsActive] = useState(true)
 
   const fetchPromos = useCallback(async () => {
@@ -93,6 +96,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   const openCreateDrawer = () => {
     setEditing(null)
     setName('')
+    setCode('')
     setType('BUY_X_GET_Y')
     setScope('PRODUCT')
     setTargetId(products[0]?.id ?? '')
@@ -101,6 +105,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setDiscountPercent(15)
     setDiscountAmount(5000)
     setMinSpend(0)
+    setStartAt('')
+    setEndAt('')
     setIsActive(true)
     setError('')
     setIsDrawerOpen(true)
@@ -109,6 +115,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   const openDetailDrawer = (p: Promotion) => {
     setEditing(p)
     setName(p.name)
+    setCode(p.code ?? '')
     setType(p.type)
     setScope(p.scope)
     setTargetId(p.target_id ?? '')
@@ -117,6 +124,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setDiscountPercent(p.discount_percent)
     setDiscountAmount(p.discount_amount)
     setMinSpend(p.min_spend)
+    setStartAt(p.start_at ? p.start_at.slice(0, 16) : '')
+    setEndAt(p.end_at ? p.end_at.slice(0, 16) : '')
     setIsActive(p.is_active)
     setError('')
     setIsDrawerOpen(true)
@@ -140,6 +149,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
 
     const payload = {
       name: name.trim(),
+      code: code.trim() ? code.trim().toUpperCase() : null,
       type,
       scope,
       target_id: scope === 'CART_TOTAL' ? null : targetId || null,
@@ -148,6 +158,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
       discount_percent: type === 'PERCENTAGE' ? discountPercent : 0,
       discount_amount: type === 'FIXED_AMOUNT' ? discountAmount : 0,
       min_spend: minSpend,
+      start_at: startAt ? new Date(startAt).toISOString() : null,
+      end_at: endAt ? new Date(endAt).toISOString() : null,
       is_active: isActive,
     }
 
@@ -371,6 +383,23 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                       {p.is_active ? 'Aktif' : 'Nonaktif'}
                     </ToneBadge>
                   </div>
+
+                  {/* Kode Promo & Periode Kampanye Badge */}
+                  {(p.code || p.start_at || p.end_at) && (
+                    <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground pt-0.5">
+                      {p.code && (
+                        <span className="inline-flex items-center gap-1 font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                          <Tag className="size-2.5" />
+                          <span>{p.code}</span>
+                        </span>
+                      )}
+                      {(p.start_at || p.end_at) && (
+                        <span className="truncate text-[10px]">
+                          {p.start_at ? new Date(p.start_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Sekarang'} - {p.end_at ? new Date(p.end_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Seterusnya'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom: Min spend & Actions */}
@@ -706,6 +735,53 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 placeholder="0 = Tanpa minimal belanja"
                 className="h-10 text-xs sm:text-sm rounded-xl font-medium"
               />
+            </div>
+
+            {/* Kode Promo (Opsional) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Kode Promo Voucher <span className="text-muted-foreground/80 font-normal">(opsional)</span>
+              </Label>
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="Contoh: DISKON10 (kosongkan jika otomatis)"
+                maxLength={20}
+                className="h-10 text-xs sm:text-sm rounded-xl font-mono uppercase"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Jika diisi, pembeli harus memasukkan kode ini saat checkout.
+              </p>
+            </div>
+
+            {/* Periode Kampanye */}
+            <div className="space-y-2 p-3.5 rounded-2xl border bg-muted/20">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                Periode Kampanye <span className="text-muted-foreground/80 font-normal">(opsional)</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-muted-foreground block">Mulai</span>
+                  <Input
+                    type="datetime-local"
+                    value={startAt}
+                    onChange={(e) => setStartAt(e.target.value)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-muted-foreground block">Berakhir</span>
+                  <Input
+                    type="datetime-local"
+                    value={endAt}
+                    onChange={(e) => setEndAt(e.target.value)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Promo hanya berlaku di dalam rentang waktu kampanye ini.
+              </p>
             </div>
 
             {/* Toggle Status Aktif */}

@@ -11,6 +11,7 @@ type WaOrder = {
   subtotal?: number
   discount_amount?: number
   promo_name?: string | null
+  promo_code?: string | null
   bonus_item?: BonusItem | null
   items: { name: string; qty: number; unit_price: number; note: string; choices: { option: string }[] }[]
 }
@@ -28,11 +29,15 @@ export function buildWaText(o: WaOrder) {
     )
   }
 
+  const promoLabel = [o.promo_name ?? 'Diskon', o.promo_code ? `Kode: ${o.promo_code}` : '']
+    .filter(Boolean)
+    .join(' · ')
+
   const discountLines =
     (o.discount_amount ?? 0) > 0
       ? [
           `Subtotal: ${rupiah(o.subtotal ?? o.total + (o.discount_amount ?? 0))}`,
-          `Promo (${o.promo_name ?? 'Diskon'}): -${rupiah(o.discount_amount!)}`,
+          `Promo (${promoLabel}): -${rupiah(o.discount_amount!)}`,
         ]
       : []
 

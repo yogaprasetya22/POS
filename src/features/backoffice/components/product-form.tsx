@@ -99,7 +99,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
 
   return (
     <Drawer open onOpenChange={(open) => !open && onDone()} swipeDirection="right">
-      <DrawerContent style={{ '--drawer-content-width': 'min(100vw, 32rem)' } as React.CSSProperties}>
+      <DrawerContent style={{ '--drawer-content-width': 'min(100vw, 62rem)' } as React.CSSProperties}>
         <DrawerHeader className="border-b text-left">
           <DrawerTitle>{product ? 'Ubah menu' : 'Menu baru'}</DrawerTitle>
           <DrawerDescription>{product ? product.name : 'Isi data menu yang akan tampil di katalog pelanggan.'}</DrawerDescription>

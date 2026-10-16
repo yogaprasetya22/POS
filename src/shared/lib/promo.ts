@@ -11,37 +11,72 @@ export type BonusItem = {
   image?: string | null
 }
 
+export type PromoCodeStatus = 'VALID' | 'INVALID' | 'EXPIRED' | 'NOT_STARTED'
+
 export type PromoCalculation = {
   discount: number
   appliedPromo: Promotion | null
   bonusItem: BonusItem | null
   hints: string[]
+  codeStatus?: PromoCodeStatus | null
 }
 
 /**
  * Kalkulasi diskon promo terbaik secara deterministik di client-side.
  * Mendukung B2G1 (baik auto-bonus saat beli 2 maupun potongan harga saat memesan paket 3),
- * diskon persentase, dan potongan nominal.
+ * diskon persentase, potongan nominal, kode voucher, dan batasan periode kampanye.
  */
 export function calculatePromo(
   items: CartItem[],
   promotions: Promotion[] = [],
-  products: Product[] = []
+  products: Product[] = [],
+  promoCode?: string | null,
+  now: Date = new Date()
 ): PromoCalculation {
   const subtotal = items.reduce((sum, item) => sum + item.unit_price * item.qty, 0)
+  const normInputCode = promoCode ? promoCode.trim().toUpperCase() : null
+
   if (items.length === 0 || promotions.length === 0) {
-    return { discount: 0, appliedPromo: null, bonusItem: null, hints: [] }
+    return { discount: 0, appliedPromo: null, bonusItem: null, hints: [], codeStatus: null }
   }
 
   let bestDiscount = 0
   let bestPromo: Promotion | null = null
   let bestBonus: BonusItem | null = null
   const hints: string[] = []
+  let codeStatus: PromoCodeStatus | null = null
+
+  // Validasi kode promo jika diinputkan pembeli
+  if (normInputCode) {
+    const codePromo = promotions.find(
+      (p) => p.code && p.code.trim().toUpperCase() === normInputCode
+    )
+    if (!codePromo || !codePromo.is_active) {
+      codeStatus = 'INVALID'
+    } else if (codePromo.start_at && now < new Date(codePromo.start_at)) {
+      codeStatus = 'NOT_STARTED'
+    } else if (codePromo.end_at && now > new Date(codePromo.end_at)) {
+      codeStatus = 'EXPIRED'
+    } else {
+      codeStatus = 'VALID'
+    }
+  }
 
   const prodMap = new Map(products.map((p) => [p.id, p]))
 
   for (const p of promotions) {
     if (!p.is_active) continue
+
+    // Cek batas periode kampanye promo
+    if (p.start_at && now < new Date(p.start_at)) continue
+    if (p.end_at && now > new Date(p.end_at)) continue
+
+    // Cek kode promo: jika promo memakai kode, hanya aktif jika kode dimasukkan cocok
+    if (p.code && p.code.trim() !== '') {
+      if (normInputCode !== p.code.trim().toUpperCase()) {
+        continue
+      }
+    }
 
     const matchingItems = items.filter((item) => {
       if (p.scope === 'CART_TOTAL') return true
@@ -123,5 +158,6 @@ export function calculatePromo(
     appliedPromo: bestPromo,
     bonusItem: bestBonus,
     hints: Array.from(new Set(hints)),
+    codeStatus,
   }
 }

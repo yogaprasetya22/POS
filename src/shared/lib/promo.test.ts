@@ -87,4 +87,72 @@ describe('calculatePromo', () => {
     expect(res.discount).toBe(6000)
     expect(res.appliedPromo?.name).toBe('Diskon 20%')
   })
+
+  it('mendukung validasi kode promo voucher', () => {
+    const codePromo: Promotion = {
+      id: 'promo-code-1',
+      store_id: 'store-1',
+      name: 'Voucher Gajian Hemat',
+      code: 'GAJIAN10',
+      type: 'PERCENTAGE',
+      scope: 'CART_TOTAL',
+      target_id: null,
+      buy_qty: 1,
+      get_qty: 1,
+      discount_percent: 10,
+      discount_amount: 0,
+      min_spend: 0,
+      is_active: true,
+    }
+
+    // Tanpa kode promo: diskon tidak terpasang
+    const resNoCode = calculatePromo([{ ...dummyItem, qty: 2 }], [codePromo], [dummyProduct])
+    expect(resNoCode.discount).toBe(0)
+    expect(resNoCode.appliedPromo).toBeNull()
+
+    // Kode salah: invalid
+    const resWrongCode = calculatePromo([{ ...dummyItem, qty: 2 }], [codePromo], [dummyProduct], 'SALAHKODE')
+    expect(resWrongCode.discount).toBe(0)
+    expect(resWrongCode.codeStatus).toBe('INVALID')
+
+    // Kode benar: valid dan diskon terpasang (10% dari 30.000 = 3.000)
+    const resValidCode = calculatePromo([{ ...dummyItem, qty: 2 }], [codePromo], [dummyProduct], 'gajian10')
+    expect(resValidCode.discount).toBe(3000)
+    expect(resValidCode.codeStatus).toBe('VALID')
+    expect(resValidCode.appliedPromo?.name).toBe('Voucher Gajian Hemat')
+  })
+
+  it('memfilter promo berdasarkan batas periode kampanye', () => {
+    const periodPromo: Promotion = {
+      id: 'promo-period-1',
+      store_id: 'store-1',
+      name: 'Promo Akhir Pekan',
+      type: 'FIXED_AMOUNT',
+      scope: 'CART_TOTAL',
+      target_id: null,
+      buy_qty: 1,
+      get_qty: 1,
+      discount_percent: 0,
+      discount_amount: 5000,
+      min_spend: 0,
+      start_at: '2026-10-15T00:00:00.000Z',
+      end_at: '2026-10-17T23:59:59.000Z',
+      is_active: true,
+    }
+
+    // Di dalam periode kampanye (16 Oktober 2026)
+    const activeDate = new Date('2026-10-16T12:00:00.000Z')
+    const resActive = calculatePromo([{ ...dummyItem, qty: 2 }], [periodPromo], [dummyProduct], null, activeDate)
+    expect(resActive.discount).toBe(5000)
+
+    // Sebelum kampanye dimulai (14 Oktober 2026)
+    const earlyDate = new Date('2026-10-14T12:00:00.000Z')
+    const resEarly = calculatePromo([{ ...dummyItem, qty: 2 }], [periodPromo], [dummyProduct], null, earlyDate)
+    expect(resEarly.discount).toBe(0)
+
+    // Setelah kampanye berakhir (18 Oktober 2026)
+    const lateDate = new Date('2026-10-18T12:00:00.000Z')
+    const resLate = calculatePromo([{ ...dummyItem, qty: 2 }], [periodPromo], [dummyProduct], null, lateDate)
+    expect(resLate.discount).toBe(0)
+  })
 })

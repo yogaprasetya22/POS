@@ -96,6 +96,7 @@ export const CheckoutSchema = z
     order_type: OrderTypeSchema,
     table_no: z.string().trim().max(10, 'Nomor meja terlalu panjang'),
     lines: z.array(CartLineSchema).min(1, 'Keranjang kosong').max(50),
+    promo_code: z.string().trim().toUpperCase().optional(),
   })
   .refine((v) => v.order_type === 'TAKEAWAY' || v.table_no !== '', {
     path: ['table_no'],
@@ -109,6 +110,7 @@ export const PromotionSchema = z.object({
   id: z.uuid(),
   store_id: z.uuid(),
   name: z.string().trim().min(1, 'Nama promo wajib diisi'),
+  code: z.string().trim().toUpperCase().nullable().optional(),
   type: PromotionTypeSchema,
   scope: PromotionScopeSchema,
   target_id: z.uuid().nullable(),
@@ -117,6 +119,8 @@ export const PromotionSchema = z.object({
   discount_percent: z.number().int().min(0).max(100).default(0),
   discount_amount: RupiahSchema.default(0),
   min_spend: RupiahSchema.default(0),
+  start_at: z.string().nullable().optional(),
+  end_at: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
   created_at: z.string().optional(),
 })
@@ -129,6 +133,7 @@ export const CreatedOrderSchema = z.object({
   total: RupiahSchema,
   discount_amount: RupiahSchema.optional(),
   promo_name: z.string().nullable().optional(),
+  promo_code: z.string().nullable().optional(),
 })
 
 export const OrderItemSchema = CartLineSchema.extend({

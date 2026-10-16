@@ -44,14 +44,41 @@ export function CheckoutPanel({
   const [table, setTable] = useState(defaultTable)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [inputCode, setInputCode] = useState('')
+  const [appliedCode, setAppliedCode] = useState<string | null>(null)
+  const [codeFeedback, setCodeFeedback] = useState<string | null>(null)
+
   const count = items.reduce((n, i) => n + i.qty, 0)
   const subtotal = cartTotal(items)
-  const promo = calculatePromo(items, promotions, products)
+  const promo = calculatePromo(items, promotions, products, appliedCode)
   const bonusValue = promo.bonusItem ? promo.bonusItem.unitPrice * promo.bonusItem.qty : 0
   const grossSubtotal = subtotal + bonusValue
   const totalDiscount = promo.discount + bonusValue
   const total = Math.max(0, grossSubtotal - totalDiscount)
   const totalItemCount = count + (promo.bonusItem?.qty ?? 0)
+
+  const handleApplyCode = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const clean = inputCode.trim().toUpperCase()
+    if (!clean) return
+    const res = calculatePromo(items, promotions, products, clean)
+    if (res.codeStatus === 'VALID') {
+      setAppliedCode(clean)
+      setCodeFeedback(null)
+      setInputCode('')
+    } else if (res.codeStatus === 'EXPIRED') {
+      setCodeFeedback('Periode promo ini telah berakhir')
+    } else if (res.codeStatus === 'NOT_STARTED') {
+      setCodeFeedback('Periode promo ini belum dimulai')
+    } else {
+      setCodeFeedback('Kode promo tidak ditemukan')
+    }
+  }
+
+  const handleRemoveCode = () => {
+    setAppliedCode(null)
+    setCodeFeedback(null)
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -61,6 +88,7 @@ export function CheckoutPanel({
       order_type: orderType,
       table_no: orderType === 'DINE_IN' ? table : '',
       lines: toLines(items, promo.bonusItem),
+      promo_code: appliedCode ?? undefined,
     })
     if (!parsed.success) return setError(parsed.error.issues[0].message)
     const v = parsed.data
@@ -72,6 +100,7 @@ export function CheckoutPanel({
       p_order_type: v.order_type,
       p_table_no: v.table_no || null,
       p_lines: v.lines,
+      p_promo_code: appliedCode ?? null,
     })
     setBusy(false)
     if (rpcError) return setError(`Pesanan gagal: ${rpcError.message}`)
@@ -86,6 +115,7 @@ export function CheckoutPanel({
       subtotal: grossSubtotal,
       discount_amount: created.discount_amount ?? totalDiscount,
       promo_name: created.promo_name ?? promo.appliedPromo?.name,
+      promo_code: created.promo_code ?? appliedCode,
       bonus_item: promo.bonusItem,
       items,
     })
@@ -375,6 +405,69 @@ export function CheckoutPanel({
             <span className="font-medium text-[11px] sm:text-xs">{promo.hints[0]}</span>
           </div>
         ) : null}
+
+        {/* Kode Promo Voucher Input */}
+        <div className="space-y-1.5 pt-1">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Kode Promo
+          </label>
+          {appliedCode ? (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-2 text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Tag className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 tracking-wider">
+                  {appliedCode}
+                </span>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                  (Terpasang)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCode}
+                className="text-[11px] font-semibold text-destructive hover:underline cursor-pointer"
+              >
+                Hapus
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                <Input
+                  value={inputCode}
+                  onChange={(e) => {
+                    setInputCode(e.target.value.toUpperCase())
+                    if (codeFeedback) setCodeFeedback(null)
+                  }}
+                  placeholder="Punya kode promo?"
+                  className="h-9 pl-9 uppercase font-semibold text-xs rounded-lg"
+                  maxLength={20}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleApplyCode()
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleApplyCode()}
+                disabled={!inputCode.trim()}
+                className="h-9 px-3 rounded-lg text-xs font-bold cursor-pointer"
+              >
+                Terapkan
+              </Button>
+            </div>
+          )}
+          {codeFeedback && (
+            <p className="text-[11px] text-destructive font-medium animate-in fade-in">
+              {codeFeedback}
+            </p>
+          )}
+        </div>
 
         {/* Rincian Pembayaran */}
         <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3 space-y-1.5 text-xs">
