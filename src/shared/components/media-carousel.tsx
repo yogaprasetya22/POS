@@ -71,7 +71,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
   if (mediaList.length === 1) {
     const item = mediaList[0]
     return (
-      <div className={`relative overflow-hidden bg-black/90 ${className || 'h-52 w-full'}`}>
+      <div className={`relative overflow-hidden bg-black/90 ${className || 'h-48 sm:h-64 w-full'}`}>
         {item.type === 'image' ? (
           <img src={item.url} alt={alt} className="size-full object-cover" />
         ) : (
@@ -88,7 +88,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
   }
 
   return (
-    <div className={`group relative overflow-hidden bg-black/95 select-none ${className || 'h-56 sm:h-64 w-full'}`}>
+    <div className={`group relative overflow-hidden bg-black/95 select-none ${className || 'h-48 sm:h-64 w-full'}`}>
       {/* Scrollable Container with Scroll-Snap */}
       <div
         ref={containerRef}
@@ -153,7 +153,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
 
       {/* Slide Badge Type (Image / Video) */}
       <div className="absolute top-2.5 left-2.5 z-10">
-        <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md shadow-xs">
+        <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[9px] sm:text-[10px] font-medium text-white/95 backdrop-blur-md shadow-xs">
           {mediaList[activeIndex].type === 'video' ? (
             <>
               <Video className="size-2.5 text-sky-400" />

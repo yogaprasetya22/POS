@@ -199,25 +199,25 @@ export function MenuPage() {
       {/* Main Container */}
       <main className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8 space-y-6">
         {/* Hero Promo Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary/90 text-primary-foreground p-5 sm:p-8 shadow-sm">
-          <div className="max-w-md space-y-1.5 z-10 relative">
-            <Badge variant="outline" className="text-primary-foreground border-white/30 bg-white/10 text-xs">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-linear-to-r from-primary to-primary/90 text-primary-foreground p-4 sm:p-7 shadow-xs">
+          <div className="max-w-md space-y-1 z-10 relative">
+            <Badge variant="outline" className="text-primary-foreground border-white/30 bg-white/10 text-[10px] sm:text-xs px-2 py-0.5">
               Self-Order POS
             </Badge>
-            <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+            <h2 className="text-base sm:text-2xl font-extrabold tracking-tight leading-tight">
               Pesan Menu Favorit Tanpa Antre
             </h2>
-            <p className="text-xs sm:text-sm text-primary-foreground/80 leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-primary-foreground/85 leading-snug line-clamp-2 sm:line-clamp-none">
               Pilih hidangan langsung dari meja Anda, pesanan dikirim otomatis ke kasir dan dapur.
             </p>
           </div>
 
           {banner?.image_url && (
-            <div className="absolute -right-4 -bottom-4 sm:right-6 sm:top-1/2 sm:-translate-y-1/2">
+            <div className="absolute -right-3 -bottom-3 sm:right-6 sm:top-1/2 sm:-translate-y-1/2">
               <img
                 src={banner.image_url.replace('w=600', 'w=300')}
                 alt=""
-                className="size-32 sm:size-44 rounded-full border-4 border-white/20 object-cover shadow-2xl opacity-90 sm:opacity-100"
+                className="size-24 sm:size-40 rounded-full border-2 sm:border-4 border-white/20 object-cover shadow-lg opacity-85 sm:opacity-100"
               />
             </div>
           )}
@@ -268,7 +268,7 @@ export function MenuPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-4">
               {shown.map((p) => {
                 const qty = qtyOf(p.id)
                 const productPromo = data.promotions.find(
@@ -276,49 +276,56 @@ export function MenuPage() {
                     (pr.scope === 'PRODUCT' && pr.target_id === p.id) ||
                     (pr.scope === 'CATEGORY' && pr.target_id === p.category_id)
                 )
+                const promoLabel = productPromo
+                  ? productPromo.type === 'BUY_X_GET_Y'
+                    ? `Beli ${productPromo.buy_qty} Gratis ${productPromo.get_qty}`
+                    : productPromo.type === 'PERCENTAGE'
+                    ? `Diskon ${productPromo.discount_percent}%`
+                    : `Hemat ${rupiah(productPromo.discount_amount)}`
+                  : ''
                 return (
                   <Card
                     key={p.id}
                     onClick={() => p.is_available && setPicking(p)}
-                    className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl border bg-card transition-all cursor-pointer p-0 ${
+                    className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl border bg-card transition-all cursor-pointer p-0 shadow-2xs ${
                       p.is_available
-                        ? 'hover:border-primary/50 hover:shadow-md'
+                        ? 'hover:border-primary/50 hover:shadow-sm'
                         : 'opacity-60 cursor-not-allowed grayscale'
-                    } ${qty > 0 ? 'ring-2 ring-primary border-primary' : ''}`}
+                    } ${qty > 0 ? 'ring-1.5 ring-primary/80 border-primary/60 bg-primary/[0.015]' : 'border-border/80'}`}
                   >
-                    {/* Food Photo Container with Image Skeleton */}
-                    <div className="relative aspect-4/3 w-full overflow-hidden bg-accent">
+                    {/* Food Photo Container */}
+                    <div className="relative aspect-4/3 w-full overflow-hidden bg-muted/30">
                       <MenuImage
                         src={p.image_url ? p.image_url.replace('w=600', 'w=360') : null}
                         alt={p.name}
                         className="transition-transform duration-300 group-hover:scale-105"
                       />
 
-                      {/* Promo Badge on Food Photo */}
+                      {/* Promo Badge on Food Photo (Short Teaser) */}
                       {productPromo && p.is_available && (
-                        <div className="absolute top-2 left-2 z-10 max-w-[70%]">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/95 text-primary-foreground font-bold text-[9px] sm:text-[10px] px-2.5 py-0.5 shadow-sm shadow-primary/20 truncate backdrop-blur-xs">
+                        <div className="absolute top-2 left-2 z-10 max-w-[calc(100%-2.5rem)]">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-primary/95 text-primary-foreground font-bold text-[9px] sm:text-[10px] px-1.5 py-0.5 shadow-xs backdrop-blur-xs truncate">
                             <Sparkles className="size-2.5 shrink-0" />
-                            <span className="truncate">{productPromo.name}</span>
+                            <span className="truncate">{promoLabel}</span>
                           </span>
                         </div>
                       )}
 
                       {/* Floating In-Cart Badge / Quick Plus Button */}
                       {p.is_available ? (
-                        <div className="absolute top-2.5 right-2.5">
+                        <div className="absolute top-2 right-2 z-10">
                           {qty > 0 ? (
-                            <Badge className="size-8 rounded-full bg-primary font-bold text-primary-foreground shadow-md flex items-center justify-center p-0 text-xs">
+                            <div className="size-7 sm:size-8 rounded-full bg-primary font-bold text-primary-foreground shadow-xs flex items-center justify-center text-xs">
                               {qty}
-                            </Badge>
+                            </div>
                           ) : (
-                            <div className="grid size-8 place-items-center rounded-full bg-background/90 text-foreground backdrop-blur-md shadow-md transition-transform group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
-                              <Plus className="size-4" />
+                            <div className="grid size-7 sm:size-8 place-items-center rounded-full bg-background/90 text-foreground backdrop-blur-xs shadow-xs transition-transform group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground">
+                              <Plus className="size-3.5" />
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="absolute inset-0 grid place-items-center bg-black/50 text-white font-bold text-xs uppercase tracking-wider backdrop-blur-xs">
+                        <div className="absolute inset-0 grid place-items-center bg-black/55 text-white font-bold text-xs uppercase tracking-wider backdrop-blur-xs">
                           Habis
                         </div>
                       )}
@@ -326,19 +333,16 @@ export function MenuPage() {
                       {/* Modifier Tag */}
                       {p.modifiers.length > 0 && (
                         <div className="absolute bottom-2 left-2">
-                          <Badge
-                            variant="secondary"
-                            className="bg-background/85 backdrop-blur-md text-[10px] px-1.5 py-0 font-medium"
-                          >
+                          <span className="rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white/95 backdrop-blur-xs">
                             Bisa Kustom
-                          </Badge>
+                          </span>
                         </div>
                       )}
 
                       {/* Multi-image / Video Indicator Badge */}
                       {(Boolean(p.video_url) || (p.images && p.images.length > 1)) && (
                         <div className="absolute bottom-2 right-2 z-10 pointer-events-none">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-xs shadow-xs">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white/95 backdrop-blur-xs shadow-xs">
                             {p.video_url ? (
                               <>
                                 <Video className="size-2.5 text-sky-400" />
@@ -356,16 +360,16 @@ export function MenuPage() {
                     </div>
 
                     {/* Food Description */}
-                    <div className="p-3 sm:p-4 space-y-1.5">
-                      <h4 className="font-bold text-sm sm:text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                    <div className="p-2.5 sm:p-3.5 space-y-1">
+                      <h4 className="font-semibold text-xs sm:text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors leading-snug">
                         {p.name}
                       </h4>
-                      <div className="flex items-center justify-between pt-1 border-t">
-                        <span className="font-black text-sm sm:text-base text-foreground tabular-nums">
+                      <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                        <span className="font-bold text-xs sm:text-sm text-foreground tabular-nums">
                           {rupiah(p.price)}
                         </span>
                         {qty > 0 && (
-                          <span className="text-[11px] font-semibold text-primary flex items-center gap-0.5">
+                          <span className="text-[10px] font-medium text-primary flex items-center gap-0.5">
                             <Check className="size-3" /> Dipilih
                           </span>
                         )}
