@@ -5,6 +5,7 @@ import {
   Coffee,
   ExternalLink,
   Layers,
+  Menu,
   Play,
   QrCode,
   Receipt,
@@ -14,6 +15,7 @@ import {
   TrendingUp,
   Users,
   UtensilsCrossed,
+  X,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
@@ -25,12 +27,13 @@ import { rupiah } from '@shared/lib/utils'
 
 /**
  * Landing Page Utama (http://localhost:5173/)
- * // ponytail: tablet mockup dan grafik analitik diimplementasikan murni menggunakan SVG & CSS Tailwind,
- * tanpa 3D bundle (Three.js), video canvas berat, atau framework animasi eksternal.
+ * // ponytail: tablet & mobile phone mockup diimplementasikan murni menggunakan SVG & CSS Tailwind,
+ * responsif di mobile view (<768px) dan desktop tanpa lib 3D eksternal.
  */
 export function LandingPage() {
   const [emailSub, setEmailSub] = useState('')
   const [subSuccess, setSubSuccess] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +47,7 @@ export function LandingPage() {
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault()
+    setMobileMenuOpen(false)
     const target = document.getElementById(id)
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -54,18 +58,18 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-amber-500 selection:text-white scroll-smooth">
       {/* 1. Top Announcement Bar */}
-      <aside aria-label="Pengumuman" className="bg-slate-950 px-4 py-2 text-center text-xs text-slate-300">
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-2">
+      <aside aria-label="Pengumuman" className="bg-slate-950 px-3 py-2 text-center text-xs text-slate-300">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-1.5 sm:gap-2">
           <Badge className="bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 text-[10px] px-2 py-0.5">
             PROMO 2026
           </Badge>
           <span className="hidden sm:inline">
             Sistem Kasir Pintar & Self-Order QR WhatsApp Generasi Terbaru telah hadir!
           </span>
-          <span className="sm:hidden">Sistem POS Pintar Generasi Baru!</span>
+          <span className="sm:hidden text-[11px]">Sistem POS Pintar Generasi Baru!</span>
           <Link
             to="/register"
-            className="font-semibold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 underline underline-offset-2 ml-1"
+            className="font-semibold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 underline underline-offset-2 text-[11px] sm:text-xs ml-1"
           >
             Coba Gratis 14 Hari <ArrowRight className="size-3" />
           </Link>
@@ -76,12 +80,12 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="grid size-10 place-items-center rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20">
-              <Store className="size-5" />
+            <div className="grid size-9 sm:size-10 place-items-center rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20">
+              <Store className="size-4.5 sm:size-5" />
             </div>
             <div>
-              <span className="text-lg font-black tracking-tight text-foreground flex items-center gap-1">
-                Tumbas <span className="text-amber-600 font-extrabold text-sm">POS</span>
+              <span className="text-base sm:text-lg font-black tracking-tight text-foreground flex items-center gap-1">
+                Tumbas <span className="text-amber-600 font-extrabold text-xs sm:text-sm">POS</span>
               </span>
               <span className="text-[10px] text-muted-foreground block -mt-1 font-medium">Smart Dining System</span>
             </div>
@@ -121,10 +125,10 @@ export function LandingPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/login"
-              className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'text-sm font-semibold' })}
+              className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'text-xs sm:text-sm font-semibold px-2.5 sm:px-3' })}
             >
               Masuk
             </Link>
@@ -132,44 +136,118 @@ export function LandingPage() {
               to="/register"
               className={buttonVariants({
                 size: 'sm',
-                className: 'rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/25 font-bold px-4 h-9',
+                className: 'rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/25 font-bold px-3 sm:px-4 h-8 sm:h-9 text-xs sm:text-sm',
               })}
             >
               Daftar Gratis
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden grid size-8 sm:size-9 place-items-center rounded-xl border border-border bg-card text-foreground hover:bg-muted/80 transition-colors"
+              aria-label={mobileMenuOpen ? 'Tutup navigasi' : 'Buka navigasi'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Drawer / Dropdown */}
+        {mobileMenuOpen && (
+          <nav
+            aria-label="Navigasi Mobile"
+            className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-md px-4 py-3 space-y-3 animate-in fade-in slide-in-from-top-2"
+          >
+            <div className="flex flex-col space-y-1 text-sm font-medium">
+              <a
+                href="#fitur"
+                onClick={(e) => scrollToSection(e, 'fitur')}
+                className="py-2 px-2.5 rounded-lg hover:bg-muted text-foreground transition-colors"
+              >
+                Fitur Unggulan
+              </a>
+              <a
+                href="#cara-kerja"
+                onClick={(e) => scrollToSection(e, 'cara-kerja')}
+                className="py-2 px-2.5 rounded-lg hover:bg-muted text-foreground transition-colors"
+              >
+                Cara Kerja
+              </a>
+              <a
+                href="#solusi"
+                onClick={(e) => scrollToSection(e, 'solusi')}
+                className="py-2 px-2.5 rounded-lg hover:bg-muted text-foreground transition-colors"
+              >
+                Solusi Bisnis
+              </a>
+              <a
+                href="#testimoni"
+                onClick={(e) => scrollToSection(e, 'testimoni')}
+                className="py-2 px-2.5 rounded-lg hover:bg-muted text-foreground transition-colors"
+              >
+                Testimoni
+              </a>
+              <Link
+                to="/s/warkop-nusantara"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-2.5 rounded-lg hover:bg-amber-500/10 text-amber-600 font-semibold flex items-center gap-2 transition-colors"
+              >
+                <QrCode className="size-4" /> Live Demo QR Meja
+              </Link>
+            </div>
+            <div className="pt-2 border-t border-border/60 flex flex-col gap-2">
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className={buttonVariants({ variant: 'outline', size: 'sm', className: 'w-full justify-center rounded-xl h-10 font-semibold text-xs sm:text-sm' })}
+              >
+                Masuk ke POS
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className={buttonVariants({
+                  size: 'sm',
+                  className: 'w-full justify-center rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold h-10 shadow-md shadow-amber-600/25 text-xs sm:text-sm',
+                })}
+              >
+                Daftar Akun Baru (Gratis 14 Hari)
+              </Link>
+            </div>
+          </nav>
+        )}
       </header>
 
       <main>
       {/* 3. Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-32">
+      <section className="relative overflow-hidden pt-10 pb-16 sm:pt-12 sm:pb-20 md:pt-20 md:pb-32">
         {/* Subtle decorative background glow */}
         <div className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-500/10 via-primary/5 to-transparent blur-3xl" />
 
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-6 shadow-xs animate-in fade-in slide-in-from-bottom-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-5 sm:mb-6 shadow-xs animate-in fade-in slide-in-from-bottom-2">
             <Store className="size-3.5 text-amber-500" />
             <span>The smart way to grow your business</span>
           </div>
 
-          <h1 className="mx-auto max-w-4xl text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.15]">
+          <h1 className="mx-auto max-w-4xl text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.18] sm:leading-[1.15]">
             Optimize Your Business <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-amber-600 via-amber-500 to-primary bg-clip-text text-transparent">
               With Advanced POS
             </span>
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-sm sm:text-base lg:text-lg text-muted-foreground leading-relaxed">
+          <p className="mx-auto mt-4 sm:mt-5 max-w-2xl text-xs sm:text-base lg:text-lg text-muted-foreground leading-relaxed px-1 sm:px-0">
             Platform all-in-one kasir pintar, pemesanan mandiri pelanggan via scan QR meja, integrasi notifikasi WhatsApp, layar dapur KDS, dan laporan analitik real-time.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-sm sm:max-w-none mx-auto">
             <Link
               to="/register"
               className={buttonVariants({
                 size: 'lg',
-                className: 'rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold px-7 h-12 shadow-lg shadow-amber-600/30 transition-transform hover:scale-[1.02]',
+                className: 'w-full sm:w-auto rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold px-7 h-12 shadow-lg shadow-amber-600/30 transition-transform hover:scale-[1.02] text-center justify-center',
               })}
             >
               Mulai Uji Coba Gratis <ArrowRight className="size-4 ml-1.5" />
@@ -179,15 +257,15 @@ export function LandingPage() {
               className={buttonVariants({
                 size: 'lg',
                 variant: 'outline',
-                className: 'rounded-xl font-semibold h-12 px-6',
+                className: 'w-full sm:w-auto rounded-xl font-semibold h-12 px-6 text-center justify-center',
               })}
             >
               <ExternalLink className="size-4 mr-2 text-muted-foreground" /> Lihat Demo Pelanggan
             </Link>
           </div>
 
-          {/* 4. Realistic Tablet POS Mockup (CSS & SVG Pure) */}
-          <div className="relative mx-auto mt-12 md:mt-16 max-w-5xl">
+          {/* 4. Realistic Tablet POS Mockup (Desktop & Tablet: >= md) */}
+          <div className="relative mx-auto mt-12 md:mt-16 max-w-5xl hidden md:block">
             {/* Tablet Hardware Frame */}
             <div className="relative rounded-[2.5rem] p-3 sm:p-4 bg-slate-900 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-950/20">
               {/* Front Camera dot */}
@@ -294,25 +372,108 @@ export function LandingPage() {
             {/* Mockup Stand base shadow */}
             <div className="mx-auto h-4 w-48 rounded-b-xl bg-slate-800/80 shadow-xl" />
           </div>
+
+          {/* 4. Realistic Smartphone Self-Order Mockup (Mobile View: < md) */}
+          <div className="relative mx-auto mt-8 max-w-[310px] md:hidden text-left">
+            <div className="relative rounded-[2.25rem] p-3 bg-slate-900 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-950/20">
+              {/* Speaker & Dynamic Notch */}
+              <div className="mx-auto mb-2 h-3.5 w-20 rounded-full bg-slate-800 flex items-center justify-center">
+                <div className="size-1.5 rounded-full bg-slate-700" />
+              </div>
+
+              {/* Phone Screen Container */}
+              <div className="overflow-hidden rounded-2xl bg-background border border-border shadow-inner flex flex-col text-xs">
+                {/* Mockup Header */}
+                <div className="flex items-center justify-between border-b px-3 py-2 bg-card/70">
+                  <div className="flex items-center gap-2">
+                    <div className="size-5 rounded bg-amber-600 text-white grid place-items-center font-bold text-[9px]">
+                      T
+                    </div>
+                    <div>
+                      <div className="font-bold text-[11px] leading-tight">Warkop Nusantara</div>
+                      <div className="text-[9px] text-muted-foreground">Meja #04 · Self-Order</div>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-emerald-500/40 text-emerald-600 bg-emerald-500/5">
+                    QR Aktif
+                  </Badge>
+                </div>
+
+                {/* Category Pills */}
+                <div className="flex gap-1 overflow-x-auto px-2.5 py-1.5 border-b bg-muted/15 text-[10px] font-semibold">
+                  <span className="rounded-full bg-primary text-primary-foreground px-2.5 py-0.5 whitespace-nowrap">Semua</span>
+                  <span className="rounded-full bg-card border px-2.5 py-0.5 text-muted-foreground whitespace-nowrap">Kopi</span>
+                  <span className="rounded-full bg-card border px-2.5 py-0.5 text-muted-foreground whitespace-nowrap">Makanan</span>
+                </div>
+
+                {/* Menu Items Preview */}
+                <div className="p-2.5 space-y-2 bg-muted/5">
+                  <div className="rounded-xl border bg-card p-2 flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 grid place-items-center shrink-0">
+                        <Coffee className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[11px] truncate">Kopi Susu Gula Aren</div>
+                        <div className="text-[10px] font-bold text-foreground">{rupiah(18000)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 bg-primary/10 rounded-full px-2 py-0.5 text-primary text-[10px] font-bold">
+                      2x
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border bg-card p-2 flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
+                        <UtensilsCrossed className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[11px] truncate">Nasi Goreng Spesial</div>
+                        <div className="text-[10px] font-bold text-foreground">{rupiah(28000)}</div>
+                      </div>
+                    </div>
+                    <div className="size-5 rounded-full bg-primary text-primary-foreground grid place-items-center text-[10px] font-bold">
+                      +
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating Bottom Bar */}
+                <div className="border-t bg-card p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Total (2 Item)</span>
+                    <span className="font-extrabold text-primary">{rupiah(36000)}</span>
+                  </div>
+                  <div className="rounded-xl bg-amber-600 text-white py-1.5 text-center text-[11px] font-bold shadow-xs flex items-center justify-center gap-1">
+                    <span>Kirim ke WhatsApp</span>
+                    <ArrowRight className="size-3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Phone stand shadow */}
+            <div className="mx-auto h-3 w-32 rounded-b-xl bg-slate-800/70 shadow-lg" />
+          </div>
         </div>
       </section>
 
       {/* 5. Social Proof / Ratings & Trusted Partners */}
-      <section className="border-y border-border/60 bg-muted/30 py-12">
+      <section className="border-y border-border/60 bg-muted/30 py-10 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <div className="flex items-center justify-center gap-1 text-amber-500 mb-2">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="size-4 fill-amber-500" />
             ))}
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-foreground px-2">
             Providing Digital Solutions To Over 150,000 Businesses
           </h2>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto">
             Telah dipercaya oleh berbagai jaringan coffee shop, restoran kasual, bistro, dan cloud kitchen di seluruh Indonesia.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-8 sm:gap-14 opacity-75 grayscale hover:grayscale-0 transition-all text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:gap-14 opacity-75 grayscale hover:grayscale-0 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <span className="flex items-center gap-1.5"><Coffee className="size-4 text-amber-600" /> Kopi Nusantara</span>
             <span className="flex items-center gap-1.5"><UtensilsCrossed className="size-4 text-primary" /> Savory Bistro</span>
             <span className="flex items-center gap-1.5"><ChefHat className="size-4 text-emerald-600" /> Appetito Kitchen</span>
@@ -323,29 +484,29 @@ export function LandingPage() {
       </section>
 
       {/* 6. Feature Bento Grid: Maximize Hospitality Potential */}
-      <section id="fitur" className="py-20 lg:py-28 scroll-mt-24">
+      <section id="fitur" className="py-14 sm:py-20 lg:py-28 scroll-mt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-3 mb-16">
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-10 sm:mb-16">
             <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-500/30 bg-amber-500/5 text-xs">
               FITUR UTAMA
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
               Maximize Your Hospitality Potential With Our Guidance
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            <p className="text-xs sm:text-base text-muted-foreground leading-relaxed">
               Semua yang Anda butuhkan untuk mempercepat alur pelayanan restoran, memangkas waktu antre kasir, dan mencegah kehilangan stok.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Bento Card 1: Inventory Management (4 cols) */}
-            <Card className="rounded-3xl border p-6 lg:col-span-5 flex flex-col justify-between hover:shadow-lg transition-shadow">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+            {/* Bento Card 1: Inventory Management (5 cols) */}
+            <Card className="rounded-2xl sm:rounded-3xl border p-5 sm:p-6 lg:col-span-5 flex flex-col justify-between hover:shadow-lg transition-shadow">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-blue-500/10 text-blue-600 grid place-items-center font-bold">
-                  <Layers className="size-6" />
+                <div className="size-11 sm:size-12 rounded-2xl bg-blue-500/10 text-blue-600 grid place-items-center font-bold">
+                  <Layers className="size-5 sm:size-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">Katalog & Manajemen Stok</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">Katalog & Manajemen Stok</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
                     Atur menu, varian rasa, tingkat kepedasan, dan nonaktifkan menu yang habis dalam satu sakelar instan tanpa reload.
                   </p>
@@ -353,7 +514,7 @@ export function LandingPage() {
               </div>
 
               {/* Mini visual mockup */}
-              <div className="mt-6 rounded-2xl border bg-muted/40 p-4 space-y-2.5">
+              <div className="mt-6 rounded-2xl border bg-muted/40 p-3.5 sm:p-4 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold">Status Ketersediaan</span>
                   <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600">42 Menu Aktif</Badge>
@@ -376,13 +537,13 @@ export function LandingPage() {
             </Card>
 
             {/* Bento Card 2: Sales & Table Management (7 cols) */}
-            <Card className="rounded-3xl border p-6 lg:col-span-7 flex flex-col justify-between hover:shadow-lg transition-shadow">
+            <Card className="rounded-2xl sm:rounded-3xl border p-5 sm:p-6 lg:col-span-7 flex flex-col justify-between hover:shadow-lg transition-shadow">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-600 grid place-items-center font-bold">
-                  <QrCode className="size-6" />
+                <div className="size-11 sm:size-12 rounded-2xl bg-amber-500/10 text-amber-600 grid place-items-center font-bold">
+                  <QrCode className="size-5 sm:size-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">Self-Order QR Meja & Kasir POS Cepat</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">Self-Order QR Meja & Kasir POS Cepat</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
                     Pelanggan cukup memindai stiker QR di meja untuk memesan langsung lewat ponsel. Pesanan otomatis terkirim via WhatsApp kasir dan layar dapur.
                   </p>
@@ -390,19 +551,19 @@ export function LandingPage() {
               </div>
 
               {/* Visual flow chart mini */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="rounded-2xl border bg-card p-3 space-y-1 shadow-xs text-center">
-                  <div className="size-8 mx-auto rounded-full bg-amber-500/10 text-amber-600 grid place-items-center text-xs font-bold">1</div>
+                  <div className="size-7 sm:size-8 mx-auto rounded-full bg-amber-500/10 text-amber-600 grid place-items-center text-xs font-bold">1</div>
                   <div className="font-bold text-xs">Scan QR Meja</div>
                   <p className="text-[11px] text-muted-foreground">Tanpa perlu instal aplikasi apapun</p>
                 </div>
                 <div className="rounded-2xl border bg-card p-3 space-y-1 shadow-xs text-center">
-                  <div className="size-8 mx-auto rounded-full bg-blue-500/10 text-blue-600 grid place-items-center text-xs font-bold">2</div>
+                  <div className="size-7 sm:size-8 mx-auto rounded-full bg-blue-500/10 text-blue-600 grid place-items-center text-xs font-bold">2</div>
                   <div className="font-bold text-xs">Kirim ke WA Kasir</div>
                   <p className="text-[11px] text-muted-foreground">Format pesanan rapi & terstruktur</p>
                 </div>
                 <div className="rounded-2xl border bg-card p-3 space-y-1 shadow-xs text-center">
-                  <div className="size-8 mx-auto rounded-full bg-emerald-500/10 text-emerald-600 grid place-items-center text-xs font-bold">3</div>
+                  <div className="size-7 sm:size-8 mx-auto rounded-full bg-emerald-500/10 text-emerald-600 grid place-items-center text-xs font-bold">3</div>
                   <div className="font-bold text-xs">Dapur Langsung Masak</div>
                   <p className="text-[11px] text-muted-foreground">Sinkronisasi otomatis real-time</p>
                 </div>
@@ -410,19 +571,19 @@ export function LandingPage() {
             </Card>
 
             {/* Bento Card 3: Analytics & Reporting (12 cols) */}
-            <Card className="rounded-3xl border p-6 lg:col-span-12 hover:shadow-lg transition-shadow">
+            <Card className="rounded-2xl sm:rounded-3xl border p-5 sm:p-6 lg:col-span-12 hover:shadow-lg transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2 max-w-xl">
-                  <div className="size-12 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">
-                    <TrendingUp className="size-6" />
+                  <div className="size-11 sm:size-12 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">
+                    <TrendingUp className="size-5 sm:size-6" />
                   </div>
-                  <h3 className="text-xl font-bold">Laporan Keuangan & Analitik Otomatis</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">Laporan Keuangan & Analitik Otomatis</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     Pantau omzet harian, transaksi per metode pembayaran (Tunai, QRIS, EDC), dan rata-rata belanja pembeli (AOV) dari mana saja.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                   <div className="rounded-2xl border bg-muted/40 p-3 sm:px-6 text-center">
                     <span className="text-[11px] text-muted-foreground block font-semibold">Pertumbuhan Omzet</span>
                     <span className="text-xl sm:text-2xl font-black text-emerald-600">+34.8%</span>
@@ -439,26 +600,26 @@ export function LandingPage() {
       </section>
 
       {/* 7. How It Works Section */}
-      <section id="cara-kerja" className="border-y border-border/60 bg-muted/20 py-20 lg:py-28 scroll-mt-24">
+      <section id="cara-kerja" className="border-y border-border/60 bg-muted/20 py-14 sm:py-20 lg:py-28 scroll-mt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-3 mb-16">
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-10 sm:mb-16">
             <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 text-xs">
               LANGKAH MUDAH
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
               What Our POS System Does And How It Works
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            <p className="text-xs sm:text-base text-muted-foreground leading-relaxed">
               Mulai operasikan sistem kasir pintar Anda hanya dalam hitungan menit tanpa perangkat mahal.
             </p>
           </div>
 
           {/* Workflow Showcase Card with Play Indicator */}
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border bg-card shadow-xl">
-            <div className="relative aspect-16/9 bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center text-white p-6">
-              <div className="text-center space-y-4 max-w-md z-10">
-                <div className="size-16 sm:size-20 rounded-full bg-white/20 backdrop-blur-md grid place-items-center mx-auto shadow-2xl transition-transform hover:scale-110 cursor-pointer border border-white/30">
-                  <Play className="size-7 sm:size-9 text-white fill-white translate-x-0.5" />
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl sm:rounded-3xl border bg-card shadow-xl">
+            <div className="relative min-h-[200px] sm:min-h-[240px] aspect-auto sm:aspect-16/9 bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center text-white p-6 py-10 sm:py-6">
+              <div className="text-center space-y-3 sm:space-y-4 max-w-md z-10">
+                <div className="size-14 sm:size-20 rounded-full bg-white/20 backdrop-blur-md grid place-items-center mx-auto shadow-2xl transition-transform hover:scale-110 cursor-pointer border border-white/30">
+                  <Play className="size-6 sm:size-9 text-white fill-white translate-x-0.5" />
                 </div>
                 <h3 className="text-lg sm:text-2xl font-bold text-white">Lihat Cara Kerja Sistem Restoran Kami</h3>
                 <p className="text-xs sm:text-sm text-slate-300">
@@ -469,7 +630,7 @@ export function LandingPage() {
 
             {/* 3 Steps underneath */}
             <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x border-t bg-card">
-              <div className="p-6 space-y-2">
+              <div className="p-4 sm:p-6 space-y-1.5 sm:space-y-2">
                 <div className="font-extrabold text-sm flex items-center gap-2">
                   <span className="size-6 rounded-full bg-primary text-primary-foreground text-xs grid place-items-center">1</span>
                   Setup Menu & Meja
@@ -478,7 +639,7 @@ export function LandingPage() {
                   Masukkan daftar menu makanan/minuman dan cetak stiker QR untuk ditempel di meja pelanggan.
                 </p>
               </div>
-              <div className="p-6 space-y-2">
+              <div className="p-4 sm:p-6 space-y-1.5 sm:space-y-2">
                 <div className="font-extrabold text-sm flex items-center gap-2">
                   <span className="size-6 rounded-full bg-primary text-primary-foreground text-xs grid place-items-center">2</span>
                   Self-Order Pelanggan
@@ -487,7 +648,7 @@ export function LandingPage() {
                   Pelanggan scan QR menggunakan kamera HP untuk memilih menu dan menyelesaikan pesanan via WA.
                 </p>
               </div>
-              <div className="p-6 space-y-2">
+              <div className="p-4 sm:p-6 space-y-1.5 sm:space-y-2">
                 <div className="font-extrabold text-sm flex items-center gap-2">
                   <span className="size-6 rounded-full bg-primary text-primary-foreground text-xs grid place-items-center">3</span>
                   Kasir & Dapur Terhubung
@@ -502,18 +663,18 @@ export function LandingPage() {
       </section>
 
       {/* 8. Solutions & Mosaic Section */}
-      <section id="solusi" className="py-20 lg:py-28 scroll-mt-24">
+      <section id="solusi" className="py-14 sm:py-20 lg:py-28 scroll-mt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Content */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 space-y-4 sm:space-y-6">
               <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-500/30 bg-amber-500/5 text-xs">
                 SOLUSI BISNIS F&B
               </Badge>
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-foreground leading-[1.15]">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.2] sm:leading-[1.15]">
                 Empowering Over 150,000 Businesses To Thrive In The Digital Age.
               </h2>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-base text-muted-foreground leading-relaxed">
                 Kami merancang sistem point of sale yang fleksibel untuk berbagai model bisnis: mulai dari kedai kopi estetik, warung makan lokal, restoran fine dining, hingga gerai waralaba dengan banyak cabang.
               </p>
               <div className="space-y-3 pt-2">
@@ -522,8 +683,8 @@ export function LandingPage() {
                     <CheckCircle2 className="size-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold">Sinkronisasi Realtime Multi-Device</h4>
-                    <p className="text-xs text-muted-foreground">Kasir, layar koki dapur, dan admin backoffice selalu terhubung seketika.</p>
+                    <h4 className="text-xs sm:text-sm font-bold">Sinkronisasi Realtime Multi-Device</h4>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">Kasir, layar koki dapur, dan admin backoffice selalu terhubung seketika.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -531,8 +692,8 @@ export function LandingPage() {
                     <CheckCircle2 className="size-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold">Pesanan WhatsApp Tanpa Aplikasi Tambahan</h4>
-                    <p className="text-xs text-muted-foreground">Pelanggan tidak perlu repot install aplikasi untuk melakukan pemesanan meja.</p>
+                    <h4 className="text-xs sm:text-sm font-bold">Pesanan WhatsApp Tanpa Aplikasi Tambahan</h4>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">Pelanggan tidak perlu repot install aplikasi untuk melakukan pemesanan meja.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -540,56 +701,56 @@ export function LandingPage() {
                     <CheckCircle2 className="size-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold">Analisis Penjualan & Margin Akurat</h4>
-                    <p className="text-xs text-muted-foreground">Pantau produk terlaris, jam ramai kunjungan, dan omzet bersih kapan saja.</p>
+                    <h4 className="text-xs sm:text-sm font-bold">Analisis Penjualan & Margin Akurat</h4>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">Pantau produk terlaris, jam ramai kunjungan, dan omzet bersih kapan saja.</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Right Mosaic Grid */}
-            <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 grid place-items-center">
-                  <Coffee className="size-5" />
+            <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-amber-500/10 text-amber-600 grid place-items-center">
+                  <Coffee className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Coffee Shop & Kafe</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Penyajian cepat dengan dukungan varian gula, es, dan topping.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Coffee Shop & Kafe</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Penyajian cepat dengan dukungan varian gula, es, dan topping.</p>
               </div>
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
-                  <UtensilsCrossed className="size-5" />
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
+                  <UtensilsCrossed className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Restoran Dine-in</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Manajemen meja fleksibel dan integrasi tiket antrean dapur.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Restoran Dine-in</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Manajemen meja fleksibel dan integrasi tiket antrean dapur.</p>
               </div>
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center">
-                  <Store className="size-5" />
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center">
+                  <Store className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Gerai Waralaba</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Kelola multi-cabang terpusat dari satu dashboard super admin.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Gerai Waralaba</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Kelola multi-cabang terpusat dari satu dashboard super admin.</p>
               </div>
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-blue-500/10 text-blue-600 grid place-items-center">
-                  <Users className="size-5" />
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-blue-500/10 text-blue-600 grid place-items-center">
+                  <Users className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Manajemen Staf</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Hak akses bertingkat: Kasir, Kitchen, Admin Toko, dan Owner.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Manajemen Staf</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Hak akses bertingkat: Kasir, Kitchen, Admin Toko, dan Owner.</p>
               </div>
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-purple-500/10 text-purple-600 grid place-items-center">
-                  <Receipt className="size-5" />
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-purple-500/10 text-purple-600 grid place-items-center">
+                  <Receipt className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Cetak Struk 58mm</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Kompatibel printer thermal bluetooth & browser print standar.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Cetak Struk 58mm</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Kompatibel printer thermal bluetooth & browser print standar.</p>
               </div>
-              <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-xs hover:shadow-md transition-shadow">
-                <div className="size-10 rounded-xl bg-rose-500/10 text-rose-600 grid place-items-center">
-                  <ShieldCheck className="size-5" />
+              <div className="rounded-2xl border bg-card p-3.5 sm:p-5 space-y-2 sm:space-y-3 shadow-xs hover:shadow-md transition-shadow">
+                <div className="size-9 sm:size-10 rounded-xl bg-rose-500/10 text-rose-600 grid place-items-center">
+                  <ShieldCheck className="size-4 sm:size-5" />
                 </div>
-                <h4 className="font-bold text-sm">Aman & Terenkripsi</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">Didukung Supabase PostgreSQL dengan Row-Level Security.</p>
+                <h4 className="font-bold text-xs sm:text-sm">Aman & Terenkripsi</h4>
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">Didukung Supabase PostgreSQL dengan Row-Level Security.</p>
               </div>
             </div>
           </div>
@@ -597,18 +758,18 @@ export function LandingPage() {
       </section>
 
       {/* 9. Testimonials Section */}
-      <section id="testimoni" className="border-t border-border/60 py-20 lg:py-28 scroll-mt-24">
-        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8 space-y-8">
-          <div className="size-12 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center mx-auto">
-            <CheckCircle2 className="size-6" />
+      <section id="testimoni" className="border-t border-border/60 py-14 sm:py-20 lg:py-28 scroll-mt-20">
+        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+          <div className="size-11 sm:size-12 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center mx-auto">
+            <CheckCircle2 className="size-5 sm:size-6" />
           </div>
 
-          <blockquote className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-snug">
+          <blockquote className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-foreground leading-snug px-2">
             “Managing transactions and tracking inventory has never been easier since integrating Tumbas POS.”
           </blockquote>
 
           <div className="space-y-1">
-            <div className="size-12 rounded-full bg-muted border mx-auto grid place-items-center font-bold text-sm text-primary">
+            <div className="size-11 sm:size-12 rounded-full bg-muted border mx-auto grid place-items-center font-bold text-sm text-primary">
               RH
             </div>
             <div className="font-bold text-sm text-foreground">Rian Hendrawan</div>
@@ -617,26 +778,26 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 9. Bottom Call to Action Banner */}
-      <section className="py-12 pb-24">
+      {/* 10. Bottom Call to Action Banner */}
+      <section className="py-8 sm:py-12 pb-16 sm:pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-8 sm:p-14 text-white shadow-2xl">
-            <div className="relative z-10 max-w-xl space-y-5">
+          <div className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-6 sm:p-14 text-white shadow-2xl">
+            <div className="relative z-10 max-w-xl space-y-4 sm:space-y-5">
               <Badge className="bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 text-xs">
                 UJI COBA TANPA RISIKO
               </Badge>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
                 Maximize Efficiency - Boost Your Sales Today
               </h2>
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+              <p className="text-xs sm:text-base text-slate-300 leading-relaxed">
                 Tingkatkan kepuasan pelanggan dan percepat perputaran meja kafe Anda sekarang juga.
               </p>
-              <div className="pt-2 flex flex-wrap gap-3">
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link
                   to="/register"
                   className={buttonVariants({
                     size: 'lg',
-                    className: 'rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 h-12 shadow-lg shadow-amber-600/30',
+                    className: 'w-full sm:w-auto text-center justify-center rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 h-12 shadow-lg shadow-amber-600/30',
                   })}
                 >
                   Daftar Sekarang Gratis
@@ -646,7 +807,7 @@ export function LandingPage() {
                   className={buttonVariants({
                     size: 'lg',
                     variant: 'outline',
-                    className: 'rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 h-12 px-6',
+                    className: 'w-full sm:w-auto text-center justify-center rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 h-12 px-6',
                   })}
                 >
                   Masuk ke POS
@@ -662,12 +823,12 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 10. Pre-Footer Contact Form */}
-      <section className="border-t border-border/60 bg-muted/10 py-16">
+      {/* 11. Pre-Footer Contact Form */}
+      <section className="border-t border-border/60 bg-muted/10 py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8">
             <div className="space-y-1 max-w-md">
-              <h3 className="text-xl sm:text-2xl font-bold">Optimize Your Hospitality Business</h3>
+              <h3 className="text-lg sm:text-2xl font-bold">Optimize Your Hospitality Business</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Dapatkan panduan setup sistem restoran dan konsultasi gratis langsung dari tim spesialis kami.
               </p>
@@ -682,7 +843,7 @@ export function LandingPage() {
                 placeholder="Masukkan email bisnis Anda..."
                 className="h-11 rounded-xl bg-background"
               />
-              <Button type="submit" className="h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 shrink-0">
+              <Button type="submit" className="h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 shrink-0 w-full sm:w-auto justify-center">
                 {subSuccess ? 'Terkirim!' : 'Konsultasi Gratis'}
               </Button>
             </form>
@@ -691,11 +852,11 @@ export function LandingPage() {
       </section>
       </main>
 
-      {/* 11. Footer */}
-      <footer className="border-t border-border/60 bg-background py-12 text-xs text-muted-foreground">
+      {/* 12. Footer */}
+      <footer className="border-t border-border/60 bg-background py-10 sm:py-12 text-xs text-muted-foreground">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
-            <div className="col-span-2 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 sm:gap-8">
+            <div className="col-span-2 sm:col-span-3 md:col-span-2 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="size-7 rounded-lg bg-amber-600 text-white grid place-items-center font-bold text-xs">
                   T
@@ -727,7 +888,7 @@ export function LandingPage() {
               </ul>
             </div>
 
-            <div className="space-y-2">
+            <div className="col-span-2 sm:col-span-1 space-y-2">
               <div className="font-bold text-foreground">Perusahaan</div>
               <ul className="space-y-1.5">
                 <li><Link to="/login" className="hover:text-foreground">Masuk Akun</Link></li>
@@ -737,9 +898,9 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-8 text-[11px]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-8 text-[11px] text-center sm:text-left">
             <p>© 2026 Tumbas POS. All rights reserved.</p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               <span className="hover:text-foreground cursor-pointer">Kebijakan Privasi</span>
               <span className="hover:text-foreground cursor-pointer">Syarat & Ketentuan</span>
               <span className="hover:text-foreground cursor-pointer">Bantuan</span>
