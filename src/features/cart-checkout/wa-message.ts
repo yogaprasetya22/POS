@@ -24,7 +24,7 @@ export function buildWaText(o: WaOrder) {
 
   if (o.bonus_item && o.bonus_item.qty > 0) {
     lines.push(
-      `🎁 ${o.bonus_item.qty}x ${o.bonus_item.name} [BONUS GRATIS] — Gratis (Rp0)\n   Promo: ${o.bonus_item.promoName}`
+      `• ${o.bonus_item.qty}x ${o.bonus_item.name} [BONUS GRATIS] — Gratis (Rp0)\n   Promo: ${o.bonus_item.promoName}`
     )
   }
 

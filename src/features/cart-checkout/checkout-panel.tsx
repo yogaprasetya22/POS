@@ -216,8 +216,18 @@ export function CheckoutPanel({
             ))}
             {promo.bonusItem && (
               <li className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-2.5 shadow-2xs">
-                <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800 grid place-items-center text-lg select-none">
-                  🎁
+                <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-emerald-500/30">
+                  {promo.bonusItem.image ? (
+                    <img
+                      src={promo.bonusItem.image}
+                      alt={promo.bonusItem.name}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid size-full place-items-center text-muted-foreground/40">
+                      <UtensilsCrossed className="size-4" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-0.5">
@@ -386,8 +396,8 @@ export function CheckoutPanel({
           </div>
           {promo.bonusItem && (
             <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-md">
-              <span className="flex items-center gap-1 min-w-0">
-                <span>🎁</span>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="font-medium truncate">1 Menu Gratis ({promo.bonusItem.name})</span>
               </span>
               <span className="font-bold shrink-0">Gratis (Rp0)</span>
@@ -404,8 +414,8 @@ export function CheckoutPanel({
             </div>
           </div>
           {totalDiscount > 0 && (
-            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/25 p-1.5 text-center text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1 mt-1">
-              <span>🎉</span>
+            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/25 p-1.5 text-center text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5 mt-1">
+              <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>
                 Anda hemat {rupiah(totalDiscount)}
                 {promo.bonusItem ? ' (termasuk 1 menu gratis)' : ''}!

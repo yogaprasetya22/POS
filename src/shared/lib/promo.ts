@@ -8,6 +8,7 @@ export type BonusItem = {
   unitPrice: number
   promoName: string
   choices?: { group: string; option: string }[]
+  image?: string | null
 }
 
 export type PromoCalculation = {
@@ -75,6 +76,8 @@ export function calculatePromo(
         const bonusQty = freeSets * p.get_qty
         const targetProd = matchingItems[0]
         if (targetProd) {
+          const prodDetails = prodMap.get(targetProd.product_id)
+          const image = targetProd.image ?? prodDetails?.image_url ?? prodDetails?.images?.[0] ?? null
           bestPromo = p
           bestBonus = {
             productId: targetProd.product_id,
@@ -83,6 +86,7 @@ export function calculatePromo(
             unitPrice: targetProd.unit_price,
             promoName: p.name,
             choices: targetProd.choices,
+            image,
           }
         }
       } else if (totalQty > 0 && totalQty < p.buy_qty) {

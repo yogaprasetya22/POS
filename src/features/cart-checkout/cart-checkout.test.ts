@@ -103,7 +103,7 @@ describe('wa message', () => {
         { name: 'Kentang Goreng', qty: 1, unit_price: 20000, note: '', choices: [] },
       ],
     })
-    expect(text).toContain('🎁 1x Nasi Goreng Spesial [BONUS GRATIS] — Gratis (Rp0)')
+    expect(text).toContain('• 1x Nasi Goreng Spesial [BONUS GRATIS] — Gratis (Rp0)')
     expect(text).toContain('Subtotal: Rp122.000')
     expect(text).toContain('Promo (Beli 2 Gratis 1 Nasi Goreng Spesial): -Rp29.000')
     expect(text).toContain('*Total: Rp93.000*')
