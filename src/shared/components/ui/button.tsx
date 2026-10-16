@@ -1,3 +1,4 @@
+import { isValidElement } from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
@@ -44,11 +45,21 @@ function Button({
   variant = "default",
   size = "default",
   type = "submit", // Base UI defaultnya "button"; di sini seperti <button> HTML supaya form bisa disubmit
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  const isNative =
+    nativeButton ??
+    (render && isValidElement(render) && render.type !== "button"
+      ? false
+      : undefined)
+
   return (
     <ButtonPrimitive
-      type={type}
+      type={isNative === false ? undefined : type}
+      nativeButton={isNative}
+      render={render}
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}

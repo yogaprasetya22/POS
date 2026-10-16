@@ -70,6 +70,7 @@ export function StoreLink({ slug }: { slug: string }) {
               variant="ghost"
               size="icon-sm"
               className="h-9 w-9 rounded-xl shrink-0"
+              nativeButton={false}
               render={<a href={baseUrl} target="_blank" rel="noreferrer" title="Buka katalog pelanggan" />}
             >
               <ExternalLink className="size-4" />

@@ -131,10 +131,10 @@ export function OverviewTab({
             <Button onClick={onOpenNewProduct} className="gap-2 shadow-sm shadow-primary/25">
               <Plus className="size-4" /> Tambah Menu
             </Button>
-            <Button variant="outline" className="gap-2" render={<Link to="/cashier" />}>
+            <Button variant="outline" className="gap-2" nativeButton={false} render={<Link to="/cashier" />}>
               <ShoppingBag className="size-4" /> Kasir
             </Button>
-            <Button variant="outline" className="gap-2" render={<Link to="/kitchen" />}>
+            <Button variant="outline" className="gap-2" nativeButton={false} render={<Link to="/kitchen" />}>
               <ChefHat className="size-4" /> Dapur
             </Button>
             <Button variant="outline" onClick={copyUrl} className="gap-2">
@@ -452,6 +452,7 @@ export function OverviewTab({
                   variant="outline"
                   size="sm"
                   className="gap-1.5 text-xs"
+                  nativeButton={false}
                   render={<a href={storeUrl} target="_blank" rel="noreferrer" />}
                 >
                   <ExternalLink className="size-3.5" /> Buka
