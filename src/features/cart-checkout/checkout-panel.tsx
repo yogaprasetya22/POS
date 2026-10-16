@@ -165,6 +165,28 @@ export function CheckoutPanel({
                       {[...i.choices.map((c) => c.option), i.note].filter(Boolean).join(' · ')}
                     </div>
                   )}
+                  {(() => {
+                    const itemPromo = promotions.find(
+                      (p) =>
+                        p.is_active &&
+                        ((p.scope === 'PRODUCT' && p.target_id === i.product_id) ||
+                          (p.scope === 'CATEGORY' &&
+                            products.find((pr) => pr.id === i.product_id)?.category_id === p.target_id))
+                    )
+                    if (!itemPromo) return null
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md mt-0.5 w-fit">
+                        <Sparkles className="size-2.5" />
+                        <span>
+                          {itemPromo.type === 'BUY_X_GET_Y'
+                            ? `Beli ${itemPromo.buy_qty} Gratis ${itemPromo.get_qty}`
+                            : itemPromo.type === 'PERCENTAGE'
+                            ? `Diskon ${itemPromo.discount_percent}%`
+                            : `Hemat ${rupiah(itemPromo.discount_amount)}`}
+                        </span>
+                      </span>
+                    )
+                  })()}
                   <div className="font-black text-xs sm:text-sm text-primary">
                     {rupiah(i.unit_price * i.qty)}
                     {i.qty > 1 && (
@@ -275,13 +297,23 @@ export function CheckoutPanel({
           </div>
         )}
 
-        {/* Hint promo jika ada */}
-        {promo.hints.length > 0 && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-            <Sparkles className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+        {/* Banner Promo Aktif atau Hint */}
+        {promo.discount > 0 ? (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-semibold truncate">Promo: {promo.appliedPromo?.name}</span>
+            </div>
+            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
+              Hemat {rupiah(promo.discount)}
+            </span>
+          </div>
+        ) : promo.hints.length > 0 ? (
+          <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 p-2.5 text-xs text-violet-800 dark:text-violet-300 flex items-center gap-2">
+            <Sparkles className="size-3.5 shrink-0 text-violet-600 dark:text-violet-400" />
             <span className="font-medium text-[11px] sm:text-xs">{promo.hints[0]}</span>
           </div>
-        )}
+        ) : null}
 
         {/* Rincian Pembayaran */}
         <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3 space-y-1.5 text-xs">
@@ -289,19 +321,30 @@ export function CheckoutPanel({
             <span>Subtotal ({count} item)</span>
             <span className="font-medium text-foreground">{rupiah(subtotal)}</span>
           </div>
-          {promo.discount > 0 && (
-            <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 text-[11px] sm:text-xs font-medium">
-              <span>Promo ({promo.appliedPromo?.name})</span>
-              <span>-{rupiah(promo.discount)}</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between text-[11px] sm:text-xs">
+            <span className="text-muted-foreground">Diskon Promo</span>
+            {promo.discount > 0 ? (
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                -{rupiah(promo.discount)}
+              </span>
+            ) : (
+              <span className="text-muted-foreground/70">Rp0</span>
+            )}
+          </div>
           <div className="flex items-center justify-between text-muted-foreground text-[11px] sm:text-xs">
             <span>Biaya Layanan</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">Gratis (Rp0)</span>
           </div>
           <div className="border-t border-border/70 pt-1.5 flex items-center justify-between text-xs sm:text-sm">
             <span className="font-bold text-foreground">Total Tagihan</span>
-            <span className="font-bold text-primary">{rupiah(total)}</span>
+            <div className="text-right">
+              <span className="font-bold text-primary">{rupiah(total)}</span>
+              {promo.discount > 0 && (
+                <span className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Hemat {rupiah(promo.discount)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

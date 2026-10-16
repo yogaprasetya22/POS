@@ -48,6 +48,8 @@ export function calculatePromo(
       const remainder = totalQty % bundleSize
       if (remainder === p.buy_qty && totalQty > 0) {
         hints.push(`Tambah ${p.get_qty} lagi untuk gratis ${p.get_qty} (${p.name})!`)
+      } else if (totalQty > 0 && totalQty < p.buy_qty) {
+        hints.push(`Beli ${p.buy_qty - totalQty} item lagi untuk promo ${p.name}!`)
       }
 
       if (totalQty >= bundleSize && subtotal >= (p.min_spend ?? 0)) {
