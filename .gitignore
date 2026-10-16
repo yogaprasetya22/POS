@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+*.local
+.claude
+test-results
+playwright-report
+.playwright-mcp
