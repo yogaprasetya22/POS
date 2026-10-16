@@ -156,7 +156,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
         <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md shadow-xs">
           {mediaList[activeIndex].type === 'video' ? (
             <>
-              <Video className="size-2.5 text-rose-400" />
+              <Video className="size-2.5 text-sky-400" />
               <span>Video</span>
             </>
           ) : (

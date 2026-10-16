@@ -297,7 +297,7 @@ export function MenuPage() {
                       {/* Promo Badge on Food Photo */}
                       {productPromo && p.is_available && (
                         <div className="absolute top-2 left-2 z-10 max-w-[70%]">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-600/95 text-white font-black text-[9px] sm:text-[10px] px-2 py-0.5 shadow-md shadow-rose-600/25 truncate backdrop-blur-xs">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/95 text-primary-foreground font-bold text-[9px] sm:text-[10px] px-2.5 py-0.5 shadow-sm shadow-primary/20 truncate backdrop-blur-xs">
                             <Sparkles className="size-2.5 shrink-0" />
                             <span className="truncate">{productPromo.name}</span>
                           </span>
@@ -341,7 +341,7 @@ export function MenuPage() {
                           <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-xs shadow-xs">
                             {p.video_url ? (
                               <>
-                                <Video className="size-2.5 text-rose-400" />
+                                <Video className="size-2.5 text-sky-400" />
                                 <span>Video</span>
                               </>
                             ) : (

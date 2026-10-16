@@ -159,7 +159,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
           <div className="space-y-2 rounded-2xl border p-3.5 bg-muted/20">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-1.5 text-xs font-semibold">
-                <Video className="size-4 text-rose-500" />
+                <Video className="size-4 text-primary" />
                 <span>Video Menu (Opsional)</span>
               </Label>
               {form.video_url && (

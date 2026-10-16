@@ -193,10 +193,10 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   return (
     <div className="space-y-6">
       {/* Header Banner Modern */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card via-card to-rose-500/5 border p-5 sm:p-7 shadow-xs">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card via-card to-primary/5 border p-5 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
           <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
               <Sparkles className="size-3.5" />
               <span>Otomatisasi Penjualan & Promosi</span>
             </div>
@@ -219,7 +219,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         </div>
 
         {/* Decorative background glow */}
-        <div className="absolute -top-12 -right-12 size-48 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -top-12 -right-12 size-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       </div>
 
       {/* KPI Stats Cards */}
@@ -237,7 +237,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         </div>
 
         <div className="rounded-2xl border bg-card p-4 flex items-center gap-3.5 shadow-2xs">
-          <div className="grid size-11 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
+          <div className="grid size-11 place-items-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0">
             <Gift className="size-5" />
           </div>
           <div>
@@ -300,7 +300,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                       <div
                         className={`grid size-11 place-items-center rounded-2xl shrink-0 ${
                           isB2G1
-                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
                             : isPercent
                             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                             : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
@@ -343,7 +343,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   <div
                     className={`rounded-xl p-2.5 flex items-center justify-between text-xs font-bold ${
                       isB2G1
-                        ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300'
+                        ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300'
                         : isPercent
                         ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                         : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
@@ -456,11 +456,11 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                 Pratinjau Tampilan di Katalog Pelanggan
               </span>
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 shadow-sm">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground font-bold text-[10px] px-2.5 py-0.5 shadow-xs">
                   <Sparkles className="size-3" />
                   <span>{name || 'Nama Promo'}</span>
                 </span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-semibold text-muted-foreground">
                   {type === 'BUY_X_GET_Y'
                     ? `Beli ${buyQty} Gratis ${getQty}`
                     : type === 'PERCENTAGE'
@@ -498,11 +498,11 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   onClick={() => setType('BUY_X_GET_Y')}
                   className={`rounded-2xl border p-3 text-left transition-all cursor-pointer relative ${
                     type === 'BUY_X_GET_Y'
-                      ? 'border-rose-500 bg-rose-500/10 text-foreground ring-2 ring-rose-500/20 shadow-xs'
+                      ? 'border-violet-500/50 bg-violet-500/10 text-foreground ring-2 ring-violet-500/20 shadow-xs'
                       : 'border-border bg-card text-muted-foreground hover:bg-muted/60'
                   }`}
                 >
-                  <Gift className={`size-5 mb-1.5 ${type === 'BUY_X_GET_Y' ? 'text-rose-600' : ''}`} />
+                  <Gift className={`size-5 mb-1.5 ${type === 'BUY_X_GET_Y' ? 'text-violet-600 dark:text-violet-400' : ''}`} />
                   <div className="font-bold text-xs text-foreground">Beli X Gratis Y</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Contoh: Beli 2 Gratis 1</p>
                 </button>
