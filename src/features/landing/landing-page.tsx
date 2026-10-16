@@ -9,7 +9,6 @@ import {
   QrCode,
   Receipt,
   ShieldCheck,
-  Sparkles,
   Star,
   Store,
   TrendingUp,
@@ -150,8 +149,8 @@ export function LandingPage() {
 
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-6 shadow-xs animate-in fade-in slide-in-from-bottom-2">
-            <Sparkles className="size-3.5 text-amber-500" />
-            <span>The new smart way to grow your business</span>
+            <Store className="size-3.5 text-amber-500" />
+            <span>The smart way to grow your business</span>
           </div>
 
           <h1 className="mx-auto max-w-4xl text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.15]">
@@ -227,16 +226,16 @@ export function LandingPage() {
                     {/* Products Grid */}
                     <div className="grid grid-cols-3 gap-2.5 flex-1 overflow-hidden">
                       {[
-                        { name: 'Kopi Susu Gula Aren', price: 18000, cat: 'Kopi', img: '☕' },
-                        { name: 'Nasi Goreng Spesial', price: 28000, cat: 'Makanan', img: '🍳' },
-                        { name: 'Roti Bakar Cokelat Keju', price: 22000, cat: 'Snack', img: '🍞' },
-                        { name: 'Es Teh Manis Melati', price: 8000, cat: 'Minuman', img: '🧃' },
-                        { name: 'Mie Goreng Seafood', price: 32000, cat: 'Makanan', img: '🍜' },
-                        { name: 'Pisang Goreng Madu', price: 16000, cat: 'Snack', img: '🍌' },
+                        { name: 'Kopi Susu Gula Aren', price: 18000, cat: 'Kopi', isDrink: true },
+                        { name: 'Nasi Goreng Spesial', price: 28000, cat: 'Makanan', isDrink: false },
+                        { name: 'Roti Bakar Cokelat Keju', price: 22000, cat: 'Snack', isDrink: false },
+                        { name: 'Es Teh Manis Melati', price: 8000, cat: 'Minuman', isDrink: true },
+                        { name: 'Mie Goreng Seafood', price: 32000, cat: 'Makanan', isDrink: false },
+                        { name: 'Pisang Goreng Madu', price: 16000, cat: 'Snack', isDrink: false },
                       ].map((item, idx) => (
                         <div key={idx} className="rounded-xl border bg-card p-2 shadow-xs flex flex-col justify-between">
-                          <div className="aspect-4/3 rounded-lg bg-amber-500/10 grid place-items-center text-xl mb-1.5">
-                            {item.img}
+                          <div className="aspect-4/3 rounded-lg bg-muted/60 border grid place-items-center mb-1.5 text-muted-foreground">
+                            {item.isDrink ? <Coffee className="size-5" /> : <UtensilsCrossed className="size-5" />}
                           </div>
                           <div>
                             <div className="font-semibold text-[11px] leading-tight truncate">{item.name}</div>
@@ -361,14 +360,14 @@ export function LandingPage() {
                 </div>
                 <div className="rounded-xl border bg-card p-2.5 flex items-center justify-between text-xs shadow-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">☕</span>
+                    <Coffee className="size-4 text-muted-foreground" />
                     <span className="font-medium">Espresso Single</span>
                   </div>
                   <span className="text-[11px] font-bold text-emerald-600">Tersedia</span>
                 </div>
                 <div className="rounded-xl border bg-card p-2.5 flex items-center justify-between text-xs shadow-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">🥐</span>
+                    <UtensilsCrossed className="size-4 text-muted-foreground" />
                     <span className="font-medium">Croissant Butter</span>
                   </div>
                   <span className="text-[11px] font-bold text-destructive">Habis (Re-stock)</span>

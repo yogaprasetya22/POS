@@ -6,7 +6,7 @@ import {
   ShoppingBag,
   Store,
   UtensilsCrossed,
-  Sparkles,
+  Tag,
   Images,
   Video,
   X,
@@ -305,7 +305,7 @@ export function MenuPage() {
                       {productPromo && p.is_available && (
                         <div className="absolute top-2 left-2 z-10 max-w-[calc(100%-2.5rem)]">
                           <span className="inline-flex items-center gap-1 rounded-md bg-primary/95 text-primary-foreground font-bold text-[9px] sm:text-[10px] px-1.5 py-0.5 shadow-xs backdrop-blur-xs truncate">
-                            <Sparkles className="size-2.5 shrink-0" />
+                            <Tag className="size-2.5 shrink-0" />
                             <span className="truncate">{promoLabel}</span>
                           </span>
                         </div>

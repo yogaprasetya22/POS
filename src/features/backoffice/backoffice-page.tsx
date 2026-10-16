@@ -1,7 +1,7 @@
 import {
   BarChart3,
   LayoutDashboard,
-  Sparkles,
+  Tag,
   Store as StoreIcon,
   Users,
   UtensilsCrossed,
@@ -23,7 +23,7 @@ import { StoreTab } from './components/store-tab'
 const TAB_ITEMS = [
   { value: 'ikhtisar', label: 'Ikhtisar', icon: LayoutDashboard },
   { value: 'menu', label: 'Katalog Menu', icon: UtensilsCrossed },
-  { value: 'promo', label: 'Promo & Diskon', icon: Sparkles },
+  { value: 'promo', label: 'Promo & Diskon', icon: Tag },
   { value: 'penjualan', label: 'Laporan & Penjualan', icon: BarChart3 },
   { value: 'staf', label: 'Tim & Staf', icon: Users },
   { value: 'toko', label: 'Pengaturan Toko', icon: StoreIcon },

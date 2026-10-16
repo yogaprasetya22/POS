@@ -2,7 +2,7 @@ import {
   Check,
   MessageCircle,
   ShoppingBag,
-  Sparkles,
+  Tag,
   Trash2,
   User,
   UtensilsCrossed,
@@ -181,7 +181,7 @@ export function CheckoutPanel({
                     if (!itemPromo) return null
                     return (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md mt-0.5 w-fit">
-                        <Sparkles className="size-2.5" />
+                        <Tag className="size-2.5" />
                         <span>
                           {itemPromo.type === 'BUY_X_GET_Y'
                             ? `Beli ${itemPromo.buy_qty} Gratis ${itemPromo.get_qty}`
@@ -352,7 +352,7 @@ export function CheckoutPanel({
         {promo.bonusItem ? (
           <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0">
-              <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <Tag className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="font-semibold truncate">Promo: {promo.appliedPromo?.name}</span>
             </div>
             <span className="font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -362,7 +362,7 @@ export function CheckoutPanel({
         ) : promo.discount > 0 ? (
           <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0">
-              <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <Tag className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="font-semibold truncate">Promo: {promo.appliedPromo?.name}</span>
             </div>
             <span className="font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -370,8 +370,8 @@ export function CheckoutPanel({
             </span>
           </div>
         ) : promo.hints.length > 0 ? (
-          <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 p-2.5 text-xs text-violet-800 dark:text-violet-300 flex items-center gap-2">
-            <Sparkles className="size-3.5 shrink-0 text-violet-600 dark:text-violet-400" />
+          <div className="rounded-xl bg-muted/60 border border-border p-2.5 text-xs text-muted-foreground flex items-center gap-2">
+            <Tag className="size-3.5 shrink-0 text-primary" />
             <span className="font-medium text-[11px] sm:text-xs">{promo.hints[0]}</span>
           </div>
         ) : null}
@@ -396,10 +396,7 @@ export function CheckoutPanel({
           </div>
           {promo.bonusItem && (
             <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-md">
-              <span className="flex items-center gap-1.5 min-w-0">
-                <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="font-medium truncate">1 Menu Gratis ({promo.bonusItem.name})</span>
-              </span>
+              <span className="font-medium truncate">1 Menu Gratis ({promo.bonusItem.name})</span>
               <span className="font-bold shrink-0">Gratis (Rp0)</span>
             </div>
           )}
@@ -414,8 +411,7 @@ export function CheckoutPanel({
             </div>
           </div>
           {totalDiscount > 0 && (
-            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/25 p-1.5 text-center text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5 mt-1">
-              <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/25 p-1.5 text-center text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center mt-1">
               <span>
                 Anda hemat {rupiah(totalDiscount)}
                 {promo.bonusItem ? ' (termasuk 1 menu gratis)' : ''}!

@@ -8,7 +8,6 @@ import {
   Percent,
   Plus,
   ShoppingBag,
-  Sparkles,
   Tag,
   Trash2,
   UtensilsCrossed,
@@ -200,7 +199,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
           <div className="space-y-1.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              <Sparkles className="size-3" />
+              <Tag className="size-3" />
               <span>Program Promo</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
@@ -427,7 +426,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles className="size-3.5" />
+                  <Tag className="size-3.5" />
                   <span>{editing ? 'Detail Promo' : 'Buat Promo'}</span>
                 </div>
                 <DrawerTitle className="text-lg sm:text-xl font-bold">
@@ -469,7 +468,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
               </span>
               <div className="flex items-center gap-2.5">
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground font-bold text-[10px] px-2.5 py-0.5 shadow-xs">
-                  <Sparkles className="size-3" />
+                  <Tag className="size-3" />
                   <span>{name || 'Nama Promo'}</span>
                 </span>
                 <span className="text-xs font-semibold text-muted-foreground">
