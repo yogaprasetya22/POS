@@ -84,6 +84,9 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   const [endAt, setEndAt] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [productSearch, setProductSearch] = useState('')
+  const [hasMinSpend, setHasMinSpend] = useState(false)
+  const [hasCode, setHasCode] = useState(false)
+  const [hasPeriod, setHasPeriod] = useState(false)
 
   const fetchPromos = useCallback(async () => {
     setLoading(true)
@@ -113,7 +116,11 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setGetQty(1)
     setDiscountPercent(15)
     setDiscountAmount(5000)
+    setHasMinSpend(false)
     setMinSpend(0)
+    setHasCode(false)
+    setCode('')
+    setHasPeriod(false)
     setStartAt('')
     setEndAt('')
     setIsActive(true)
@@ -133,7 +140,10 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setGetQty(p.get_qty)
     setDiscountPercent(p.discount_percent)
     setDiscountAmount(p.discount_amount)
+    setHasMinSpend(p.min_spend > 0)
     setMinSpend(p.min_spend)
+    setHasCode(Boolean(p.code?.trim()))
+    setHasPeriod(Boolean(p.start_at || p.end_at))
     setStartAt(p.start_at ? p.start_at.slice(0, 16) : '')
     setEndAt(p.end_at ? p.end_at.slice(0, 16) : '')
     setIsActive(p.is_active)
@@ -160,7 +170,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
 
     const payload = {
       name: name.trim(),
-      code: code.trim() ? code.trim().toUpperCase() : null,
+      code: hasCode && code.trim() ? code.trim().toUpperCase() : null,
       type,
       scope,
       target_id: scope === 'CART_TOTAL' ? null : targetId || null,
@@ -168,9 +178,9 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
       get_qty: type === 'BUY_X_GET_Y' ? getQty : 1,
       discount_percent: type === 'PERCENTAGE' ? discountPercent : 0,
       discount_amount: type === 'FIXED_AMOUNT' ? discountAmount : 0,
-      min_spend: minSpend,
-      start_at: startAt ? new Date(startAt).toISOString() : null,
-      end_at: endAt ? new Date(endAt).toISOString() : null,
+      min_spend: hasMinSpend ? minSpend : 0,
+      start_at: hasPeriod && startAt ? new Date(startAt).toISOString() : null,
+      end_at: hasPeriod && endAt ? new Date(endAt).toISOString() : null,
       is_active: isActive,
     }
 
@@ -801,131 +811,194 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
               )}
             </div>
 
-            {/* Syarat Minimal Belanja */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="promo-min-spend" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Minimal Belanja
-                </Label>
-                <span className="text-[11px] text-muted-foreground/70 font-normal lowercase">(opsional)</span>
-                <Tooltip>
-                  <TooltipTrigger
-                    type="button"
-                    className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-                    aria-label="Penjelasan Minimal Belanja"
-                  >
-                    <Info className="size-3.5" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
-                    Syarat total nilai pesanan pembeli agar promo ini dapat diterapkan. Masukkan 0 jika promo berlaku tanpa batas belanja minimal.
-                  </TooltipContent>
-                </Tooltip>
+            {/* 1. Syarat Minimal Belanja (Switch Card) */}
+            <div className="rounded-2xl border bg-card p-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-foreground">Syarat Minimal Belanja</span>
+                    <Tooltip>
+                      <TooltipTrigger
+                        type="button"
+                        className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                        aria-label="Info Minimal Belanja"
+                      >
+                        <Info className="size-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
+                        Tentukan total belanja minimum sebelum pembeli bisa menikmati promo. Jika nonaktif, promo berlaku untuk semua nilai belanja.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {hasMinSpend
+                      ? `Promo hanya aktif jika belanja minimal ${rupiah(minSpend || 0)}`
+                      : 'Nonaktif · Promo berlaku untuk semua nominal belanja'}
+                  </p>
+                </div>
+                <Switch
+                  checked={hasMinSpend}
+                  onCheckedChange={(checked) => {
+                    setHasMinSpend(checked)
+                    if (!checked) setMinSpend(0)
+                  }}
+                />
               </div>
-              <Input
-                id="promo-min-spend"
-                type="number"
-                min={0}
-                step={1000}
-                value={minSpend}
-                onChange={(e) => setMinSpend(Number(e.target.value))}
-                placeholder="0 = Tanpa minimal belanja"
-                className="h-10 text-xs sm:text-sm rounded-xl font-medium"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                {minSpend > 0
-                  ? `Pelanggan wajib belanja minimal ${rupiah(minSpend)} untuk menikmati diskon promo ini.`
-                  : 'Promo ini dapat dinikmati tanpa syarat minimum nilai belanja.'}
-              </p>
+
+              {hasMinSpend && (
+                <div className="pt-2 border-t border-border/60 space-y-1.5 animate-in fade-in duration-150">
+                  <Label htmlFor="promo-min-spend" className="text-xs font-semibold text-foreground">
+                    Nominal Minimal Belanja (Rp)
+                  </Label>
+                  <Input
+                    id="promo-min-spend"
+                    type="number"
+                    min={1000}
+                    step={1000}
+                    value={minSpend || ''}
+                    onChange={(e) => setMinSpend(Number(e.target.value))}
+                    placeholder="Contoh: 50000"
+                    className="h-10 text-xs sm:text-sm rounded-xl font-bold bg-background"
+                    required={hasMinSpend}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Pelanggan harus memesan dengan total belanja setidaknya {rupiah(minSpend || 0)}.
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Kode Promo (Opsional) */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="promo-code" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Kode Promo Voucher
-                </Label>
-                <span className="text-[11px] text-muted-foreground/70 font-normal lowercase">(opsional)</span>
-                <Tooltip>
-                  <TooltipTrigger
-                    type="button"
-                    className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-                    aria-label="Penjelasan Kode Promo Voucher"
-                  >
-                    <Info className="size-3.5" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
-                    Kosongkan jika promo otomatis aktif di katalog saat syarat terpenuhi. Isi kode jika pembeli wajib mengetik kupon saat checkout.
-                  </TooltipContent>
-                </Tooltip>
+            {/* 2. Kode Promo Voucher (Switch Card) */}
+            <div className="rounded-2xl border bg-card p-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-foreground">Gunakan Kode Voucher</span>
+                    <Tooltip>
+                      <TooltipTrigger
+                        type="button"
+                        className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                        aria-label="Info Kode Voucher"
+                      >
+                        <Info className="size-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
+                        Jika aktif, pelanggan wajib mengetik kode kupon saat checkout. Jika nonaktif, promo otomatis aktif di katalog.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {hasCode
+                      ? `Pelanggan wajib mengetik kupon ${code.trim() ? code.trim().toUpperCase() : '...'}`
+                      : 'Nonaktif · Promo otomatis aktif tanpa perlu kode kupon'}
+                  </p>
+                </div>
+                <Switch
+                  checked={hasCode}
+                  onCheckedChange={(checked) => {
+                    setHasCode(checked)
+                    if (!checked) setCode('')
+                  }}
+                />
               </div>
-              <Input
-                id="promo-code"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Contoh: DISKON10 (kosongkan jika otomatis)"
-                maxLength={20}
-                className="h-10 text-xs sm:text-sm rounded-xl font-mono uppercase"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                {code.trim() ? (
-                  <span className="text-foreground font-medium">
-                    Kupon manual: Pelanggan wajib memasukkan kode voucher <span className="font-mono font-bold text-primary">{code.trim().toUpperCase()}</span> saat checkout.
-                  </span>
-                ) : (
-                  <span>Otomatis aktif: Pelanggan langsung mendapatkan promo ini di keranjang tanpa perlu kode kupon.</span>
-                )}
-              </p>
+
+              {hasCode && (
+                <div className="pt-2 border-t border-border/60 space-y-1.5 animate-in fade-in duration-150">
+                  <Label htmlFor="promo-code" className="text-xs font-semibold text-foreground">
+                    Kode Voucher (Kupon)
+                  </Label>
+                  <Input
+                    id="promo-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    placeholder="Contoh: HEMAT10 atau DISKON50"
+                    maxLength={20}
+                    className="h-10 text-xs sm:text-sm rounded-xl font-mono font-bold uppercase bg-background tracking-wider"
+                    required={hasCode}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Hanya pelanggan yang memasukkan kode <span className="font-mono font-bold text-primary">{code.trim() || 'VOUCHER'}</span> yang akan menerima promo ini.
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Periode Kampanye */}
-            <div className="space-y-2.5 p-3.5 rounded-2xl border bg-muted/20">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
-                  Periode Kampanye
-                </Label>
-                <span className="text-[11px] text-muted-foreground/70 font-normal lowercase">(opsional)</span>
-                <Tooltip>
-                  <TooltipTrigger
-                    type="button"
-                    className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-                    aria-label="Penjelasan Periode Kampanye"
-                  >
-                    <Info className="size-3.5" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
-                    Jadwal aktif otomatis promo berdasarkan tanggal dan jam. Kosongkan jika promo berlaku seterusnya tanpa batas waktu.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <span className="text-[11px] font-semibold text-muted-foreground block">Mulai Berlaku</span>
-                  <Input
-                    type="datetime-local"
-                    value={startAt}
-                    onChange={(e) => setStartAt(e.target.value)}
-                    className="h-9.5 text-xs rounded-xl bg-background"
-                  />
+            {/* 3. Batasi Periode Waktu Promo (Switch Card) */}
+            <div className="rounded-2xl border bg-card p-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-foreground">Batasi Jadwal & Periode</span>
+                    <Tooltip>
+                      <TooltipTrigger
+                        type="button"
+                        className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                        aria-label="Info Periode Kampanye"
+                      >
+                        <Info className="size-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs p-2.5 leading-relaxed bg-popover text-popover-foreground border shadow-md rounded-xl">
+                        Atur rentang tanggal dan jam kapan promo mulai dan selesai. Jika nonaktif, promo berlaku seterusnya.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {hasPeriod
+                      ? 'Promo dibatasi berdasarkan tanggal dan jam di bawah'
+                      : 'Nonaktif · Promo berlaku seterusnya tanpa batas waktu'}
+                  </p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] font-semibold text-muted-foreground block">Berakhir</span>
-                  <Input
-                    type="datetime-local"
-                    value={endAt}
-                    onChange={(e) => setEndAt(e.target.value)}
-                    className="h-9.5 text-xs rounded-xl bg-background"
-                  />
-                </div>
+                <Switch
+                  checked={hasPeriod}
+                  onCheckedChange={(checked) => {
+                    setHasPeriod(checked)
+                    if (!checked) {
+                      setStartAt('')
+                      setEndAt('')
+                    }
+                  }}
+                />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                {startAt || endAt ? (
-                  <span className="text-foreground font-medium">
-                    Jadwal aktif: {startAt ? `Mulai ${new Date(startAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Langsung aktif'} {endAt ? `sampai ${new Date(endAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}` : 'seterusnya'}.
-                  </span>
-                ) : (
-                  <span>Promo berlaku seterusnya tanpa batas waktu. Atur tanggal jika ingin membatasi durasi promo.</span>
-                )}
-              </p>
+
+              {hasPeriod && (
+                <div className="pt-2 border-t border-border/60 space-y-2 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="promo-start-at" className="text-xs font-semibold text-foreground">
+                        Mulai Berlaku
+                      </Label>
+                      <Input
+                        id="promo-start-at"
+                        type="datetime-local"
+                        value={startAt}
+                        onChange={(e) => setStartAt(e.target.value)}
+                        className="h-9.5 text-xs rounded-xl bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="promo-end-at" className="text-xs font-semibold text-foreground">
+                        Berakhir
+                      </Label>
+                      <Input
+                        id="promo-end-at"
+                        type="datetime-local"
+                        value={endAt}
+                        onChange={(e) => setEndAt(e.target.value)}
+                        className="h-9.5 text-xs rounded-xl bg-background"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {startAt || endAt ? (
+                      <span>
+                        Jadwal aktif: {startAt ? `Mulai ${new Date(startAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Langsung aktif'} {endAt ? `sampai ${new Date(endAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}` : 'seterusnya'}.
+                      </span>
+                    ) : (
+                      <span>Atur minimal tanggal mulai atau tanggal berakhir untuk membatasi masa promo.</span>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Toggle Status Aktif */}
