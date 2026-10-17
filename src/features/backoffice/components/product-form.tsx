@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@shared/components/ui/drawer'
 import { Switch } from '@shared/components/ui/switch'
 import { useStaff } from '@shared/lib/auth'
+import { uploadToGDrive } from '@shared/lib/gdrive'
 import { supabase } from '@shared/lib/supabase'
 import { ModifierGroupSchema, type Category, type ModifierGroup, type Product } from '@shared/types/contracts'
 import { ModifierEditor } from './modifier-editor'
@@ -42,12 +43,18 @@ export function ProductForm({ product, categories, onDone }: Props) {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const path = `${storeId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-      const { error: err } = await supabase.storage.from('product-images').upload(path, file)
-      if (err) {
-        setError(`Gagal upload ${file.name}: ${err.message}`)
-      } else {
-        newUrls.push(supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl)
+      try {
+        const res = await uploadToGDrive(file, storeId ?? 'pos')
+        newUrls.push(res.url)
+      } catch (err) {
+        // Fallback ke Supabase Storage jika GDrive terkendala
+        const path = `${storeId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
+        const { error: sErr } = await supabase.storage.from('product-images').upload(path, file)
+        if (sErr) {
+          setError(`Gagal upload ${file.name}: ${err instanceof Error ? err.message : sErr.message}`)
+        } else {
+          newUrls.push(supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl)
+        }
       }
     }
     setBusy(false)
@@ -64,11 +71,20 @@ export function ProductForm({ product, categories, onDone }: Props) {
     if (!file) return
     setBusy(true)
     setError('')
-    const path = `${storeId}/video-${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-    const { error: err } = await supabase.storage.from('product-images').upload(path, file)
-    setBusy(false)
-    if (err) return setError(`Gagal upload video: ${err.message}`)
-    set({ video_url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl })
+    try {
+      const res = await uploadToGDrive(file, `${storeId ?? 'pos'}-video`)
+      set({ video_url: res.url })
+    } catch (err) {
+      const path = `${storeId}/video-${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
+      const { error: sErr } = await supabase.storage.from('product-images').upload(path, file)
+      if (sErr) {
+        setError(`Gagal upload video: ${err instanceof Error ? err.message : sErr.message}`)
+      } else {
+        set({ video_url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl })
+      }
+    } finally {
+      setBusy(false)
+    }
   }
 
   const submit = async (e: FormEvent) => {
