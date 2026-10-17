@@ -11,27 +11,82 @@ const storeNameOf = (rel: unknown): string | null => {
   return row?.name ?? null
 }
 
+const STAFF_CACHE_KEY = 'pos_staff_session'
+
+function getCachedStaff(): Staff | null {
+  try {
+    const raw = sessionStorage.getItem(STAFF_CACHE_KEY)
+    return raw ? (JSON.parse(raw) as Staff) : null
+  } catch {
+    return null
+  }
+}
+
+function setCachedStaff(staff: Staff | null) {
+  try {
+    if (!staff) {
+      sessionStorage.removeItem(STAFF_CACHE_KEY)
+    } else {
+      sessionStorage.setItem(STAFF_CACHE_KEY, JSON.stringify(staff))
+    }
+  } catch {
+    // Abaikan jika quota error
+  }
+}
+
+function clearPosSessionCaches() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i)
+      if (key?.startsWith('pos_')) {
+        sessionStorage.removeItem(key)
+      }
+    }
+  } catch {
+    // Abaikan jika error
+  }
+}
+
 export function useStaffRole(): StaffState {
-  const [state, setState] = useState<StaffState>({ loading: true, userId: null })
+  // ponytail: Inisialisasi sinkron dari sessionStorage agar render pertama instan (0ms) tanpa jeda skeleton.
+  const [state, setState] = useState<StaffState>(() => {
+    const cached = getCachedStaff()
+    if (cached) return { loading: false, ...cached }
+    return { loading: true, userId: null }
+  })
 
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return setState({ loading: false, userId: null })
+      if (!session) {
+        clearPosSessionCaches()
+        return setState({ loading: false, userId: null })
+      }
       const { data } = await supabase.from('profiles').select('role, store_id, is_super_admin, stores(name)').eq('user_id', session.user.id).maybeSingle()
-      setState({
-        loading: false,
+      const staff: Staff = {
         userId: session.user.id,
         email: session.user.email ?? '',
         role: data?.role ? StaffRoleSchema.parse(data.role) : null,
         storeId: data?.store_id ?? null,
         storeName: storeNameOf(data?.stores),
         isSuper: data?.is_super_admin === true,
+      }
+      setCachedStaff(staff)
+      setState({
+        loading: false,
+        ...staff,
       })
     }
     load()
     // setTimeout: memanggil supabase langsung di dalam callback auth bisa deadlock
-    const { data } = supabase.auth.onAuthStateChange(() => void setTimeout(load, 0))
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        clearPosSessionCaches()
+        setState({ loading: false, userId: null })
+      } else {
+        setTimeout(load, 0)
+      }
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 
