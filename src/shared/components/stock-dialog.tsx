@@ -1,14 +1,16 @@
-import { CheckCircle2, PackageX, Search, UtensilsCrossed } from 'lucide-react'
+import { CheckCircle2, PackageX, Search, UtensilsCrossed, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Badge } from '@shared/components/ui/badge'
 import { Button } from '@shared/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/components/ui/dialog'
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@shared/components/ui/drawer'
 import { Input } from '@shared/components/ui/input'
 import { rupiah } from '@shared/lib/utils'
 import type { Product } from '@shared/types/contracts'
@@ -23,9 +25,9 @@ interface StockDialogProps {
 type Filter = 'all' | 'sold_out' | 'available'
 
 /**
- * Dialog Kelola Stok Cepat (Quick 86 / Sold Out) - Disesuaikan untuk Layar Tablet
- * Tombol toggle jumbo min-h 48px, mudah ditekan dengan jari tangan di dapur.
- * Palet warna netral, amber, dan emerald bersih (bebas dari warna merah menyala).
+ * Drawer Kelola Stok Cepat (Quick 86 / Sold Out) - Slide-over samping kanan
+ * Memudahkan akses cepat staf dapur/kasir di layar tablet tanpa menutupi seluruh layar.
+ * Dilengkapi tombol toggle status jumbo min-h 48px dan palet warna bersih tanpa merah menyala.
  */
 export function StockDialog({
   open,
@@ -60,31 +62,43 @@ export function StockDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden rounded-3xl">
-        <DialogHeader className="p-4 sm:p-5 border-b text-left bg-muted/20">
+    <Drawer open={open} onOpenChange={onOpenChange} swipeDirection="right">
+      <DrawerContent
+        style={{ '--drawer-content-width': 'min(100vw, 32rem)' } as React.CSSProperties}
+        className="h-full flex flex-col p-0 gap-0"
+      >
+        <DrawerHeader className="p-4 sm:p-5 border-b text-left bg-muted/20 shrink-0">
           <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="text-base sm:text-xl font-black flex items-center gap-2">
+            <DrawerTitle className="text-base sm:text-xl font-black flex items-center gap-2">
               <PackageX className="size-5 sm:size-6 text-primary" />
               Kelola Stok Menu (Quick 86)
-            </DialogTitle>
-            {soldOutCount > 0 ? (
-              <Badge variant="outline" className="text-xs px-2.5 py-1 font-bold rounded-lg bg-amber-500/15 text-amber-700 border-amber-500/30">
-                {soldOutCount} Menu Habis
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-xs px-2.5 py-1 font-bold rounded-lg bg-emerald-500/15 text-emerald-700 border-emerald-500/30">
-                Semua Tersedia
-              </Badge>
-            )}
+            </DrawerTitle>
+            <div className="flex items-center gap-2">
+              {soldOutCount > 0 ? (
+                <Badge variant="outline" className="text-xs px-2.5 py-1 font-bold rounded-lg bg-amber-500/15 text-amber-700 border-amber-500/30">
+                  {soldOutCount} Menu Habis
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs px-2.5 py-1 font-bold rounded-lg bg-emerald-500/15 text-emerald-700 border-emerald-500/30">
+                  Semua Tersedia
+                </Badge>
+              )}
+              <DrawerClose
+                render={
+                  <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Tutup drawer">
+                    <X className="size-4" />
+                  </Button>
+                }
+              />
+            </div>
           </div>
-          <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <DrawerDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
             Matikan menu jika bahan baku di dapur habis. Status langsung sinkron real-time ke kasir dan menu QR pelanggan.
-          </DialogDescription>
-        </DialogHeader>
+          </DrawerDescription>
+        </DrawerHeader>
 
         {/* Search & Filter Bar - Ramah Jari Tablet */}
-        <div className="p-3 sm:p-4 border-b space-y-3 bg-background">
+        <div className="p-3 sm:p-4 border-b space-y-3 bg-background shrink-0">
           <div className="relative">
             <Search className="absolute left-3.5 top-3.5 size-4 text-muted-foreground" />
             <Input
@@ -209,8 +223,13 @@ export function StockDialog({
             })
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {/* Footer */}
+        <DrawerFooter className="border-t p-3 sm:p-4 flex-row justify-end bg-muted/10 shrink-0">
+          <DrawerClose render={<Button variant="outline" className="rounded-xl h-11 px-5 font-bold">Tutup</Button>} />
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }
 
