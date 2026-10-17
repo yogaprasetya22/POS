@@ -1,10 +1,11 @@
-import { CheckCircle2, CirclePlus, ClipboardList, ReceiptText, Search, Trash2 } from 'lucide-react'
+import { CheckCircle2, CirclePlus, ClipboardList, PackageX, ReceiptText, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { addItem, cartTotal, itemKey, setItemQty, toLines, type CartItem } from '@features/cart-checkout'
 import { ProductPicker, categoryIcon, useCatalog } from '@features/menu-catalog'
 import { ConfirmButton } from '@shared/components/confirm-button'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { Stepper } from '@shared/components/stepper'
+import { StockDialog } from '@shared/components/stock-dialog'
 import { ToneBadge } from '@shared/components/tone-badge'
 import { CashierSkeleton } from '@shared/components/page-skeleton'
 import { MenuImage } from '@shared/components/menu-image'
@@ -49,7 +50,7 @@ const toCartItem = (i: Order['items'][number]): CartItem => {
 export function CashierPage() {
   const orders = useLiveOrders(ACTIVE)
   const { storeId } = useStaff()
-  const { data: catalog, error: catalogError } = useCatalog('id', storeId)
+  const { data: catalog, error: catalogError, reload } = useCatalog('id', storeId)
 
   // Panel kanan: pesanan WA yang dipilih (UNPAID) atau pesanan baru walk-in.
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -67,6 +68,18 @@ export function CashierPage() {
   const [orderQuery, setOrderQuery] = useState('')
   const [menuQuery, setMenuQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
+  const [stockOpen, setStockOpen] = useState(false)
+
+  const soldOutCount = catalog?.products.filter((p) => !p.is_available).length ?? 0
+
+  const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
+    const { error: err } = await supabase.from('products').update({ is_available: isAvailable }).eq('id', productId)
+    if (err) {
+      setError(`Gagal mengubah status menu: ${err.message}`)
+    } else {
+      reload()
+    }
+  }
 
   useEffect(() => {
     const run = () => supabase.rpc('expire_stale_orders').then(({ error }) => error && console.error(error))
@@ -226,12 +239,36 @@ export function CashierPage() {
         {/* Menu */}
         <section>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold">
-              Menu <span className="text-muted-foreground">({catalog?.products.length ?? 0})</span>
-            </h2>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <Input value={menuQuery} onChange={(e) => setMenuQuery(e.target.value)} placeholder="Cari menu…" aria-label="Cari menu" className="pl-10" />
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold">
+                Menu <span className="text-muted-foreground">({catalog?.products.length ?? 0})</span>
+              </h2>
+              {soldOutCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStockOpen(true)}
+                  className="h-6 px-2 text-[11px] font-bold text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <PackageX className="size-3 mr-1" /> {soldOutCount} Habis
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input value={menuQuery} onChange={(e) => setMenuQuery(e.target.value)} placeholder="Cari menu…" aria-label="Cari menu" className="pl-10" />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStockOpen(true)}
+                className="h-9 px-3 text-xs font-semibold shrink-0 gap-1.5 rounded-lg"
+                title="Kelola Ketersediaan Menu"
+              >
+                <PackageX className="size-4" />
+                <span className="hidden md:inline">Stok Menu</span>
+              </Button>
             </div>
           </div>
           <div className="mt-4 overflow-x-auto pb-1 scrollbar-none">
@@ -449,6 +486,12 @@ export function CashierPage() {
 
       {picking && <ProductPicker product={picking} onAdd={(i) => edit(addItem(items, i))} onClose={() => setPicking(null)} />}
       {receipt && catalog && <Receipt order={receipt} storeName={catalog.store.name} onClose={() => setReceipt(null)} />}
+      <StockDialog
+        open={stockOpen}
+        onOpenChange={setStockOpen}
+        products={catalog?.products ?? []}
+        onToggleAvailability={handleToggleAvailability}
+      />
     </div>
   )
 }

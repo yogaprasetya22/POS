@@ -1,10 +1,13 @@
-import { ChefHat, CheckCircle2, ReceiptText } from 'lucide-react'
+import { ChefHat, CheckCircle2, PackageX, ReceiptText } from 'lucide-react'
 import { useState } from 'react'
+import { useCatalog } from '@features/menu-catalog'
 import { ErrorAlert } from '@shared/components/error-alert'
+import { StockDialog } from '@shared/components/stock-dialog'
 import { ToneBadge } from '@shared/components/tone-badge'
 import { Badge } from '@shared/components/ui/badge'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@shared/components/ui/card'
+import { useStaff } from '@shared/lib/auth'
 import { useLiveOrders } from '@shared/lib/orders'
 import { supabase } from '@shared/lib/supabase'
 import { timeJakarta } from '@shared/lib/utils'
@@ -19,10 +22,17 @@ const STEP = {
 /**
  * Layar Dapur (KDS)
  * Kontainer diseragamkan dengan Admin dan Super Admin (`space-y-6 p-4 md:p-6`).
+ * Dilengkapi tombol aksi cepat untuk mematikan/menyalakan menu yang kehabisan bahan di dapur.
  */
 export function KitchenPage() {
   const orders = useLiveOrders(ACTIVE)
+  const { storeId } = useStaff()
+  const { data: catalog, reload } = useCatalog('id', storeId)
   const [error, setError] = useState('')
+  const [stockOpen, setStockOpen] = useState(false)
+
+  const products = catalog?.products ?? []
+  const soldOutCount = products.filter((p) => !p.is_available).length
 
   const advance = async (o: Order) => {
     const { error } = await supabase.rpc('advance_order', {
@@ -30,6 +40,15 @@ export function KitchenPage() {
       p_to: STEP[o.status as keyof typeof STEP].to,
     })
     setError(error?.message ?? '')
+  }
+
+  const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
+    const { error: err } = await supabase.from('products').update({ is_available: isAvailable }).eq('id', productId)
+    if (err) {
+      setError(`Gagal mengubah status menu: ${err.message}`)
+    } else {
+      reload()
+    }
   }
 
   return (
@@ -45,7 +64,21 @@ export function KitchenPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Button
+            variant={soldOutCount > 0 ? 'destructive' : 'outline'}
+            size="sm"
+            onClick={() => setStockOpen(true)}
+            className="rounded-xl text-xs font-semibold gap-1.5 h-8.5"
+          >
+            <PackageX className="size-4" />
+            <span>Kelola Stok Cepat</span>
+            {soldOutCount > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-white text-destructive">
+                {soldOutCount} Habis
+              </Badge>
+            )}
+          </Button>
+          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 h-8.5 flex items-center">
             {orders.length} pesanan aktif
           </Badge>
         </div>
@@ -119,6 +152,13 @@ export function KitchenPage() {
           )
         })}
       </div>
+
+      <StockDialog
+        open={stockOpen}
+        onOpenChange={setStockOpen}
+        products={products}
+        onToggleAvailability={handleToggleAvailability}
+      />
     </div>
   )
 }
