@@ -15,10 +15,10 @@ import { MediaCarousel } from '@shared/components/media-carousel'
 type Props = { product: Product; onAdd: (item: CartItem) => void; onClose: () => void }
 
 const OptionRow = ({ control, name, price }: { control: React.ReactNode; name: string; price: number }) => (
-  <Label className="cursor-pointer rounded-xl border px-3 py-3 font-normal transition has-data-checked:border-primary has-data-checked:bg-accent">
+  <Label className="cursor-pointer rounded-2xl border-2 px-4 py-3 sm:py-3.5 font-medium transition text-sm sm:text-base has-data-checked:border-primary has-data-checked:bg-primary/5 shadow-2xs">
     {control}
-    <span className="flex-1">{name}</span>
-    <span className="text-muted-foreground">{price > 0 ? `+${rupiah(price)}` : 'Gratis'}</span>
+    <span className="flex-1 font-semibold text-foreground">{name}</span>
+    <span className="text-muted-foreground font-bold">{price > 0 ? `+${rupiah(price)}` : 'Gratis'}</span>
   </Label>
 )
 
@@ -54,26 +54,27 @@ export function ProductPicker({ product, onAdd, onClose }: Props) {
           images={product.images}
           videoUrl={product.video_url}
           alt={product.name}
+          className="h-60 sm:h-76 w-full"
         />
       }
       footer={
-        <Button size="lg" disabled={missing} onClick={add} className="w-full">
+        <Button size="lg" disabled={missing} onClick={add} className="w-full h-13 sm:h-14 rounded-2xl text-base sm:text-lg font-black tracking-wide shadow-sm">
           {missing ? 'Pilih opsi wajib dulu' : `Tambah ke keranjang · ${rupiah(unit * qty)}`}
         </Button>
       }
     >
       {product.modifiers.map((g) => (
-        <fieldset key={g.name} className="space-y-2">
-          <legend className="mb-2 flex w-full items-center justify-between font-semibold">
+        <fieldset key={g.name} className="space-y-2.5">
+          <legend className="mb-2.5 flex w-full items-center justify-between font-black text-sm sm:text-base text-foreground">
             {g.name}
-            <span className="text-xs font-normal text-muted-foreground">{g.required ? 'Wajib' : 'Opsional'}{g.multiple && ' · boleh lebih dari satu'}</span>
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground">{g.required ? 'Wajib' : 'Opsional'}{g.multiple && ' · boleh lebih dari satu'}</span>
           </legend>
           {g.multiple ? (
             g.options.map((o) => (
               <OptionRow key={o.name} name={o.name} price={o.price} control={<Checkbox checked={isPicked(g, o.name)} onCheckedChange={(on) => setMany(g, o.name, on)} />} />
             ))
           ) : (
-            <RadioGroup value={picked.find((c) => c.group === g.name)?.option ?? ''} onValueChange={(v) => pickOne(g, String(v))} className="gap-2">
+            <RadioGroup value={picked.find((c) => c.group === g.name)?.option ?? ''} onValueChange={(v) => pickOne(g, String(v))} className="gap-2.5">
               {g.options.map((o) => (
                 <OptionRow key={o.name} name={o.name} price={o.price} control={<RadioGroupItem value={o.name} />} />
               ))}
@@ -82,9 +83,16 @@ export function ProductPicker({ product, onAdd, onClose }: Props) {
         </fieldset>
       ))}
 
-      <Label className="flex-col items-start gap-2 font-semibold">
+      <Label className="flex-col items-start gap-2.5 font-black text-sm sm:text-base text-foreground">
         Catatan <span className="font-normal text-muted-foreground">(opsional)</span>
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} rows={2} placeholder="Contoh: jangan terlalu pedas" className="font-normal" />
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={200}
+          rows={3}
+          placeholder="Contoh: jangan terlalu pedas"
+          className="font-normal text-sm sm:text-base rounded-2xl p-3"
+        />
       </Label>
     </Panel>
   )

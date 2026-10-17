@@ -25,16 +25,16 @@ export function Stepper({
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="size-6 sm:size-7 rounded-full hover:bg-background active:scale-90 transition-transform"
+        className="size-6 sm:size-8 rounded-full hover:bg-background active:scale-90 transition-transform"
         aria-label="Kurangi"
         disabled={value <= min}
         onClick={() => onChange(value - 1)}
       >
-        <Minus className="size-3" />
+        <Minus className="size-3.5" />
       </Button>
       <span
-        className={`text-center font-bold tabular-nums text-foreground select-none ${
-          isSm ? 'w-4 text-xs' : 'w-5 sm:w-6 text-xs sm:text-sm'
+        className={`text-center font-black tabular-nums text-foreground select-none ${
+          isSm ? 'w-4 text-xs' : 'w-6 sm:w-7 text-xs sm:text-sm'
         }`}
       >
         {value}
@@ -43,12 +43,12 @@ export function Stepper({
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="size-6 sm:size-7 rounded-full hover:bg-background active:scale-90 transition-transform"
+        className="size-6 sm:size-8 rounded-full hover:bg-background active:scale-90 transition-transform"
         aria-label="Tambah"
         disabled={value >= 99}
         onClick={() => onChange(value + 1)}
       >
-        <Plus className="size-3" />
+        <Plus className="size-3.5" />
       </Button>
     </div>
   )
