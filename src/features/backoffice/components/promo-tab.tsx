@@ -1,5 +1,6 @@
 import {
   Banknote,
+  Check,
   CheckCircle2,
   Edit2,
   Folder,
@@ -7,6 +8,7 @@ import {
   Info,
   Percent,
   Plus,
+  Search,
   ShoppingBag,
   Tag,
   Trash2,
@@ -75,6 +77,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
   const [isActive, setIsActive] = useState(true)
+  const [productSearch, setProductSearch] = useState('')
 
   const fetchPromos = useCallback(async () => {
     setLoading(true)
@@ -108,6 +111,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setStartAt('')
     setEndAt('')
     setIsActive(true)
+    setProductSearch('')
     setError('')
     setIsDrawerOpen(true)
   }
@@ -127,6 +131,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     setStartAt(p.start_at ? p.start_at.slice(0, 16) : '')
     setEndAt(p.end_at ? p.end_at.slice(0, 16) : '')
     setIsActive(p.is_active)
+    setProductSearch('')
     setError('')
     setIsDrawerOpen(true)
   }
@@ -448,7 +453,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         swipeDirection="right"
       >
         <DrawerContent
-          style={{ '--drawer-content-width': 'min(100vw, 34rem)' } as React.CSSProperties}
+          style={{ '--drawer-content-width': 'min(100vw, 56rem)' } as React.CSSProperties}
           className="flex flex-col h-full rounded-l-3xl border-l"
         >
           <DrawerHeader className="border-b px-5 py-4 text-left">
@@ -685,20 +690,88 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
               </div>
 
               {scope === 'PRODUCT' && (
-                <div className="space-y-1 pt-1 animate-in fade-in duration-150">
-                  <Label className="text-xs font-semibold">Pilih Menu Produk</Label>
-                  <select
-                    value={targetId}
-                    onChange={(e) => setTargetId(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-ring focus:outline-none"
-                    required
-                  >
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} — {rupiah(p.price)}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-2.5 pt-1 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <Label className="text-xs font-semibold">Pilih Menu Produk</Label>
+                    {targetId && (
+                      <span className="text-[11px] text-muted-foreground truncate">
+                        Terpilih:{' '}
+                        <span className="font-bold text-foreground">
+                          {products.find((p) => p.id === targetId)?.name ?? '-'}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Search box for products */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Cari menu berdasarkan nama..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="h-9.5 pl-8.5 pr-8 text-xs rounded-xl bg-background"
+                    />
+                    {productSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setProductSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground hover:text-foreground grid place-items-center"
+                        aria-label="Bersihkan pencarian"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Product Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1.5 rounded-2xl border bg-muted/15 scrollbar-thin">
+                    {products
+                      .filter((p) =>
+                        p.name.toLowerCase().includes(productSearch.toLowerCase().trim())
+                      )
+                      .map((p) => {
+                        const isSelected = targetId === p.id
+                        const img = p.image_url ?? p.images?.[0]
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setTargetId(p.id)}
+                            className={`relative flex items-center gap-2.5 rounded-xl border p-2 text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-primary bg-primary/10 ring-2 ring-primary/25 shadow-xs'
+                                : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/50'
+                            }`}
+                          >
+                            <div className="relative size-11 rounded-lg overflow-hidden bg-muted/60 shrink-0 grid place-items-center border border-border/50">
+                              {img ? (
+                                <img src={img} alt={p.name} className="size-full object-cover" />
+                              ) : (
+                                <UtensilsCrossed className="size-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
+                              <p className="text-[11px] font-extrabold text-primary">{rupiah(p.price)}</p>
+                            </div>
+                            {isSelected && (
+                              <div className="size-4.5 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0 shadow-xs">
+                                <Check className="size-2.5" />
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    {products.filter((p) =>
+                      p.name.toLowerCase().includes(productSearch.toLowerCase().trim())
+                    ).length === 0 && (
+                      <div className="col-span-full py-8 text-center text-xs text-muted-foreground">
+                        Tidak ada menu yang sesuai pencarian "{productSearch}".
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
