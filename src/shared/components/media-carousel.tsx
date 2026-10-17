@@ -73,7 +73,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
     return (
       <div className={`relative overflow-hidden bg-black/90 ${className || 'h-48 sm:h-64 w-full'}`}>
         {item.type === 'image' ? (
-          <img src={item.url} alt={alt} className="size-full object-cover" />
+          <img src={item.url} alt={alt} className="size-full object-cover" referrerPolicy="no-referrer" />
         ) : (
           <video
             src={item.url}
@@ -106,6 +106,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
                 alt={`${alt} ${idx + 1}`}
                 className="size-full object-cover"
                 loading={idx === 0 ? 'eager' : 'lazy'}
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="relative size-full bg-black flex items-center justify-center">

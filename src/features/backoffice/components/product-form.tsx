@@ -136,7 +136,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
             <div className="flex flex-wrap gap-2.5 items-center">
               {form.images.map((url, idx) => (
                 <div key={idx} className="relative size-20 rounded-xl overflow-hidden border bg-muted group">
-                  <img src={url} alt={`Preview ${idx + 1}`} className="size-full object-cover" />
+                  <img src={url} alt={`Preview ${idx + 1}`} className="size-full object-cover" referrerPolicy="no-referrer" />
                   {idx === 0 && (
                     <span className="absolute bottom-0 inset-x-0 bg-primary/90 text-primary-foreground text-[9px] font-bold text-center py-0.5">
                       Utama

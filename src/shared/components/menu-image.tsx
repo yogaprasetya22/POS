@@ -47,6 +47,7 @@ export function MenuImage({
         src={src}
         alt={alt}
         loading="lazy"
+        referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className={cn(
