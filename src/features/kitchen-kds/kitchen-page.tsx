@@ -38,7 +38,6 @@ export function KitchenPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            <ChefHat className="size-6 text-primary" />
             Layar Dapur (KDS)
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">

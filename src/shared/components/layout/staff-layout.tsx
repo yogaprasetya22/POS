@@ -64,9 +64,9 @@ export function StaffLayout({ title, children }: { title: string; children: Reac
     <SidebarProvider defaultOpen={window.innerWidth >= 1280}>
       <Sidebar variant="floating" collapsible="icon" className="print:hidden">
         <SidebarHeader>
-          <div className="flex items-center gap-3 p-1">
-            <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
-              <Store className="size-5" aria-hidden />
+          <div className="flex items-center gap-3 p-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+            <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30 group-data-[collapsible=icon]:mx-auto">
+              <Store className="size-4.5" aria-hidden />
             </div>
             <div className="min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
               <p className="truncate font-bold">{staff.storeName ?? 'WA-Order POS'}</p>
@@ -79,15 +79,15 @@ export function StaffLayout({ title, children }: { title: string; children: Reac
           <SidebarGroup>
             <SidebarGroupLabel>Menu</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
+              <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:gap-2">
                 {items.map(({ to, label, icon: Icon }) => (
-                  <SidebarMenuItem key={to}>
+                  <SidebarMenuItem key={to} className="flex justify-center">
                     <SidebarMenuButton
                       size="lg"
                       tooltip={label}
                       isActive={pathname.startsWith(to)}
                       render={<NavLink to={to} />}
-                      className="rounded-xl font-medium data-active:bg-primary data-active:text-primary-foreground data-active:shadow-md data-active:shadow-primary/30 hover:data-active:bg-primary/90 [&_svg]:size-5 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:[&>span]:hidden"
+                      className="rounded-xl font-medium data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm data-active:shadow-primary/25 hover:data-active:bg-primary/90 [&_svg]:size-4.5 group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:[&>span]:hidden"
                     >
                       <Icon />
                       <span>{label}</span>
@@ -101,9 +101,9 @@ export function StaffLayout({ title, children }: { title: string; children: Reac
 
         <SidebarFooter>
           <Separator />
-          <div className="flex items-center gap-3 p-1 group-data-[collapsible=icon]:justify-center">
-            <Avatar>
-              <AvatarFallback className="bg-accent font-semibold text-accent-foreground">{(staff.email[0] ?? '?').toUpperCase()}</AvatarFallback>
+          <div className="flex items-center gap-3 p-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+            <Avatar className="size-8.5 group-data-[collapsible=icon]:mx-auto">
+              <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">{(staff.email[0] ?? '?').toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-medium">{staff.email}</p>
