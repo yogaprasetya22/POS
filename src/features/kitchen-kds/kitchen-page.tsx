@@ -56,7 +56,7 @@ export function KitchenPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-[1920px] mx-auto">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header Banner - Tablet Friendly Touch Targets */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
