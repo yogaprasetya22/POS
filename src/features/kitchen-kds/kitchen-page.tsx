@@ -1,4 +1,4 @@
-import { ChefHat, CheckCircle2, PackageX, ReceiptText } from 'lucide-react'
+import { ChefHat } from 'lucide-react'
 import { useState } from 'react'
 import { useCatalog } from '@features/menu-catalog'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -60,7 +60,7 @@ export function KitchenPage() {
       {/* Header Banner - Tablet Friendly Touch Targets */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
             Layar Dapur (KDS)
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -73,7 +73,6 @@ export function KitchenPage() {
             onClick={() => setStockOpen(true)}
             className="h-11 sm:h-12 px-4 rounded-xl text-xs sm:text-sm font-bold gap-2 border-border shadow-2xs hover:bg-muted/80 active:scale-95 transition-all"
           >
-            <PackageX className="size-5 text-muted-foreground" />
             <span>Kelola Stok Cepat</span>
             {soldOutCount > 0 && (
               <span className="px-2 py-0.5 text-xs font-black rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/30">
@@ -111,8 +110,8 @@ export function KitchenPage() {
               {/* Header Kartu: Kode Antrean & Meja */}
               <CardHeader className="p-4 sm:p-5 pb-3 border-b bg-muted/20">
                 <CardTitle className="flex items-center justify-between text-xl sm:text-2xl font-black tracking-tight">
-                  <span className="flex items-center gap-2 text-foreground">
-                    <ReceiptText className="size-6 text-primary shrink-0" aria-hidden /> #{o.queue_code}
+                  <span className="text-foreground">
+                    #{o.queue_code}
                   </span>
                   <span className="text-xs sm:text-sm font-mono font-medium text-muted-foreground">
                     {o.paid_at && timeJakarta(o.paid_at)}
@@ -128,9 +127,8 @@ export function KitchenPage() {
 
               {/* Konten Kartu: Status Pill & Daftar Item */}
               <CardContent className="p-4 sm:p-5 flex-1 space-y-3.5">
-                <ToneBadge tone={step.tone} className="h-8 w-full justify-between text-xs sm:text-sm font-bold rounded-xl px-3">
+                <ToneBadge tone={step.tone} className="h-8 w-full justify-center text-xs sm:text-sm font-bold rounded-xl px-3">
                   <span>{step.badge}</span>
-                  <CheckCircle2 aria-hidden className="size-4 shrink-0" />
                 </ToneBadge>
 
                 <ul className="space-y-2.5">
@@ -153,8 +151,8 @@ export function KitchenPage() {
                       </div>
 
                       {i.note && (
-                        <div className="text-xs font-bold text-amber-900 bg-amber-500/15 border border-amber-500/30 rounded-xl p-2 px-3 mt-1.5 flex items-center gap-1.5">
-                          <span>📝 Catatan: {i.note}</span>
+                        <div className="text-xs font-semibold text-amber-900 bg-amber-500/10 border border-amber-500/25 rounded-xl p-2 px-3 mt-1.5">
+                          Catatan: {i.note}
                         </div>
                       )}
                     </li>

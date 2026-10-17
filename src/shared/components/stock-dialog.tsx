@@ -1,4 +1,4 @@
-import { CheckCircle2, PackageX, Search, UtensilsCrossed, X } from 'lucide-react'
+import { Search, UtensilsCrossed, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Badge } from '@shared/components/ui/badge'
 import { Button } from '@shared/components/ui/button'
@@ -69,8 +69,7 @@ export function StockDialog({
       >
         <DrawerHeader className="p-4 sm:p-5 border-b text-left bg-muted/20 shrink-0">
           <div className="flex items-center justify-between gap-2">
-            <DrawerTitle className="text-base sm:text-xl font-black flex items-center gap-2">
-              <PackageX className="size-5 sm:size-6 text-primary" />
+            <DrawerTitle className="text-base sm:text-xl font-black">
               Kelola Stok Menu (Quick 86)
             </DrawerTitle>
             <div className="flex items-center gap-2">
@@ -199,24 +198,14 @@ export function StockDialog({
                     type="button"
                     onClick={() => handleToggle(p)}
                     disabled={isUpdating}
-                    className={`min-h-[46px] sm:min-h-[48px] px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs ${
+                    className={`min-h-[46px] sm:min-h-[48px] px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs ${
                       p.is_available
                         ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 hover:bg-emerald-500/25'
                         : 'bg-muted/80 text-muted-foreground border border-border hover:bg-muted'
                     }`}
                     aria-label={`Ubah status ${p.name}`}
                   >
-                    {p.is_available ? (
-                      <>
-                        <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-                        <span>Tersedia</span>
-                      </>
-                    ) : (
-                      <>
-                        <PackageX className="size-4 shrink-0" />
-                        <span>Habis (86)</span>
-                      </>
-                    )}
+                    {p.is_available ? 'Tersedia' : 'Habis (86)'}
                   </button>
                 </div>
               )
