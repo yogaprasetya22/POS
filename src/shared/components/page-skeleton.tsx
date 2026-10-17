@@ -252,52 +252,55 @@ export function CashierSkeleton() {
 
 /**
  * Kerangka loading Layar Dapur KDS (/kitchen)
- * Menggunakan SkeletonContainer dengan layout grid kartu pesanan dapur persis struktur UI aslinya.
+ * Menggunakan SkeletonContainer dengan layout grid kartu pesanan tablet KDS.
  */
 export function KitchenSkeleton() {
   return (
-    <SkeletonContainer isLoading={true} className="space-y-6 p-4 md:p-6">
+    <SkeletonContainer isLoading={true} className="space-y-6 p-4 md:p-6 max-w-[1920px] mx-auto">
       {/* Header Banner Skeleton */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="h-8 w-56 rounded-xl bg-muted" />
+          <div className="h-8 sm:h-9 w-60 rounded-2xl bg-muted" />
           <div className="h-4 w-72 rounded-md bg-muted" />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-8.5 w-36 rounded-xl bg-muted" />
-          <div className="h-8.5 w-28 rounded-xl bg-muted" />
+        <div className="flex items-center gap-2.5">
+          <div className="h-11 sm:h-12 w-40 rounded-xl bg-muted" />
+          <div className="h-11 sm:h-12 w-32 rounded-xl bg-muted" />
         </div>
       </div>
 
-      {/* Grid Kartu Pesanan Dapur (KDS Cards) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {/* Grid Kartu Pesanan Dapur Tablet (KDS Cards) */}
+      <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="rounded-2xl border bg-card shadow-2xs overflow-hidden flex flex-col justify-between">
+          <div key={i} className="rounded-3xl border-2 bg-card shadow-xs overflow-hidden flex flex-col justify-between">
             {/* Card Header */}
-            <div className="p-4 pb-3 border-b space-y-2">
+            <div className="p-4 sm:p-5 pb-3 border-b space-y-2">
               <div className="flex items-center justify-between">
-                <div className="h-6 w-24 rounded-md bg-muted" />
-                <div className="h-4 w-12 rounded-md bg-muted" />
+                <div className="h-7 w-28 rounded-xl bg-muted" />
+                <div className="h-4 w-14 rounded-md bg-muted" />
               </div>
-              <div className="h-4 w-40 rounded-md bg-muted" />
+              <div className="h-4 w-44 rounded-md bg-muted" />
             </div>
 
             {/* Card Content (Status badge & order items) */}
-            <div className="p-4 space-y-3 flex-1">
-              <div className="h-6 w-full rounded-md bg-muted" />
-              <div className="space-y-2">
+            <div className="p-4 sm:p-5 space-y-3.5 flex-1">
+              <div className="h-8 w-full rounded-xl bg-muted" />
+              <div className="space-y-2.5">
                 {[0, 1].map((j) => (
-                  <div key={j} className="rounded-xl border bg-muted/40 p-2.5 space-y-1.5">
-                    <div className="h-4 w-3/4 rounded-md bg-muted" />
-                    <div className="h-3 w-1/2 rounded-md bg-muted" />
+                  <div key={j} className="rounded-2xl border bg-muted/40 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="size-7 rounded-lg bg-muted shrink-0" />
+                      <div className="h-5 w-48 rounded-md bg-muted" />
+                    </div>
+                    <div className="h-3.5 w-32 rounded-md bg-muted ml-9" />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Card Footer (Action button) */}
-            <div className="p-4 pt-0">
-              <div className="h-11 w-full rounded-xl bg-muted" />
+            {/* Card Footer (Action button jumbo tablet) */}
+            <div className="p-4 sm:p-5 pt-0">
+              <div className="h-13 sm:h-14 w-full rounded-2xl bg-muted" />
             </div>
           </div>
         ))}
