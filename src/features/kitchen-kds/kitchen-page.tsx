@@ -2,6 +2,7 @@ import { ChefHat, CheckCircle2, PackageX, ReceiptText } from 'lucide-react'
 import { useState } from 'react'
 import { useCatalog } from '@features/menu-catalog'
 import { ErrorAlert } from '@shared/components/error-alert'
+import { KitchenSkeleton } from '@shared/components/page-skeleton'
 import { StockDialog } from '@shared/components/stock-dialog'
 import { ToneBadge } from '@shared/components/tone-badge'
 import { Badge } from '@shared/components/ui/badge'
@@ -25,11 +26,15 @@ const STEP = {
  * Dilengkapi tombol aksi cepat untuk mematikan/menyalakan menu yang kehabisan bahan di dapur.
  */
 export function KitchenPage() {
-  const orders = useLiveOrders(ACTIVE)
+  const { orders, loading } = useLiveOrders(ACTIVE)
   const { storeId } = useStaff()
   const { data: catalog, reload } = useCatalog('id', storeId)
   const [error, setError] = useState('')
   const [stockOpen, setStockOpen] = useState(false)
+
+  if (loading) {
+    return <KitchenSkeleton />
+  }
 
   const products = catalog?.products ?? []
   const soldOutCount = products.filter((p) => !p.is_available).length

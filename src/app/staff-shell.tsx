@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { StaffLayout } from '@shared/components/layout/staff-layout'
-import { CashierSkeleton, PageSkeleton } from '@shared/components/page-skeleton'
+import { CashierSkeleton, KitchenSkeleton, PageSkeleton } from '@shared/components/page-skeleton'
 import { Button } from '@shared/components/ui/button'
 import { StaffContext, useStaffRole } from '@shared/lib/auth'
 import { supabase } from '@shared/lib/supabase'
@@ -23,6 +23,9 @@ export function StaffShell() {
   const { pathname } = useLocation()
   const route = STAFF_ROUTES.find((r) => pathname.startsWith(r.path))
   const isCashier = pathname.startsWith('/cashier')
+  const isKitchen = pathname.startsWith('/kitchen')
+
+  const fallbackSkeleton = isCashier ? <CashierSkeleton /> : isKitchen ? <KitchenSkeleton /> : <PageSkeleton />
 
   if (staff.loading) {
     return (
@@ -36,8 +39,8 @@ export function StaffShell() {
           isSuper: false,
         }}
       >
-        <StaffLayout title={route?.title ?? (isCashier ? 'Kasir' : 'Admin')}>
-          {isCashier ? <CashierSkeleton /> : <PageSkeleton />}
+        <StaffLayout title={route?.title ?? (isCashier ? 'Kasir' : isKitchen ? 'Dapur' : 'Admin')}>
+          {fallbackSkeleton}
         </StaffLayout>
       </StaffContext.Provider>
     )
@@ -65,7 +68,7 @@ export function StaffShell() {
   return (
     <StaffContext.Provider value={{ userId: staff.userId, email: staff.email, role: staff.role, storeId: staff.storeId, storeName: staff.storeName, isSuper: staff.isSuper }}>
       <StaffLayout title={route?.title ?? 'Kasir'}>
-        <Suspense fallback={isCashier ? <CashierSkeleton /> : <PageSkeleton />}>
+        <Suspense fallback={fallbackSkeleton}>
           <Outlet />
         </Suspense>
       </StaffLayout>

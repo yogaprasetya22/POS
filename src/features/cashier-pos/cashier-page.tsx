@@ -48,7 +48,7 @@ const toCartItem = (i: Order['items'][number]): CartItem => {
 }
 
 export function CashierPage() {
-  const orders = useLiveOrders(ACTIVE)
+  const { orders } = useLiveOrders(ACTIVE)
   const { storeId } = useStaff()
   const { data: catalog, error: catalogError, reload } = useCatalog('id', storeId)
 

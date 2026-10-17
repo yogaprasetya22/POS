@@ -251,35 +251,59 @@ export function CashierSkeleton() {
 }
 
 /**
- * Kerangka loading grid menu produk (bisa dipakai di Kasir, Menu Pelanggan, dan Admin Menu).
+ * Kerangka loading Layar Dapur KDS (/kitchen)
+ * Menggunakan SkeletonContainer dengan layout grid kartu pesanan dapur persis struktur UI aslinya.
  */
-export function MenuGridSkeleton({
-  count = 8,
-  columns = 'default',
-}: {
-  count?: number
-  columns?: 'default' | 'cashier' | 'customer'
-}) {
-  const colClass =
-    columns === 'cashier'
-      ? 'grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-3 2xl:grid-cols-4'
-      : columns === 'customer'
-        ? 'grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-5'
-        : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-
+export function KitchenSkeleton() {
   return (
-    <SkeletonContainer isLoading={true} className={colClass}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl sm:rounded-3xl border bg-card overflow-hidden space-y-3 p-3 shadow-2xs">
-          <div className="aspect-4/3 w-full rounded-xl bg-muted" />
-          <div className="space-y-1.5 px-1">
-            <div className="h-4 w-3/4 rounded-md bg-muted" />
-            <div className="h-3.5 w-1/2 rounded-md bg-muted" />
-          </div>
-          <div className="h-8 w-full rounded-xl bg-muted" />
+    <SkeletonContainer isLoading={true} className="space-y-6 p-4 md:p-6">
+      {/* Header Banner Skeleton */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <div className="h-8 w-56 rounded-xl bg-muted" />
+          <div className="h-4 w-72 rounded-md bg-muted" />
         </div>
-      ))}
+        <div className="flex items-center gap-2">
+          <div className="h-8.5 w-36 rounded-xl bg-muted" />
+          <div className="h-8.5 w-28 rounded-xl bg-muted" />
+        </div>
+      </div>
+
+      {/* Grid Kartu Pesanan Dapur (KDS Cards) */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="rounded-2xl border bg-card shadow-2xs overflow-hidden flex flex-col justify-between">
+            {/* Card Header */}
+            <div className="p-4 pb-3 border-b space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="h-6 w-24 rounded-md bg-muted" />
+                <div className="h-4 w-12 rounded-md bg-muted" />
+              </div>
+              <div className="h-4 w-40 rounded-md bg-muted" />
+            </div>
+
+            {/* Card Content (Status badge & order items) */}
+            <div className="p-4 space-y-3 flex-1">
+              <div className="h-6 w-full rounded-md bg-muted" />
+              <div className="space-y-2">
+                {[0, 1].map((j) => (
+                  <div key={j} className="rounded-xl border bg-muted/40 p-2.5 space-y-1.5">
+                    <div className="h-4 w-3/4 rounded-md bg-muted" />
+                    <div className="h-3 w-1/2 rounded-md bg-muted" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Card Footer (Action button) */}
+            <div className="p-4 pt-0">
+              <div className="h-11 w-full rounded-xl bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
     </SkeletonContainer>
   )
 }
+
 
