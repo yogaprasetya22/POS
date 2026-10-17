@@ -1,5 +1,6 @@
-import { Film, ImagePlus, Plus, Trash2, Video, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Film, ImagePlus, Loader2, Plus, Trash2, Video, X } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { cn } from 'cn'
 import { z } from 'zod'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { Button } from '@shared/components/ui/button'
@@ -33,34 +34,51 @@ export function ProductForm({ product, categories, onDone }: Props) {
   const [modifiers, setModifiers] = useState<ModifierGroup[]>(product?.modifiers ?? [])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pendingImages, setPendingImages] = useState<{ id: string; blobUrl: string }[]>([])
+  const [pendingVideo, setPendingVideo] = useState<{ blobUrl: string } | null>(null)
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
+
+  // Bersihkan object URL lokal jika komponen ditutup saat sedang upload
+  useEffect(() => {
+    return () => {
+      pendingImages.forEach((p) => URL.revokeObjectURL(p.blobUrl))
+      if (pendingVideo) URL.revokeObjectURL(pendingVideo.blobUrl)
+    }
+  }, [pendingImages, pendingVideo])
 
   const uploadImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return
-    setBusy(true)
     setError('')
-    const newUrls: string[] = []
+    const fileArray = Array.from(files)
+    const newPending = fileArray.map((file) => ({
+      id: crypto.randomUUID(),
+      blobUrl: URL.createObjectURL(file),
+      file,
+    }))
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
+    setPendingImages((prev) => [...prev, ...newPending.map(({ id, blobUrl }) => ({ id, blobUrl }))])
+    setBusy(true)
+
+    for (const item of newPending) {
       try {
-        const res = await uploadToGDrive(file, storeId ?? 'pos')
-        newUrls.push(res.url)
+        const res = await uploadToGDrive(item.file, storeId ?? 'pos')
+        setForm((f) => ({ ...f, images: [...f.images, res.url] }))
       } catch (err) {
         // Fallback ke Supabase Storage jika GDrive terkendala
-        const path = `${storeId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-        const { error: sErr } = await supabase.storage.from('product-images').upload(path, file)
+        const path = `${storeId}/${crypto.randomUUID()}-${item.file.name.replace(/[^\w.-]/g, '_')}`
+        const { error: sErr } = await supabase.storage.from('product-images').upload(path, item.file)
         if (sErr) {
-          setError(`Gagal upload ${file.name}: ${err instanceof Error ? err.message : sErr.message}`)
+          setError(`Gagal upload ${item.file.name}: ${err instanceof Error ? err.message : sErr.message}`)
         } else {
-          newUrls.push(supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl)
+          const publicUrl = supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl
+          setForm((f) => ({ ...f, images: [...f.images, publicUrl] }))
         }
+      } finally {
+        URL.revokeObjectURL(item.blobUrl)
+        setPendingImages((prev) => prev.filter((p) => p.id !== item.id))
       }
     }
     setBusy(false)
-    if (newUrls.length > 0) {
-      set({ images: [...form.images, ...newUrls] })
-    }
   }
 
   const removeImage = (indexToRemove: number) => {
@@ -69,8 +87,11 @@ export function ProductForm({ product, categories, onDone }: Props) {
 
   const uploadVideo = async (file: File) => {
     if (!file) return
+    const blobUrl = URL.createObjectURL(file)
+    setPendingVideo({ blobUrl })
     setBusy(true)
     setError('')
+
     try {
       const res = await uploadToGDrive(file, `${storeId ?? 'pos'}-video`)
       set({ video_url: res.url })
@@ -83,6 +104,8 @@ export function ProductForm({ product, categories, onDone }: Props) {
         set({ video_url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl })
       }
     } finally {
+      URL.revokeObjectURL(blobUrl)
+      setPendingVideo(null)
       setBusy(false)
     }
   }
@@ -129,13 +152,13 @@ export function ProductForm({ product, categories, onDone }: Props) {
                 <ImagePlus className="size-4 text-primary" />
                 <span>Foto Menu (Carousel Multi-Image)</span>
               </Label>
-              <span className="text-[11px] text-muted-foreground">{form.images.length} foto terpilih</span>
+              <span className="text-[11px] text-muted-foreground">{form.images.length + pendingImages.length} foto terpilih</span>
             </div>
 
             {/* Image Thumbnails Strip */}
             <div className="flex flex-wrap gap-2.5 items-center">
               {form.images.map((url, idx) => (
-                <div key={idx} className="relative size-20 rounded-xl overflow-hidden border bg-muted group">
+                <div key={url} className="relative size-20 rounded-xl overflow-hidden border bg-muted group">
                   <img src={url} alt={`Preview ${idx + 1}`} className="size-full object-cover" referrerPolicy="no-referrer" />
                   {idx === 0 && (
                     <span className="absolute bottom-0 inset-x-0 bg-primary/90 text-primary-foreground text-[9px] font-bold text-center py-0.5">
@@ -153,14 +176,29 @@ export function ProductForm({ product, categories, onDone }: Props) {
                 </div>
               ))}
 
+              {/* Pending Uploading Images with Instant Blob Preview & Spinner */}
+              {pendingImages.map((pending) => (
+                <div key={pending.id} className="relative size-20 rounded-xl overflow-hidden border border-primary/50 bg-muted ring-2 ring-primary/25">
+                  <img src={pending.blobUrl} alt="Mengunggah..." className="size-full object-cover" />
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1 text-white">
+                    <Loader2 className="size-5 animate-spin text-white" />
+                    <span className="text-[8px] font-semibold tracking-wider uppercase">Upload</span>
+                  </div>
+                </div>
+              ))}
+
               {/* Upload Button */}
-              <label className="size-20 rounded-xl border border-dashed border-border hover:border-primary/60 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors text-muted-foreground hover:text-foreground">
+              <label className={cn(
+                "size-20 rounded-xl border border-dashed border-border hover:border-primary/60 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors text-muted-foreground hover:text-foreground",
+                pendingImages.length > 0 && "opacity-50 pointer-events-none cursor-not-allowed"
+              )}>
                 <Plus className="size-5" />
                 <span className="text-[10px] font-medium">+ Foto</span>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
+                  disabled={pendingImages.length > 0}
                   className="sr-only"
                   onChange={(e) => uploadImages(e.target.files)}
                 />
@@ -178,7 +216,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
                 <Video className="size-4 text-primary" />
                 <span>Video Menu (Opsional)</span>
               </Label>
-              {form.video_url && (
+              {form.video_url && !pendingVideo && (
                 <button
                   type="button"
                   onClick={() => set({ video_url: '' })}
@@ -189,7 +227,18 @@ export function ProductForm({ product, categories, onDone }: Props) {
               )}
             </div>
 
-            {form.video_url ? (
+            {pendingVideo ? (
+              <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                <video src={pendingVideo.blobUrl} className="size-full object-contain opacity-40" />
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 text-white">
+                  <Loader2 className="size-7 animate-spin text-primary" />
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-white">Mengunggah video ke Drive...</p>
+                    <p className="text-[10px] text-white/70">Mohon tunggu beberapa saat</p>
+                  </div>
+                </div>
+              </div>
+            ) : form.video_url ? (
               <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black">
                 <video src={form.video_url} controls playsInline className="size-full object-contain" />
               </div>
