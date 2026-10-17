@@ -10,6 +10,9 @@ export interface GDriveUploadResult {
   url: string
 }
 
+/** Folder ID Google Drive khusus untuk media POS */
+export const POS_GDRIVE_FOLDER_ID = '1wqpjkruY35XPB7xB_SeQWS9TmpO4pGTX'
+
 let cachedAccessToken: string | null = null
 let tokenExpiresAt = 0
 
@@ -72,7 +75,7 @@ export async function getGDriveAccessToken(): Promise<string> {
  */
 export async function uploadToGDrive(file: File, folderPrefix = ''): Promise<GDriveUploadResult> {
   const token = await getGDriveAccessToken()
-  const rootFolderId = getEnv('GDRIVE_FOLDER_ID') || '1wqpjkruY35XPB7xB_SeQWS9TmpO4pGTX'
+  const rootFolderId = getEnv('GDRIVE_FOLDER_ID') || POS_GDRIVE_FOLDER_ID
 
   const safeName = `${folderPrefix ? folderPrefix + '-' : ''}${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`
 
