@@ -8,3 +8,7 @@ playwright-report
 .playwright-mcp
 gdrive_oauth.json
 docs.vitest
+scripts/tutorial/.tts
+docs/videos
+docs/screenshots
+docs/stitch-redesign-pack

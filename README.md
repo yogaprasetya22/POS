@@ -123,3 +123,14 @@ bun run test:e2e   # Playwright: pesan → bayar (shift) → dapur realtime, iso
 ```
 
 `db-check` dan `test:e2e` memakai akun demo dan **mengubah data** di database yang ada di `.env`; jalankan hanya ke database demo/dev.
+
+## Video panduan per peran
+
+Tujuh video (pelanggan, kasir, dapur, pelayan, manager, owner, super admin) dengan suara bahasa Indonesia direkam otomatis dari aplikasi yang berjalan: Playwright merekam layar, Piper membuat suara (offline), ffmpeg menggabungkannya. Hasil di `docs/videos/` (tidak di-commit).
+
+```bash
+bun run dev --port 5199 --strictPort        # terminal 1
+node scripts/tutorial/record.mjs all        # terminal 2 (atau satu peran: kasir, dapur, ...)
+```
+
+Naskah dan langkah layar ada di `scripts/tutorial/roles.mjs`; ubah teks lalu rekam ulang. Butuh `ffmpeg`, plus mesin suara di `scripts/tutorial/.tts` (venv dengan `piper-tts` dan model `id.onnx` dari rhasspy/piper-voices `id_ID-news_tts-medium`). Skrip mengubah database di `.env` (membuka/menutup shift, membuat pesanan demo, mengisi ulang stok): jalankan hanya ke database demo.
