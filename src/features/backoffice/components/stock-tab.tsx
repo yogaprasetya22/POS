@@ -65,7 +65,8 @@ export function StockTab({ store, products }: { store: Store; products: Product[
   }
 
   const pagedItems = useClientPaged(items, { pageSize: 10 })
-  const low = items.filter((i) => i.is_active && i.stock <= i.min_stock)
+  const minus = items.filter((i) => i.is_active && i.stock < 0)
+  const low = items.filter((i) => i.is_active && i.stock >= 0 && i.stock <= i.min_stock)
   const byId = new Map(items.map((i) => [i.id, i]))
   const product = products.find((p) => p.id === productId)
   const rows = recipes.filter((r) => r.product_id === productId)
@@ -78,6 +79,11 @@ export function StockTab({ store, products }: { store: Store; products: Product[
         <p className="text-sm text-muted-foreground">Catat bahan baku dan resep tiap menu. Stok berkurang otomatis saat pesanan dibayar dan kembali saat di-void.</p>
       </div>
       <ErrorAlert message={error} />
+      {minus.length > 0 && (
+        <p role="alert" className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertTriangle className="size-4 shrink-0" /> Stok minus: {minus.map((i) => `${i.name} (${fmt(i.stock)} ${i.unit})`).join(', ')}. Penjualan lebih besar dari catatan stok. Hitung fisik lalu koreksi lewat Ubah stok.
+        </p>
+      )}
       {low.length > 0 && (
         <p className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-950 dark:bg-amber-500/20 dark:text-amber-100">
           <AlertTriangle className="size-4 shrink-0" /> Stok menipis: {low.map((i) => i.name).join(', ')}
