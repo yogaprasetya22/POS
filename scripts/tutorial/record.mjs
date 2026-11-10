@@ -68,10 +68,15 @@ const caption = (page, text) =>
     el.textContent = t
   }, text).catch(() => {})
 
-/** Nomor slide pertama video ini (urutan global adegan, sama dengan docs/narasi.txt). */
+/** Nomor slide pertama video ini: urutan global adegan = docs/narasi.txt (seri fitur dulu, lalu seri peran). */
 function slideBase(name) {
   let n = 0
-  for (const [k, v] of Object.entries(SETS[SET])) { if (k === name) return n; n += (v.steps ?? v.scenes)({}).length }
+  for (const [seri, set] of [['fitur', VIDEOS], ['peran', ROLES]]) {
+    for (const [k, v] of Object.entries(set)) {
+      if (seri === SET && k === name) return n
+      n += (v.steps ?? v.scenes)({}).length
+    }
+  }
   return n
 }
 function loadAudio(name, count) {

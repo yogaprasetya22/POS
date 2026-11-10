@@ -135,16 +135,18 @@ node scripts/tutorial/record.mjs all        # terminal 2 (atau satu peran: kasir
 
 Naskah dan langkah layar ada di `scripts/tutorial/roles.mjs`; ubah teks lalu rekam ulang. Butuh `ffmpeg`, plus mesin suara di `scripts/tutorial/.tts` (venv dengan `piper-tts` dan model `id.onnx` dari rhasspy/piper-voices `id_ID-news_tts-medium`). Skrip mengubah database di `.env` (membuka/menutup shift, membuat pesanan demo, mengisi ulang stok): jalankan hanya ke database demo.
 
-### Seri "fitur untuk apa" (12 video, suara Fish Audio)
+### Suara Fish Audio untuk semua video (19 video)
 
-Naskah dan langkah layarnya ada di `scripts/tutorial/fitur.mjs` (satu adegan = satu blok narasi). Alurnya:
+Satu `docs/narasi.txt` memuat narasi seri fitur (12 video, slide 1–61) lalu seri peran (7 video, slide 62–129). Naskah dan langkah layar ada di `scripts/tutorial/fitur.mjs` dan `scripts/tutorial/roles.mjs`.
 
 ```bash
-node scripts/tutorial/export-narasi.mjs                          # tulis docs/narasi.txt + docs/narasi-peta.md
-python docs/fish_ai.py login                                      # sekali saja (login Fish Audio di jendela browser)
-python docs/fish_ai.py docs/narasi.txt                            # -> docs/audio/slide-01.mp3, slide-02.mp3, ...
-bun run dev --port 5199 --strictPort                              # terminal lain
-node scripts/tutorial/record.mjs all --set fitur --audio docs/audio   # -> docs/videos/fitur/*.mp4
+PY=scripts/tutorial/.tts/venv/bin/python                 # sudah berisi playwright + chromium
+node scripts/tutorial/export-narasi.mjs                  # tulis docs/narasi.txt + docs/narasi-peta.md
+$PY docs/fish_ai.py login                                # sekali saja: login Fish Audio di jendela browser, lalu Enter
+$PY docs/fish_ai.py docs/narasi.txt                      # -> docs/audio/slide-001.mp3 ... (slide yang sudah ada dilewati)
+bun run dev --port 5199 --strictPort                     # terminal lain
+node scripts/tutorial/record.mjs all --set fitur --audio docs/audio
+node scripts/tutorial/record.mjs all --set peran --audio docs/audio
 ```
 
-Tanpa `--audio`, video direkam dengan suara Piper (untuk draf). Nomor slide mengikuti urutan adegan global; jangan menambah atau menghapus adegan tanpa menjalankan ulang `export-narasi.mjs` dan membuat ulang suaranya.
+Tanpa `--audio`, video direkam dengan suara Piper (draf). Nomor slide mengikuti urutan adegan global: setelah menambah atau menghapus adegan, jalankan ulang `export-narasi.mjs` dan hapus `docs/audio` agar suara dibuat ulang. `docs/.fish-profile` (sesi login) dan `docs/audio` tidak di-commit.

@@ -119,3 +119,139 @@ Itulah fitur WA-Order POS: pesan lewat QR, kasir, shift, dapur, member, laporan,
 Kami jujur soal batasnya. Pembayaran QRIS dan kartu masih dicatat manual oleh kasir, dan transaksi baru tetap membutuhkan internet. Printer thermal sudah disiapkan, tetapi perlu diuji dengan printer toko Anda.
 ---
 Silakan coba sekarang dengan masa uji coba empat belas hari. Terima kasih.
+---
+Panduan untuk pelanggan. Pesan makanan dari meja Anda, tanpa antre dan tanpa perlu membuat akun.
+---
+Scan kode QR yang ada di meja. Halaman menu terbuka, dan nomor meja sudah terisi otomatis.
+---
+Geser ke bawah untuk melihat menu. Setiap menu menampilkan foto dan harganya.
+---
+Pilih menu yang Anda mau. Menu yang kehabisan akan ditandai, jadi tidak bisa dipesan.
+---
+Atur pilihan seperti ukuran atau tambahan, lalu tekan Tambah ke keranjang.
+---
+Tekan Lihat pesanan untuk memeriksa isi keranjang dan total harga.
+---
+Isi nama Anda supaya pesanan mudah dipanggil.
+---
+Terakhir, tekan Kirim ke WhatsApp. Pesanan masuk ke kasir dan Anda mendapat kode antrean.
+---
+Tunjukkan kode antrean ke kasir, lalu bayar. Setelah dibayar, pesanan langsung disiapkan di dapur. Selamat menikmati.
+---
+Panduan untuk kasir. Kita mulai dari masuk ke aplikasi dengan email dan password kasir.
+---
+Ini layar kasir. Di kiri ada antrean pesanan dan menu. Di kanan ada keranjang dan pembayaran.
+---
+Sebelum menerima pembayaran, kasir wajib membuka shift. Modal awal sudah terisi dari uang serah terima shift sebelumnya. Jika angkanya beda, isi alasannya.
+---
+Tekan Buka shift. Sekarang laci kas atas nama Anda, dan semua penjualan tercatat di shift ini.
+---
+Pesanan dari pelanggan muncul di antrean. Cari dengan kode antrean, lalu tekan Enter untuk membukanya.
+---
+Pilih metode Tunai, lalu masukkan uang yang diterima. Tombol Uang pas atau pecahan cepat mempercepat kerja.
+---
+Tekan Terima Pembayaran. Struk menampilkan kembalian, dan pesanan langsung terkirim ke dapur.
+---
+Anda bisa mencetak struk, atau melihat pratinjau printer thermal sebelum mengirim ke printer.
+---
+Tekan Selesai untuk kembali ke antrean.
+---
+Pesanan kedua dibayar dengan QRIS. Pilih QRIS, pastikan pembayaran sudah masuk di aplikasi bank atau e-wallet, baru tekan Terima Pembayaran.
+---
+Pembayaran non tunai tidak masuk hitungan uang di laci, hanya penjualan tunai.
+---
+Jika ada uang keluar dari laci, misalnya beli es batu, catat lewat Kas dan tutup shift. Pilih Kas keluar, isi jumlah dan alasannya.
+---
+Saat shift berakhir, hitung uang di laci dan isi jumlahnya. Sistem membandingkan dengan uang yang seharusnya ada, dan menampilkan selisihnya. Jika ada selisih, alasan wajib diisi.
+---
+Tekan Tutup shift. Uang yang Anda hitung menjadi modal awal untuk kasir berikutnya, jadi serah terima tercatat rapi.
+---
+Selesai. Itulah alur kasir, dari buka shift sampai tutup shift.
+---
+Panduan untuk staf dapur. Masuk dengan akun dapur.
+---
+Ini layar dapur. Setiap kartu adalah satu pesanan yang sudah dibayar, lengkap dengan nomor antrean, nama, meja, dan menu yang harus dibuat.
+---
+Pesanan baru muncul sendiri tanpa perlu menyegarkan halaman. Perhatikan juga catatan khusus pelanggan, yang ditandai warna kuning.
+---
+Setelah makanan atau minuman selesai dibuat, tekan Siap diambil di kartu pesanan.
+---
+Saat pelanggan sudah menerima pesanannya, tekan Sudah diambil. Kartu pun hilang dari layar.
+---
+Jika ada bahan yang habis, tekan Stok menu, lalu matikan menu tersebut. Menu itu langsung tidak bisa dipesan pelanggan.
+---
+Tutup jendela ini bila sudah selesai.
+---
+Jika printer thermal sudah dipasang di komputer dapur, tombol Cetak otomatis akan mencetak tiket setiap ada pesanan baru. Pasangkan printer sekali saja lewat tombol Pasangkan printer.
+---
+Itulah tugas dapur. Selamat bekerja.
+---
+Panduan untuk pelayan. Masuk dengan akun pelayan.
+---
+Pelayan memakai layar yang sama dengan kasir, tetapi tanpa bagian pembayaran dan tanpa shift. Tugasnya mengambil pesanan di meja.
+---
+Pilih menu yang diminta pelanggan.
+---
+Atur pilihan menu bila ada, lalu tambahkan ke keranjang.
+---
+Isi nama pelanggan dan nomor mejanya.
+---
+Tekan Simpan pesanan. Pesanan tersimpan dan menunggu dibayar di kasir. Pelayan tidak bisa menerima pembayaran, sehingga uang hanya dipegang kasir.
+---
+Selesai. Pesanan Anda kini muncul di antrean kasir.
+---
+Panduan untuk manager. Masuk dengan akun manager, lalu buka Back office.
+---
+Dashboard menampilkan ringkasan penjualan, jumlah pesanan, dan menu terlaris.
+---
+Di halaman Laporan, pilih rentang tanggal untuk melihat omzet, diskon, pajak, penjualan per metode bayar, dan per kasir.
+---
+Void dan refund juga tercatat di laporan, jadi pembatalan transaksi mudah diaudit.
+---
+Halaman Shift adalah pusat pengawasan uang. Setiap shift menampilkan kasirnya, modal awal, uang seharusnya, uang dihitung, dan selisih.
+---
+Buka satu shift untuk melihat rinciannya, mulai dari pesanan, kas masuk dan keluar, sampai void dan refund di shift itu.
+---
+Jika kasir lupa menutup shift, manager bisa menutup paksa dengan alasan, dan tindakan itu tercatat.
+---
+Halaman Stok menampilkan sisa bahan. Bahan yang menipis atau minus ditandai, jadi bisa segera dibelanjakan atau dikoreksi.
+---
+Di halaman Member, kelola pelanggan setia, poin, dan voucher mereka.
+---
+Itulah tugas manager. Pengaturan tim dan toko hanya bisa diubah oleh pemilik.
+---
+Panduan untuk pemilik usaha. Masuk dengan akun owner, lalu buka Back office.
+---
+Owner punya akses penuh. Dashboard menampilkan penjualan dan ringkasan toko Anda.
+---
+Di halaman Menu, tambah atau ubah produk, harga, foto, kategori, pilihan tambahan, dan resep bahan.
+---
+Halaman Promo mengatur diskon otomatis dan kode promo, lengkap dengan periode dan syaratnya.
+---
+Halaman Member mengelola pelanggan setia, poin, dan voucher.
+---
+Halaman Stok mencatat sisa bahan. Stok berkurang otomatis setiap ada penjualan, dan Anda bisa menyesuaikannya saat belanja atau stok opname.
+---
+Halaman Laporan menunjukkan omzet dan penjualan per hari, per metode bayar, dan per kasir.
+---
+Halaman Shift memperlihatkan serah terima uang antar kasir beserta selisihnya, sehingga kebocoran kas mudah dilacak.
+---
+Halaman Meja membuat kode QR untuk setiap meja. Cetak dan tempel di meja pelanggan.
+---
+Di halaman Tim, tambah staf dan tentukan perannya, yaitu manager, kasir, pelayan, atau dapur. Hak akses tiap peran sudah diatur otomatis.
+---
+Halaman Toko berisi profil usaha, pajak dan service, poin, tampilan struk, dan keamanan seperti PIN supervisor.
+---
+Di tab Struk, atur alamat, pesan kaki struk, dan kalibrasi printer thermal, termasuk cetak tes.
+---
+Halaman Bahasa mengatur bahasa aplikasi. Anda bisa mengubah kalimat sesuai gaya toko Anda.
+---
+Itulah gambaran lengkap fitur untuk pemilik. Selamat berjualan.
+---
+Panduan untuk super admin, yaitu pengelola platform yang menaungi banyak toko.
+---
+Halaman Kelola Toko menampilkan semua toko beserta penjualannya.
+---
+Dari sini Anda bisa membuat toko baru, menentukan pemiliknya, serta mengatur paket dan masa langganan.
+---
+Super admin tidak bisa membaca pesanan atau data pelanggan toko. Setiap toko terisolasi satu sama lain di tingkat database.
