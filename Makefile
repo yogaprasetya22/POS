@@ -1,4 +1,4 @@
-.PHONY: help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos
+.PHONY: reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos
 
 # Default target
 help:
@@ -18,6 +18,10 @@ help:
 	@echo "  make seed                  - Isi data dummy (menu, kategori, gambar, pesanan contoh, fitur POS inti)"
 	@echo "  make seed-pos              - Hanya data demo fitur POS inti (role baru, meja, member, voucher, stok)"
 	@echo "  make db-check              - Uji otorisasi & perhitungan di database (butuh seed; jangan di produksi)"
+	@echo "  make reset-month           - HAPUS transaksi (1 toko demo) pada rentang simulasi; dry-run kecuali YES=1"
+	@echo "  make sim-month             - Hapus transaksi + simulasikan 30 hari + audit (YES=1 DAYS=30)"
+	@echo "  make e2e                   - Playwright semua alur (butuh database demo)"
+	@echo "  make test-all              - lint, unit, build, migrate, db-check, sim-month, e2e (YES=1)"
 	@echo "  make migrate-info          - Buka instruksi dashboard Supabase"
 
 dev:
@@ -72,3 +76,26 @@ migrate-down:
 migrate-info:
 	@echo "Buka SQL Editor project Supabase kamu (Dashboard -> pilih project -> SQL Editor)."
 	@echo "Jalankan supabase/migrations/*.sql (urut nama file), lalu supabase/seed.sql dan supabase/seed_pos.sql"
+
+# --- Pengujian menyeluruh (HANYA database demo/dev) ---
+DAYS ?= 30
+SIM_FLAGS = $(if $(YES),--yes,) --days $(DAYS)
+
+reset-month:
+	bun scripts/sim-month.mjs $(SIM_FLAGS) --reset-only
+
+sim-month:
+	bun scripts/sim-month.mjs $(SIM_FLAGS)
+
+e2e:
+	bunx playwright test
+
+test-all:
+	@[ -n "$(YES)" ] || (echo "test-all menghapus transaksi toko demo. Jalankan: make test-all YES=1" && exit 1)
+	bun run lint
+	bun run test
+	bun run build
+	bun scripts/supabase-migrate.js up
+	bun scripts/db-check.mjs
+	bun scripts/sim-month.mjs $(SIM_FLAGS)
+	bunx playwright test
