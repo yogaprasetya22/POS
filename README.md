@@ -143,7 +143,7 @@ Satu `docs/narasi.txt` memuat narasi seri fitur (12 video, slide 1–61) lalu se
 PY=scripts/tutorial/.tts/venv/bin/python                 # sudah berisi playwright + chromium
 node scripts/tutorial/export-narasi.mjs                  # tulis docs/narasi.txt + docs/narasi-peta.md
 $PY docs/fish_ai.py login                                # sekali saja: login Fish Audio di jendela browser, lalu Enter
-$PY docs/fish_ai.py docs/narasi.txt                      # -> docs/audio/slide-001.mp3 ... (slide yang sudah ada dilewati)
+$PY docs/fish_ai.py docs/narasi.txt                      # -> docs/audio/slide-01.mp3 ... slide-129.mp3 (slide yang sudah ada dilewati)
 bun run dev --port 5199 --strictPort                     # terminal lain
 node scripts/tutorial/record.mjs all --set fitur --audio docs/audio
 node scripts/tutorial/record.mjs all --set peran --audio docs/audio
