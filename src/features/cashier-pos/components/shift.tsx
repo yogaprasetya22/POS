@@ -167,12 +167,13 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
     if (err) return setError(err.message)
     const r = data as { expected_cash: number; counted_cash: number; difference: number }
     setClosedInfo({ expected: r.expected_cash, counted: r.counted_cash, difference: r.difference })
-    onChange()
+    // jangan muat ulang dulu: shift jadi kosong dan bar ini (beserta ringkasan) akan hilang sebelum sempat dibaca
   }
 
-  if (closedInfo)
+  if (closedInfo) {
+    const done = () => { onChange(); onClose() }
     return (
-      <Panel onClose={onClose} title="Shift ditutup" description={t('shift.ui.closed_hint')} footer={<Button size="lg" className="h-12 w-full" onClick={onClose}>Selesai</Button>}>
+      <Panel onClose={done} title="Shift ditutup" description={t('shift.ui.closed_hint')} footer={<Button size="lg" className="h-12 w-full" onClick={done}>Selesai</Button>}>
         <div className="space-y-2 text-sm">
           <Line label="Kas diharapkan" value={closedInfo.expected} />
           <Line label="Uang dihitung (diserahkan)" value={closedInfo.counted} strong />
@@ -180,6 +181,7 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
         </div>
       </Panel>
     )
+  }
 
   return (
     <Panel

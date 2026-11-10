@@ -1,0 +1,121 @@
+Selamat datang di WA-Order POS, aplikasi kasir untuk warung kopi, restoran, dan kafe. Satu aplikasi untuk pesanan pelanggan, kasir, dapur, dan laporan.
+---
+Pelanggan memesan sendiri dari meja lewat kode QR. Kasir menerima pembayaran, dapur langsung melihat pesanan, dan pemilik memantau penjualan. Semuanya terhubung dan berjalan waktu nyata.
+---
+Aplikasi ini juga menjaga uang Anda. Setiap shift kasir tercatat, selisih kas harus dijelaskan, dan hak akses staf dibatasi sesuai perannya.
+---
+Mari kita lihat fitur satu per satu.
+---
+Fitur pertama: pemesanan lewat kode QR. Setiap meja punya kode QR sendiri. Pelanggan tinggal memindainya dengan kamera ponsel, tanpa mengunduh aplikasi dan tanpa membuat akun.
+---
+Nomor meja sudah terisi otomatis, jadi pesanan tidak salah meja. Menu tampil lengkap dengan foto, harga, dan promo yang sedang berlaku.
+---
+Menu yang kehabisan ditandai dari dapur, sehingga pelanggan tidak memesan sesuatu yang tidak tersedia. Pilihan seperti tingkat gula atau tambahan bisa diatur per menu.
+---
+Setelah memilih, pelanggan memeriksa keranjang, mengisi nama, lalu menekan kirim. Pesanan masuk ke kasir lewat WhatsApp, lengkap dengan kode antrean.
+---
+Harga dihitung oleh sistem, bukan oleh ponsel pelanggan. Jadi total di layar pelanggan, kasir, dan struk selalu sama.
+---
+Fitur kedua: kasir. Semua pesanan yang masuk muncul di antrean, baik dari pelanggan maupun yang dibuat sendiri oleh staf.
+---
+Kasir cukup mencari kode antrean lalu membuka pesanannya. Kasir juga bisa membuat pesanan langsung dari daftar menu untuk pelanggan yang datang ke kasir.
+---
+Pembayaran bisa tunai, QRIS, atau kartu. Untuk tunai ada tombol uang pas dan pecahan cepat, dan sistem menghitung kembalian. QRIS dan kartu dicatat oleh kasir setelah pembayarannya dipastikan masuk.
+---
+Setelah dibayar, struk tampil dan pesanan otomatis terkirim ke dapur. Struk bisa dicetak biasa, atau dilihat dulu lewat pratinjau printer thermal.
+---
+Untuk meja yang memesan bertahap, ada simpan bill, serta fitur pisah dan gabung bill.
+---
+Jika ada kesalahan, pesanan bisa dibatalkan lewat void atau refund. Kasir butuh pin supervisor, sedangkan manager dan owner tidak. Setiap pembatalan tercatat.
+---
+Fitur ketiga: shift dan kas. Inilah yang menjaga uang di laci tetap bisa dilacak.
+---
+Satu laci hanya boleh dipegang satu kasir dalam satu waktu. Sebelum menerima pembayaran, kasir membuka shift dan mengisi modal awal. Angkanya sudah terisi otomatis dari uang hasil hitung shift sebelumnya.
+---
+Jika kasir mengisi angka yang berbeda, alasannya wajib ditulis. Jadi tidak ada uang yang berpindah tanpa penjelasan.
+---
+Tekan Buka shift, maka laci kas tercatat atas nama kasir itu. Selama shift berjalan, uang yang masuk atau keluar dari laci, misalnya untuk beli es batu, dicatat lewat kas masuk dan kas keluar.
+---
+Saat shift berakhir, kasir menghitung uang di laci. Sistem membandingkannya dengan uang yang seharusnya ada, yaitu modal awal ditambah penjualan tunai dan kas masuk, dikurangi kas keluar dan refund tunai.
+---
+Kalau ada selisih, kasir wajib menulis penyebabnya, dan manager menandai selisih itu sudah ditinjau. Uang hasil hitung otomatis menjadi modal awal kasir berikutnya. Jika kasir lupa menutup, manager bisa menutup paksa dengan alasan.
+---
+Fitur keempat: layar dapur.
+---
+Pesanan yang sudah dibayar muncul sendiri di layar dapur tanpa perlu menyegarkan halaman, lengkap dengan nomor antrean, meja, menu, pilihan, dan catatan dari pelanggan.
+---
+Koki menekan Siap diambil saat pesanan selesai, lalu Sudah diambil saat pelanggan menerimanya. Kartu pun hilang dari layar.
+---
+Kalau bahan habis, dapur bisa mematikan menu lewat Stok menu. Menu itu langsung tidak bisa dipesan pelanggan.
+---
+Dapur juga bisa mencetak tiket otomatis setiap ada pesanan baru ke printer thermal. Pasangkan printer sekali, lalu aktifkan Cetak otomatis. Halaman dapur harus tetap terbuka, dan fitur ini butuh Chrome atau Edge.
+---
+Fitur kelima: pelanggan setia. Di halaman Member, kasir dan manager mendaftarkan pelanggan dengan nomor telepon.
+---
+Setiap pembelian menambah poin, dan poin bisa ditukar menjadi potongan harga di kasir.
+---
+Anda juga bisa membuat voucher berupa potongan rupiah atau persen, lengkap dengan masa berlaku. Setiap voucher hanya bisa dipakai sekali.
+---
+Di halaman Promo, atur diskon otomatis, beli dua gratis satu, potongan dengan minimal belanja, atau kode promo, lengkap dengan periode dan syaratnya.
+---
+Semua potongan dihitung otomatis oleh sistem, jadi kasir tidak perlu menghitung manual.
+---
+Fitur keenam: katalog menu.
+---
+Tambah atau ubah menu beserta harga, kategori, dan foto. Atur juga pilihan seperti ukuran dan tingkat gula, serta tandai menu tersedia atau habis.
+---
+Perubahan harga langsung berlaku di layar pelanggan dan di kasir.
+---
+Di halaman Stok dan Resep, catat bahan baku beserta resep tiap menu.
+---
+Stok bahan berkurang otomatis setiap ada penjualan, dan dikembalikan jika pesanan dibatalkan. Bahan yang menipis diberi tanda.
+---
+Dari resep, sistem menghitung harga pokok penjualan dan margin tiap menu, jadi Anda tahu menu mana yang paling menguntungkan.
+---
+Fitur ketujuh: laporan.
+---
+Ikhtisar menampilkan penjualan, pesanan terbaru, menu terlaris, dan bahan yang menipis.
+---
+Halaman Penjualan memperlihatkan omzet, jumlah transaksi, rata-rata per transaksi, serta penjualan per hari, per metode bayar, dan per kasir. Datanya bisa diekspor ke C S V.
+---
+Void dan refund dicatat terpisah, jadi pembatalan transaksi mudah diaudit.
+---
+Halaman Shift dan Audit menampilkan selisih kas di setiap shift, siapa kasirnya, dan rincian tiap pesanan tunai.
+---
+Log audit mencatat tindakan penting seperti void, refund, dan perubahan pengaturan, lengkap dengan siapa yang melakukannya dan kapan.
+---
+Fitur kedelapan: meja dan tim.
+---
+Daftarkan meja toko Anda, lalu cetak kode QR untuk tiap meja. Pesanan dari QR hanya diterima untuk meja yang terdaftar.
+---
+Di Tim dan Peran, tambahkan staf dengan email lalu tentukan perannya.
+---
+Ada lima peran: owner, manager, kasir, pelayan, dan dapur. Kasir tidak bisa melihat laporan penjualan, pelayan tidak bisa menerima pembayaran, dan dapur hanya mengurus dapur.
+---
+Aturan ini dijaga langsung di database, bukan sekadar disembunyikan di layar. Jadi staf tidak bisa menembusnya.
+---
+Fitur kesembilan: pengaturan toko.
+---
+Atur profil usaha, nomor WhatsApp kasir, dan link pemesanan untuk pelanggan.
+---
+Di tab Pajak dan Poin, atur pajak, biaya layanan, pembulatan, dan aturan poin.
+---
+Tab Struk mengatur alamat dan pesan di struk. Di sini juga ada kalibrasi printer thermal, lengkap dengan cetak tes.
+---
+Tab Keamanan menyimpan pin supervisor yang dipakai untuk void dan refund oleh kasir.
+---
+Halaman Bahasa mengatur tiga bahasa: Indonesia, Santai gaya Jakarta Selatan, dan English. Owner bisa menyunting kalimat peringatan sesuai gaya toko, dan tiap staf bisa memilih bahasanya sendiri.
+---
+Fitur kesepuluh: banyak toko dalam satu platform.
+---
+Super admin membuat toko baru, menentukan pemiliknya, dan mengatur paket serta masa langganan. Pemilik usaha juga bisa mendaftar sendiri dan langsung mendapat masa uji coba empat belas hari.
+---
+Data setiap toko terpisah di tingkat database. Owner satu toko tidak bisa melihat pesanan toko lain, dan super admin pun tidak bisa membaca pesanan pelanggan.
+---
+Halaman privasi dan syarat layanan tersedia, dan aplikasi bisa dipasang seperti aplikasi di ponsel atau tablet.
+---
+Itulah fitur WA-Order POS: pesan lewat QR, kasir, shift, dapur, member, laporan, dan banyak toko, dalam satu aplikasi.
+---
+Kami jujur soal batasnya. Pembayaran QRIS dan kartu masih dicatat manual oleh kasir, dan transaksi baru tetap membutuhkan internet. Printer thermal sudah disiapkan, tetapi perlu diuji dengan printer toko Anda.
+---
+Silakan coba sekarang dengan masa uji coba empat belas hari. Terima kasih.

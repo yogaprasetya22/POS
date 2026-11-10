@@ -13,13 +13,20 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { ROLES } from './roles.mjs'
+import { VIDEOS } from './fitur.mjs'
 
 try { process.loadEnvFile('.env') } catch { /* env dari shell */ }
 const BASE = process.env.BASE_URL || 'http://localhost:5199'
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const TTS_PY = process.env.TTS_PYTHON || path.join(ROOT, 'scripts/tutorial/.tts/venv/bin/python')
 const TTS_MODEL = process.env.TTS_MODEL || path.join(ROOT, 'scripts/tutorial/.tts/id.onnx')
-const OUT = path.join(ROOT, 'docs/videos')
+const argv = process.argv.slice(2)
+const opt = (n) => (argv.includes(`--${n}`) ? argv[argv.indexOf(`--${n}`) + 1] : undefined)
+const SET = opt('set') || 'peran'
+const SETS = { peran: ROLES, fitur: VIDEOS }
+if (!SETS[SET]) throw new Error(`--set harus salah satu: ${Object.keys(SETS).join(', ')}`)
+const AUDIO = opt('audio') ? path.resolve(opt('audio')) : null
+const OUT = path.join(ROOT, 'docs/videos', SET === 'fitur' ? 'fitur' : '')
 const TMP = fs.mkdtempSync(path.join(process.env.TUTORIAL_TMP || os.tmpdir(), 'tutorial-'))
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 /** Batas waktu keras: langkah yang menggantung tidak boleh memanjangkan video. */
@@ -61,14 +68,29 @@ const caption = (page, text) =>
     el.textContent = t
   }, text).catch(() => {})
 
+/** Nomor slide pertama video ini (urutan global adegan, sama dengan docs/narasi.txt). */
+function slideBase(name) {
+  let n = 0
+  for (const [k, v] of Object.entries(SETS[SET])) { if (k === name) return n; n += (v.steps ?? v.scenes)({}).length }
+  return n
+}
+function loadAudio(name, count) {
+  const base = slideBase(name)
+  return Array.from({ length: count }, (_, i) => {
+    const file = path.join(AUDIO, `slide-${String(base + i + 1).padStart(2, '0')}.mp3`)
+    if (!fs.existsSync(file)) throw new Error(`file suara tidak ada: ${file} (jalankan docs/fish_ai.py dulu)`)
+    return { file, ms: duration(file) }
+  })
+}
+
 async function record(name) {
-  const role = ROLES[name]
-  if (!role) throw new Error(`peran tidak dikenal: ${name}. Pilihan: ${Object.keys(ROLES).join(', ')}`)
+  const role = SETS[SET][name]
+  if (!role) throw new Error(`video tidak dikenal: ${name}. Pilihan: ${Object.keys(SETS[SET]).join(', ')}`)
   console.log(`\n▶ ${name}: ${role.title}`)
   const dir = fs.mkdtempSync(path.join(TMP, name + '-'))
   const ctx = await role.before?.()
-  const steps = role.steps(ctx ?? {})
-  const clips = synth(steps.map((s) => s[0]), dir)
+  const steps = (role.steps ?? role.scenes)(ctx ?? {})
+  const clips = AUDIO ? loadAudio(name, steps.length) : synth(steps.map((s) => s[0]), dir)
 
   const browser = await chromium.launch({ slowMo: 120 })
   const context = await browser.newContext({ baseURL: BASE, viewport: { width: 1280, height: 720 }, recordVideo: { dir, size: { width: 1280, height: 720 } } })
@@ -122,9 +144,9 @@ async function record(name) {
   return failed.length
 }
 
-const arg = process.argv[2]
-if (!arg) { console.error(`Pakai: node scripts/tutorial/record.mjs <${Object.keys(ROLES).join('|')}|all>`); process.exit(1) }
+const arg = argv.find((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--')))
+if (!arg) { console.error(`Pakai: node scripts/tutorial/record.mjs <${Object.keys(SETS[SET]).join('|')}|all> [--set peran|fitur] [--audio dir]`); process.exit(1) }
 let bad = 0
-for (const n of arg === 'all' ? Object.keys(ROLES) : [arg]) bad += await record(n)
+for (const n of arg === 'all' ? Object.keys(SETS[SET]) : [arg]) bad += await record(n)
 if (!process.env.TUTORIAL_KEEP) fs.rmSync(TMP, { recursive: true, force: true })
 process.exit(bad ? 2 : 0)

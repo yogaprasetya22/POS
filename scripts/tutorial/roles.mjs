@@ -280,3 +280,6 @@ export const ROLES = {
     ],
   },
 }
+
+// dipakai juga oleh fitur.mjs
+export { as, anon, need, ACC, SLUG, clearShifts, restock, customerOrder, finishOrders, login, scroll, go, hold, digits }

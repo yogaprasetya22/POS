@@ -134,3 +134,17 @@ node scripts/tutorial/record.mjs all        # terminal 2 (atau satu peran: kasir
 ```
 
 Naskah dan langkah layar ada di `scripts/tutorial/roles.mjs`; ubah teks lalu rekam ulang. Butuh `ffmpeg`, plus mesin suara di `scripts/tutorial/.tts` (venv dengan `piper-tts` dan model `id.onnx` dari rhasspy/piper-voices `id_ID-news_tts-medium`). Skrip mengubah database di `.env` (membuka/menutup shift, membuat pesanan demo, mengisi ulang stok): jalankan hanya ke database demo.
+
+### Seri "fitur untuk apa" (12 video, suara Fish Audio)
+
+Naskah dan langkah layarnya ada di `scripts/tutorial/fitur.mjs` (satu adegan = satu blok narasi). Alurnya:
+
+```bash
+node scripts/tutorial/export-narasi.mjs                          # tulis docs/narasi.txt + docs/narasi-peta.md
+python docs/fish_ai.py login                                      # sekali saja (login Fish Audio di jendela browser)
+python docs/fish_ai.py docs/narasi.txt                            # -> docs/audio/slide-01.mp3, slide-02.mp3, ...
+bun run dev --port 5199 --strictPort                              # terminal lain
+node scripts/tutorial/record.mjs all --set fitur --audio docs/audio   # -> docs/videos/fitur/*.mp4
+```
+
+Tanpa `--audio`, video direkam dengan suara Piper (untuk draf). Nomor slide mengikuti urutan adegan global; jangan menambah atau menghapus adegan tanpa menjalankan ulang `export-narasi.mjs` dan membuat ulang suaranya.
