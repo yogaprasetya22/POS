@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SkeletonContainer } from '@shared/components/ui/skeleton-container'
 import { cn } from 'cn'
 import { UtensilsCrossed } from 'lucide-react'
 
@@ -37,10 +38,9 @@ export function MenuImage({
     <div className={cn('relative w-full overflow-hidden bg-muted', aspectRatio)}>
       {/* Skeleton Pulse saat gambar sedang dimuat dari jaringan */}
       {!isLoaded && (
-        <div
-          className="absolute inset-0 z-10 animate-pulse bg-muted-foreground/10"
-          aria-hidden="true"
-        />
+        <SkeletonContainer isLoading className="absolute inset-0 z-10">
+          <span className="block size-full rounded-none">gambar</span>
+        </SkeletonContainer>
       )}
 
       <img
@@ -51,8 +51,8 @@ export function MenuImage({
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className={cn(
-          'size-full object-cover transition-all duration-300',
-          isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95',
+          'size-full object-cover transition-opacity duration-200',
+          isLoaded ? 'opacity-100' : 'opacity-0',
           className
         )}
       />

@@ -1,4 +1,5 @@
 import { Film, ImagePlus, Loader2, Plus, Trash2, Video, X } from 'lucide-react'
+import { CurrencyInput } from '@shared/components/currency-input'
 import { useEffect, useState, type FormEvent } from 'react'
 import { cn } from 'cn'
 import { z } from 'zod'
@@ -138,7 +139,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
 
   return (
     <Drawer open onOpenChange={(open) => !open && onDone()} swipeDirection="right">
-      <DrawerContent style={{ '--drawer-content-width': 'min(100vw, 62rem)' } as React.CSSProperties}>
+      <DrawerContent size="lg">
         <DrawerHeader className="border-b text-left">
           <DrawerTitle>{product ? 'Ubah menu' : 'Menu baru'}</DrawerTitle>
           <DrawerDescription>{product ? product.name : 'Isi data menu yang akan tampil di katalog pelanggan.'}</DrawerDescription>
@@ -278,7 +279,7 @@ export function ProductForm({ product, categories, onDone }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <Label className="flex-col items-start gap-2">
               Harga (Rp)
-              <Input inputMode="numeric" value={form.price} onChange={(e) => set({ price: e.target.value.replace(/\D/g, '') })} placeholder="25000" />
+              <CurrencyInput value={form.price} onValueChange={(raw) => set({ price: raw })} placeholder="25.000" />
             </Label>
             <Label className="flex-col items-start gap-2">
               SKU (opsional)

@@ -1,5 +1,5 @@
 export { cn } from 'cn'
-export const rupiah = (n: number) => `Rp${n.toLocaleString('id-ID')}`
+export const rupiah = (n: number) => `${n < 0 ? '-' : ''}Rp${Math.abs(n).toLocaleString('id-ID')}`
 
 /** Tanggal bisnis (YYYY-MM-DD) zona Asia/Jakarta, sama dengan orders.business_day. */
 export const todayJakarta = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })

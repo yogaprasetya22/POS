@@ -1,10 +1,12 @@
-import { CheckCircle2, Printer } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { CheckCircle2, Printer, Receipt as ReceiptIcon } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { Button } from '@shared/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@shared/components/ui/dialog'
 import { Separator } from '@shared/components/ui/separator'
+import type { ReceiptStore } from '@shared/lib/print'
 import { rupiah, timeJakarta } from '@shared/lib/utils'
 import { PAYMENT_LABEL, type Order } from '@shared/types/contracts'
+import { PrintPanel } from './print-panel'
 
 const Row = ({ label, children, strong }: { label: string; children: ReactNode; strong?: boolean }) => (
   <div className={`flex justify-between gap-4 ${strong ? 'font-bold' : ''}`}>
@@ -15,17 +17,20 @@ const Row = ({ label, children, strong }: { label: string; children: ReactNode; 
 
 const Dash = () => <Separator className="h-0 border-t border-dashed bg-transparent" />
 
-/** Layar "Pembayaran Berhasil" yang sekaligus jadi struk thermal saat dicetak (CSS print di index.css). */
-export function Receipt({ order, storeName, onClose }: { order: Order; storeName: string; onClose: () => void }) {
+/** Layar "Pembayaran Berhasil" yang sekaligus jadi struk saat dicetak (CSS print di index.css). */
+export function Receipt({ order, store, onClose }: { order: Order; store: ReceiptStore; onClose: () => void }) {
   const paid = order.cash_received ?? order.total
   const count = order.items.reduce((n, i) => n + i.qty, 0)
 
+  const [previewOpen, setPreviewOpen] = useState(false)
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent id="receipt" showCloseButton={false} className="gap-5 bg-muted p-7 font-mono sm:max-w-sm">
+      <DialogContent id="receipt" showCloseButton={false} className="max-h-[92%] gap-5 overflow-y-auto bg-muted p-7 font-mono sm:max-w-sm">
         <div className="text-center">
           <CheckCircle2 className="mx-auto size-16 text-green-500 print:hidden" aria-hidden />
-          <p className="hidden font-bold print:block">{storeName}</p>
+          <p className="hidden font-bold print:block">{store.name}</p>
+          {store.address && <p className="hidden text-xs print:block">{store.address}</p>}
           <DialogTitle className="mt-3 text-xl font-bold print:hidden">Pembayaran Berhasil</DialogTitle>
           <DialogDescription className="sr-only">Struk pesanan {order.queue_code}</DialogDescription>
           <p className="mt-1 text-3xl font-extrabold text-primary print:text-black">{order.queue_code}</p>
@@ -52,12 +57,15 @@ export function Receipt({ order, storeName, onClose }: { order: Order; storeName
           ))}
 
           <Dash />
-          {order.discount_amount > 0 && (
-            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 print:text-black font-medium">
-              <span>Diskon ({order.promo_name ?? 'Promo'})</span>
-              <span>-{rupiah(order.discount_amount)}</span>
-            </div>
+          {(order.discount_amount > 0 || order.voucher_discount > 0 || order.points_discount > 0 || order.service_amount > 0 || order.tax_amount > 0 || order.rounding_amount !== 0) && (
+            <Row label="Subtotal">{rupiah(order.subtotal || order.total + order.discount_amount)}</Row>
           )}
+          {order.discount_amount > 0 && <Row label={`Diskon (${order.promo_name ?? 'Promo'})`}>-{rupiah(order.discount_amount)}</Row>}
+          {order.voucher_discount > 0 && <Row label="Voucher">-{rupiah(order.voucher_discount)}</Row>}
+          {order.points_discount > 0 && <Row label={`Poin (${order.points_redeemed})`}>-{rupiah(order.points_discount)}</Row>}
+          {order.service_amount > 0 && <Row label="Service">{rupiah(order.service_amount)}</Row>}
+          {order.tax_amount > 0 && <Row label="Pajak">{rupiah(order.tax_amount)}</Row>}
+          {order.rounding_amount !== 0 && <Row label="Pembulatan">{order.rounding_amount < 0 ? '-' : ''}{rupiah(Math.abs(order.rounding_amount))}</Row>}
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
             <span>{rupiah(order.total)}</span>
@@ -68,15 +76,20 @@ export function Receipt({ order, storeName, onClose }: { order: Order; storeName
               <Row label="Kembalian" strong>{rupiah(paid - order.total)}</Row>
             </>
           )}
-          <p className="hidden pt-2 text-center print:block">Terima kasih!</p>
+          {order.points_earned > 0 && <Row label="Poin didapat">+{order.points_earned}</Row>}
+          <p className="hidden pt-2 text-center print:block">{store.footer || 'Terima kasih!'}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 print:hidden">
-          <Button variant="outline" size="lg" onClick={() => window.print()}>
-            <Printer /> Cetak Struk
+          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => window.print()}>
+            <Printer /> Cetak
           </Button>
-          <Button size="lg" onClick={onClose}>Selesai</Button>
+          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => setPreviewOpen(true)}>
+            <ReceiptIcon /> Pratinjau printer
+          </Button>
+          <Button size="lg" className="col-span-2 h-12" onClick={onClose}>Selesai</Button>
         </div>
+        {previewOpen && <PrintPanel order={order} store={store} onClose={() => setPreviewOpen(false)} />}
       </DialogContent>
     </Dialog>
   )

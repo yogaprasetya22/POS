@@ -1,8 +1,9 @@
 import { X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { m } from 'motion/react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@shared/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@shared/components/ui/drawer'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@shared/components/ui/drawer'
 import { useIsMobile } from '@shared/hooks/use-mobile'
 
 type Props = {
@@ -20,64 +21,75 @@ type Props = {
 }
 
 /** Pola "responsive dialog" shadcn: Drawer (bisa diswipe) di HP, Dialog di tablet/desktop. */
-export function Panel({
-  onClose,
-  title,
-  description,
-  media,
-  aside,
-  footer,
-  maxWidth = 'sm:max-w-xl md:max-w-2xl',
-  children,
-}: Props) {
+export function Panel({ onClose, title, description, media, aside, footer, maxWidth = 'sm:max-w-xl', children }: Props) {
   const isMobile = useIsMobile()
+  // Mulai tertutup lalu buka satu frame kemudian, supaya transisi masuk Base UI ikut jalan.
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOpen(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  const close = () => {
+    setOpen(false)
+    setTimeout(onClose, 220)
+  }
 
-  const content = (Title: typeof DialogTitle, Description: typeof DialogDescription) => (
+  const heading = (Title: typeof DialogTitle | typeof DrawerTitle, Description: typeof DialogDescription | typeof DrawerDescription) => (
     <>
-      <div className="flex items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4 shrink-0 bg-background/80 backdrop-blur-xs">
-        <div className="min-w-0 flex-1 pr-3">
-          <Title className="text-base sm:text-xl font-black leading-tight text-foreground">{title}</Title>
-          <Description className={description ? 'mt-0.5 text-xs sm:text-sm font-bold text-primary truncate' : 'sr-only'}>
-            {description ?? title}
-          </Description>
-        </div>
-        <div className="flex items-center gap-2.5 shrink-0">
-          {aside}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Tutup"
-            onClick={onClose}
-            className="size-8 sm:size-9 rounded-full text-muted-foreground hover:bg-muted active:scale-95 transition-transform"
-          >
-            <X className="size-4 sm:size-5" />
-          </Button>
-        </div>
+      <div className="min-w-0 flex-1">
+        <Title className="text-lg font-semibold leading-tight">{title}</Title>
+        <Description className={description ? 'mt-1 truncate' : 'sr-only'}>{description ?? title}</Description>
       </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-none">
-        {media}
-        <div className="space-y-4 p-4 sm:space-y-5 sm:p-6">{children}</div>
-      </div>
-
-      <div className="border-t bg-card px-4 py-3 sm:px-6 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {footer}
+      <div className="flex shrink-0 items-center gap-2">
+        {aside}
+        <Button type="button" variant="ghost" size="icon" aria-label="Tutup" onClick={close}>
+          <X />
+        </Button>
       </div>
     </>
   )
 
+  const body = (
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-none">
+      {media}
+      <div className="space-y-4 p-4">{children}</div>
+    </div>
+  )
+
+  // Efek bubble: isi panel membal sedikit saat muncul (pegas dengan overshoot)
+  const bubble = (from: { y?: number; scale?: number }, el: ReactNode) => (
+    <m.div
+      initial={{ opacity: 0, ...from }}
+      animate={open ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.9 }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      {el}
+    </m.div>
+  )
+
   if (isMobile)
     return (
-      <Drawer open onOpenChange={(open) => !open && onClose()} showSwipeHandle>
-        <DrawerContent className="rounded-t-3xl max-h-[92dvh]">{content(DrawerTitle as unknown as typeof DialogTitle, DrawerDescription as unknown as typeof DialogDescription)}</DrawerContent>
+      <Drawer open={open} onOpenChange={(o) => !o && close()} showSwipeHandle>
+        <DrawerContent className="max-h-[92%]">
+          <DrawerHeader className="flex-row items-center border-b pb-3 text-left!">{heading(DrawerTitle, DrawerDescription)}</DrawerHeader>
+          {body}
+          <DrawerFooter className="border-t pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</DrawerFooter>
+        </DrawerContent>
       </Drawer>
     )
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showCloseButton={false} className={`flex max-h-[88dvh] w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 shadow-2xl ${maxWidth}`}>
-        {content(DialogTitle, DialogDescription)}
+    <Dialog open={open} onOpenChange={(o) => !o && close()}>
+      <DialogContent showCloseButton={false} className={`flex max-h-[88%] w-full flex-col gap-0 overflow-hidden p-0 ${maxWidth}`}>
+        {bubble(
+          { scale: 0.82 },
+          <>
+            <DialogHeader className="flex-row items-center gap-3 border-b p-4">{heading(DialogTitle, DialogDescription)}</DialogHeader>
+            {body}
+            <DialogFooter className="m-0 rounded-none bg-card sm:flex-col">{footer}</DialogFooter>
+          </>,
+        )}
       </DialogContent>
     </Dialog>
   )

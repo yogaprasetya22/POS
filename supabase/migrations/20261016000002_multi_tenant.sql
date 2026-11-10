@@ -40,7 +40,6 @@ alter table profiles add column store_id uuid references stores;
 alter table profiles add column is_super_admin boolean not null default false;
 update profiles set store_id = (select id from stores where slug = 'warkop-nusantara') where role is not null;
 alter table profiles add constraint profiles_role_needs_store check (role is null or store_id is not null);
-update profiles set is_super_admin = true where lower(email) = 'yogaagle123z@gmail.com';
 
 drop policy if exists settings_read on settings;
 drop policy if exists settings_owner on settings;

@@ -1,3 +1,4 @@
+import { m } from 'motion/react'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -24,7 +25,7 @@ export function LoginPage() {
 
   return (
     <AuthShell>
-      <form onSubmit={submit} className="grid gap-4">
+      <m.form initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="grid gap-4">
         <h2 className="text-xl font-bold">Masuk Staf</h2>
         <Input name="email" type="email" required placeholder="Email" aria-label="Email" />
         <Input name="password" type="password" required placeholder="Password" aria-label="Password" />
@@ -33,7 +34,7 @@ export function LoginPage() {
         <p className="text-center text-sm text-muted-foreground">
           Belum punya akun? <Link to="/register" className="font-semibold text-primary">Daftar</Link>
         </p>
-      </form>
+      </m.form>
     </AuthShell>
   )
 }

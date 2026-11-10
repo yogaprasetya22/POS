@@ -1,15 +1,16 @@
-import { ChefHat } from 'lucide-react'
+import { liquid } from '@shared/lib/motion'
+import { AnimatePresence, m } from 'motion/react'
 import { useState } from 'react'
 import { useCatalog } from '@features/menu-catalog'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { KitchenSkeleton } from '@shared/components/page-skeleton'
 import { StockDialog } from '@shared/components/stock-dialog'
-import { ToneBadge } from '@shared/components/tone-badge'
 import { Button } from '@shared/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@shared/components/ui/card'
 import { useStaff } from '@shared/lib/auth'
 import { useLiveOrders } from '@shared/lib/orders'
-import { supabase } from '@shared/lib/supabase'
+import { useAutoPrint } from '@shared/lib/use-auto-print'
+import { Printer } from 'lucide-react'
+import { rpc } from '@shared/lib/api'
 import { timeJakarta } from '@shared/lib/utils'
 import type { Order, OrderStatus } from '@shared/types/contracts'
 
@@ -21,12 +22,12 @@ const STEP = {
 
 /**
  * Layar Dapur (KDS)
- * Kontainer diseragamkan dengan Admin dan Super Admin (`space-y-6 p-4 md:p-6`).
  * Dilengkapi tombol aksi cepat untuk mematikan/menyalakan menu yang kehabisan bahan di dapur.
  */
 export function KitchenPage() {
   const { orders, loading } = useLiveOrders(ACTIVE)
   const { storeId } = useStaff()
+  const auto = useAutoPrint(orders, !loading)
   const { data: catalog, reload } = useCatalog('id', storeId)
   const [error, setError] = useState('')
   const [stockOpen, setStockOpen] = useState(false)
@@ -39,7 +40,7 @@ export function KitchenPage() {
   const soldOutCount = products.filter((p) => !p.is_available).length
 
   const advance = async (o: Order) => {
-    const { error } = await supabase.rpc('advance_order', {
+    const { error } = await rpc('advance_order', {
       p_order_id: o.id,
       p_to: STEP[o.status as keyof typeof STEP].to,
     })
@@ -47,7 +48,7 @@ export function KitchenPage() {
   }
 
   const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
-    const { error: err } = await supabase.from('products').update({ is_available: isAvailable }).eq('id', productId)
+    const { error: err } = await rpc('set_product_availability', { p_product: productId, p_available: isAvailable })
     if (err) {
       setError(`Gagal mengubah status menu: ${err.message}`)
     } else {
@@ -56,133 +57,89 @@ export function KitchenPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header Banner - Tablet Friendly Touch Targets */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            Layar Dapur (KDS)
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Pesanan aktif yang siap dimasak dan disajikan kepada pelanggan.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            onClick={() => setStockOpen(true)}
-            className="h-11 sm:h-12 px-4 rounded-xl text-xs sm:text-sm font-bold gap-2 border-border shadow-2xs hover:bg-muted/80 active:scale-95 transition-all"
-          >
-            <span>Kelola Stok Cepat</span>
-            {soldOutCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-black rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/30">
-                {soldOutCount} Habis
-              </span>
-            )}
+    <div className="space-y-4 p-3 lg:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">
+          Dapur <span className="font-normal text-muted-foreground">· {orders.length} aktif</span>
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {!auto.paired && (
+            <Button variant="outline" onClick={auto.pair} className="h-11 gap-2 px-4">
+              <Printer /> Pasangkan printer
+            </Button>
+          )}
+          <Button variant={auto.enabled ? 'default' : 'outline'} aria-pressed={auto.enabled} onClick={() => auto.setEnabled(!auto.enabled)} className="h-11 gap-2 px-4">
+            <Printer /> Cetak otomatis {auto.enabled ? 'aktif' : 'mati'}
           </Button>
-          <div className="h-11 sm:h-12 px-4 rounded-xl text-xs sm:text-sm font-bold bg-muted/60 border flex items-center shadow-2xs">
-            {orders.length} pesanan aktif
-          </div>
+          <Button variant="outline" onClick={() => setStockOpen(true)} className="h-11 gap-2 px-4">
+            Stok menu
+            {soldOutCount > 0 && <span className="rounded bg-destructive/10 px-1.5 text-xs font-semibold text-destructive">{soldOutCount} habis</span>}
+          </Button>
         </div>
       </div>
 
-      <ErrorAlert message={error} />
+      <ErrorAlert message={error || auto.error} />
 
       {orders.length === 0 && (
-        <Card className="rounded-3xl border-2 border-dashed p-14 text-center text-muted-foreground">
-          <ChefHat className="mx-auto size-12 text-muted-foreground/40 mb-3" />
-          <p className="text-lg font-bold text-foreground">Dapur Bersih & Siap</p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Belum ada antrean pesanan baru yang masuk ke dapur.
-          </p>
-        </Card>
+        <p className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">Belum ada pesanan yang perlu dimasak.</p>
       )}
 
-      {/* Grid Kartu Pesanan Tablet KDS */}
-      <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-3">
+        <AnimatePresence initial={false}>
         {orders.map((o) => {
           const step = STEP[o.status as keyof typeof STEP]
+          const ready = o.status === 'READY'
           return (
-            <Card
+            <m.article
               key={o.id}
-              className="rounded-3xl border-2 bg-card shadow-xs hover:border-primary/50 transition-all flex flex-col justify-between overflow-hidden"
-            >
-              {/* Header Kartu: Kode Antrean & Meja */}
-              <CardHeader className="p-4 sm:p-5 pb-3 border-b bg-muted/20">
-                <CardTitle className="flex items-center justify-between text-xl sm:text-2xl font-black tracking-tight">
-                  <span className="text-foreground">
-                    #{o.queue_code}
-                  </span>
-                  <span className="text-xs sm:text-sm font-mono font-medium text-muted-foreground">
-                    {o.paid_at && timeJakarta(o.paid_at)}
-                  </span>
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm font-bold text-foreground/80 mt-1">
-                  {o.customer_name} ·{' '}
-                  <span className="text-primary font-black">
-                    {o.order_type === 'DINE_IN' ? `Meja ${o.table_no}` : 'Bawa pulang (Takeaway)'}
-                  </span>
-                </CardDescription>
-              </CardHeader>
+              layout="position"
+              transition={liquid}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+              className={`flex flex-col rounded-lg border border-t-4 bg-card ${ready ? 'border-t-emerald-500' : 'border-t-amber-500'}`}>
+              <header className="flex items-start justify-between gap-2 border-b px-4 py-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-2xl font-bold leading-none">{o.queue_code}</p>
+                  <p className="mt-1.5 truncate text-sm text-muted-foreground">{o.customer_name}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-base font-semibold">{o.order_type === 'DINE_IN' ? `Meja ${o.table_no}` : 'Bawa pulang'}</p>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{o.paid_at && timeJakarta(o.paid_at)}</p>
+                </div>
+              </header>
 
-              {/* Konten Kartu: Status Pill & Daftar Item */}
-              <CardContent className="p-4 sm:p-5 flex-1 space-y-3.5">
-                <ToneBadge tone={step.tone} className="h-8 w-full justify-center text-xs sm:text-sm font-bold rounded-xl px-3">
-                  <span>{step.badge}</span>
-                </ToneBadge>
+              <ul className="flex-1 divide-y px-4">
+                {o.items.map((i, n) => (
+                  <li key={n} className="flex gap-3 py-2.5">
+                    <span className="w-7 shrink-0 text-lg font-bold tabular-nums">{i.qty}×</span>
+                    <div className="min-w-0">
+                      <p className="text-base font-medium leading-6">{i.name}</p>
+                      {i.choices.length > 0 && <p className="text-sm text-muted-foreground">{i.choices.map((c) => c.option).join(', ')}</p>}
+                      {i.note && <p className="mt-1 rounded bg-amber-100 px-2 py-1 text-sm font-medium text-amber-950 dark:bg-amber-500/20 dark:text-amber-100">{i.note}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
-                <ul className="space-y-2.5">
-                  {o.items.map((i, n) => (
-                    <li key={n} className="rounded-2xl bg-muted/40 border p-3 text-xs sm:text-sm space-y-1">
-                      <div className="flex items-start gap-2">
-                        <span className="inline-flex items-center justify-center min-w-7 h-7 px-1.5 rounded-lg bg-primary/10 text-primary font-black text-sm shrink-0">
-                          {i.qty}×
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-sm sm:text-base text-foreground leading-snug">
-                            {i.name}
-                          </p>
-                          {i.choices.length > 0 && (
-                            <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-                              {i.choices.map((c) => c.option).join(', ')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {i.note && (
-                        <div className="text-xs font-semibold text-amber-900 bg-amber-500/10 border border-amber-500/25 rounded-xl p-2 px-3 mt-1.5">
-                          Catatan: {i.note}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              {/* Tombol Aksi Sentuh Jumbo Tablet */}
-              <CardFooter className="p-4 sm:p-5 pt-0 border-0 bg-transparent">
-                <Button
-                  size="lg"
-                  variant={o.status === 'READY' ? 'outline' : 'default'}
-                  onClick={() => advance(o)}
-                  className="w-full h-13 sm:h-14 rounded-2xl text-sm sm:text-base font-black tracking-wide active:scale-98 transition-all shadow-sm"
-                >
+              <div className="p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">{step.badge}</p>
+                  <Button variant="ghost" size="sm" onClick={() => auto.print(o)} aria-label={`Cetak ulang tiket ${o.queue_code}`}>
+                    <Printer /> Cetak ulang
+                  </Button>
+                </div>
+                <Button size="lg" variant={ready ? 'outline' : 'default'} onClick={() => advance(o)} className="h-14 w-full text-base font-semibold">
                   {step.action}
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </m.article>
           )
         })}
+        </AnimatePresence>
       </div>
 
-      <StockDialog
-        open={stockOpen}
-        onOpenChange={setStockOpen}
-        products={products}
-        onToggleAvailability={handleToggleAvailability}
-      />
+      <StockDialog open={stockOpen} onOpenChange={setStockOpen} products={products} onToggleAvailability={handleToggleAvailability} />
     </div>
   )
 }
-

@@ -1,4 +1,8 @@
-import { ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { m } from 'motion/react'
+import { appear } from '@shared/components/motion'
+import { Pagination } from '@shared/components/pagination'
+import { useClientPaged } from '@shared/lib/use-client-paged'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { z } from 'zod'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -16,12 +20,23 @@ import {
 } from '@shared/components/ui/select'
 import { useStaff } from '@shared/lib/auth'
 import { supabase } from '@shared/lib/supabase'
+import { rpc } from '@shared/lib/api'
 import { StaffProfileSchema, StaffRoleSchema, type StaffProfile } from '@shared/types/contracts'
 
 const ROLE_ITEMS = [
   { value: 'cashier', label: 'Kasir' },
+  { value: 'waiter', label: 'Pelayan' },
+  { value: 'kitchen', label: 'Dapur' },
+  { value: 'manager', label: 'Manager' },
   { value: 'owner', label: 'Owner (Pemilik)' },
 ]
+const ROLE_NOTE: Record<string, string> = {
+  owner: 'Pemilik Toko (akses penuh, pengaturan, tim)',
+  manager: 'Manager (laporan, menu, promo, stok; tanpa tim & pengaturan)',
+  cashier: 'Kasir (pembayaran, shift, open bill; void dengan PIN)',
+  waiter: 'Pelayan (buat & ubah pesanan, tanpa pembayaran)',
+  kitchen: 'Dapur (layar dapur & stok bahan)',
+}
 const REMOVE = 'remove'
 
 /**
@@ -34,6 +49,8 @@ export function StaffList() {
   const [newRole, setNewRole] = useState('cashier')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const paged = useClientPaged(staff, { pageSize: 10 })
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -59,7 +76,7 @@ export function StaffList() {
   // REMOVE = keluarkan dari toko (role null di database)
   const setRole = (id: string, value: string | null) =>
     run(
-      supabase.rpc('set_staff_role', {
+      rpc('set_staff_role', {
         p_user_id: id,
         p_role: !value || value === REMOVE ? null : StaffRoleSchema.parse(value),
       })
@@ -70,7 +87,7 @@ export function StaffList() {
     const form = e.currentTarget
     const email = String(new FormData(form).get('email')).trim()
     if (!email) return
-    if (await run(supabase.rpc('add_staff', { p_email: email, p_role: StaffRoleSchema.parse(newRole) }))) {
+    if (await run(rpc('add_staff', { p_email: email, p_role: StaffRoleSchema.parse(newRole) }))) {
       form.reset()
     }
   }
@@ -106,11 +123,11 @@ export function StaffList() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
-                {staff.map((s) => {
+                {paged.rows.map((s, idx) => {
                   const isCurrentUser = s.user_id === userId
                   const isOwner = s.role === 'owner'
                   return (
-                    <div key={s.user_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-muted/30 transition-colors">
+                    <m.div {...appear(idx)} key={s.user_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="size-10 border">
                           <AvatarFallback className={isOwner ? 'bg-primary/10 text-primary font-bold' : 'bg-muted text-muted-foreground font-semibold'}>
@@ -129,7 +146,7 @@ export function StaffList() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {isOwner ? 'Pemilik Toko (Full Access)' : 'Staf Operasional (Kasir & Dapur)'}
+                            {ROLE_NOTE[s.role ?? ''] ?? 'Belum punya peran'}
                           </p>
                         </div>
                       </div>
@@ -159,7 +176,7 @@ export function StaffList() {
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
+                    </m.div>
                   )
                 })}
                 {staff.length === 0 && (
@@ -167,6 +184,9 @@ export function StaffList() {
                     Belum ada anggota staf yang terdaftar di toko ini.
                   </div>
                 )}
+              </div>
+              <div className="border-t px-4 pb-3">
+                <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
               </div>
             </CardContent>
           </Card>
@@ -230,23 +250,15 @@ export function StaffList() {
               <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                 <ShieldCheck className="size-4" />
               </div>
-              <div className="text-xs space-y-1">
-                <span className="font-bold text-foreground">Peran Owner:</span>
-                <p className="text-muted-foreground leading-relaxed">
-                  Akses penuh ke seluruh menu Admin, laporan keuangan, pengaturan menu, dan manajemen toko.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border bg-card p-4 shadow-xs flex items-start gap-3">
-              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-600">
-                <UserCheck className="size-4" />
-              </div>
-              <div className="text-xs space-y-1">
-                <span className="font-bold text-foreground">Peran Kasir:</span>
-                <p className="text-muted-foreground leading-relaxed">
-                  Fokus operasional: menerima pesanan di POS kasir dan memantau status pesanan di layar dapur.
-                </p>
+              <div className="space-y-2 text-xs">
+                <span className="font-bold text-foreground">Izin tiap peran</span>
+                <ul className="space-y-1.5 text-muted-foreground leading-relaxed">
+                  {ROLE_ITEMS.map((r) => (
+                    <li key={r.value}>
+                      <span className="font-semibold text-foreground">{r.label}:</span> {ROLE_NOTE[r.value]}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ const TONES = {
   amber: 'bg-amber-500 text-white',
   green: 'bg-green-500 text-white',
   blue: 'bg-primary text-primary-foreground',
+  red: 'bg-destructive text-white',
   gray: '',
 }
 

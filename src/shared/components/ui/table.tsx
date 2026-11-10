@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { m } from "motion/react"
 import { cn } from "cn"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
@@ -53,13 +54,16 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
-    <tr
+    <m.tr
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 220, damping: 26 }}
       data-slot="table-row"
       className={cn(
         "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
         className
       )}
-      {...props}
+      {...(props as React.ComponentProps<typeof m.tr>)}
     />
   )
 }

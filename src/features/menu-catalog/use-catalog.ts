@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { fetchAll } from '@shared/lib/fetch-all'
 import { z } from 'zod'
 import { supabase } from '@shared/lib/supabase'
+import { fetchCatalogBySlug } from '@shared/lib/api'
 import { CategorySchema, ProductSchema, PromotionSchema, StoreSchema, type Category, type Product, type Promotion, type Store } from '@shared/types/contracts'
 
 type Catalog = { store: Store; categories: Category[]; products: Product[]; promotions: Promotion[] }
@@ -70,7 +72,7 @@ export function useCatalog(by: 'slug' | 'id', value: string | null) {
         const [s, c, p, pr] = await Promise.all([
           supabase.from('stores').select('id, slug, name, wa_number, is_active').eq('id', value).maybeSingle(),
           supabase.from('categories').select('*').eq('store_id', value).order('sort'),
-          supabase.from('products').select('*').eq('store_id', value).order('sort'),
+          fetchAll((a, b) => supabase.from('products').select('*').eq('store_id', value).order('sort').order('id').range(a, b)),
           supabase.from('promotions').select('*').eq('store_id', value).eq('is_active', true),
         ])
         if (!active.current) return
@@ -84,25 +86,13 @@ export function useCatalog(by: 'slug' | 'id', value: string | null) {
         prodData = p.data ?? []
         promoData = pr.data ?? []
       } else {
-        // Untuk slug publik: cari store dulu, lalu paralel categories, products, promotions
-        const s = await supabase.from('stores').select('id, slug, name, wa_number, is_active').eq('slug', value).maybeSingle()
+        // Slug publik: satu panggilan /api/catalog (cache CDN)
+        const viaApi = await fetchCatalogBySlug(value)
         if (!active.current) return
-        if (s.error) return setError(s.error.message)
-        if (!s.data) return setError('Toko tidak ditemukan')
-
-        store = StoreSchema.parse(s.data)
-        const [c, p, pr] = await Promise.all([
-          supabase.from('categories').select('*').eq('store_id', store.id).order('sort'),
-          supabase.from('products').select('*').eq('store_id', store.id).order('sort'),
-          supabase.from('promotions').select('*').eq('store_id', store.id).eq('is_active', true),
-        ])
-        if (!active.current) return
-        const err = c.error ?? p.error ?? pr.error
-        if (err) return setError(err.message)
-
-        catData = c.data ?? []
-        prodData = p.data ?? []
-        promoData = pr.data ?? []
+        store = StoreSchema.parse(viaApi.store)
+        catData = viaApi.categories
+        prodData = viaApi.products
+        promoData = viaApi.promotions
       }
 
       const nextCatalog: Catalog = {

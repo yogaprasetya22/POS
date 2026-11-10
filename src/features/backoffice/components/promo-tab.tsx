@@ -16,6 +16,12 @@ import {
   X,
   Zap,
 } from 'lucide-react'
+import { useClientPaged } from '@shared/lib/use-client-paged'
+import { Pagination } from '@shared/components/pagination'
+import { m } from 'motion/react'
+import { appear } from '@shared/components/motion'
+import { CurrencyInput } from '@shared/components/currency-input'
+import { SkeletonContainer } from '@shared/components/ui/skeleton-container'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ConfirmButton } from '@shared/components/confirm-button'
 import { ToneBadge } from '@shared/components/tone-badge'
@@ -220,6 +226,8 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     return `Menu: ${prod?.name ?? 'Menu Dihapus'}`
   }
 
+  const paged = useClientPaged(promos, { pageSize: 12 })
+
   // Stats KPI
   const activeCount = promos.filter((p) => p.is_active).length
   const b2g1Count = promos.filter((p) => p.type === 'BUY_X_GET_Y').length
@@ -228,7 +236,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
   return (
     <div className="space-y-6">
       {/* Header Banner Modern */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card via-card to-primary/5 border p-5 sm:p-7 shadow-xs">
+      <div className="relative overflow-hidden rounded-3xl bg-card border p-5 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
           <div className="space-y-1.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
@@ -254,7 +262,6 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         </div>
 
         {/* Decorative background glow */}
-        <div className="absolute -top-12 -right-12 size-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       </div>
 
       {/* KPI Stats Cards */}
@@ -294,11 +301,16 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
 
       {/* Daftar Promo Cards */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <SkeletonContainer isLoading className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-44 rounded-3xl border bg-muted/40 animate-pulse" />
+            <div key={i} className="space-y-3 rounded-2xl border bg-card p-4">
+              <h3 className="w-40 text-base font-semibold">Nama promo</h3>
+              <p className="w-56 max-w-full text-sm">Diskon 10% untuk semua menu</p>
+              <p className="w-32 text-xs">Berlaku sampai 31 Des</p>
+              <span className="block h-9 w-24">Aktif</span>
+            </div>
           ))}
-        </div>
+        </SkeletonContainer>
       ) : promos.length === 0 ? (
         <Card className="rounded-3xl border-dashed p-12 text-center bg-card/50">
           <div className="grid size-14 place-items-center rounded-2xl bg-muted mx-auto mb-3 text-muted-foreground/60">
@@ -315,11 +327,13 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {promos.map((p) => {
+          {paged.rows.map((p, idx) => {
             const isB2G1 = p.type === 'BUY_X_GET_Y'
             const isPercent = p.type === 'PERCENTAGE'
             return (
-              <div
+              <m.div
+                {...appear(idx)}
+                whileTap={{ scale: 0.985 }}
                 key={p.id}
                 onClick={() => openDetailDrawer(p)}
                 className={`group relative overflow-hidden rounded-3xl border transition-all cursor-pointer p-5 flex flex-col justify-between gap-4 ${
@@ -456,11 +470,12 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                     </ConfirmButton>
                   </div>
                 </div>
-              </div>
+              </m.div>
             )
           })}
         </div>
       )}
+      {!loading && promos.length > 0 && <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />}
 
       {/* Drawer Samping untuk Detail & Edit/Buat Promo (Ponytail) */}
       <Drawer
@@ -469,7 +484,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
         swipeDirection="right"
       >
         <DrawerContent
-          style={{ '--drawer-content-width': 'min(100vw, 56rem)' } as React.CSSProperties}
+          size="md"
           className="flex flex-col h-full rounded-l-3xl border-l"
         >
           <DrawerHeader className="border-b px-5 py-4 text-left">
@@ -513,7 +528,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             )}
 
             {/* Live Catalog Preview Box */}
-            <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/40 p-3.5 space-y-2">
+            <div className="rounded-2xl border bg-card p-3.5 space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                 Pratinjau
               </span>
@@ -644,12 +659,10 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
             {type === 'FIXED_AMOUNT' && (
               <div className="p-3.5 rounded-2xl border bg-muted/20 space-y-1">
                 <Label className="text-xs font-semibold">Nominal Diskon (Rp)</Label>
-                <Input
-                  type="number"
-                  min={100}
-                  step={500}
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                <CurrencyInput
+                  value={discountAmount || ''}
+                  onValueChange={(_, n) => setDiscountAmount(n)}
+                  placeholder="5.000"
                   className="h-10 text-xs sm:text-sm rounded-xl font-bold"
                   required
                 />
@@ -850,14 +863,11 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
                   <Label htmlFor="promo-min-spend" className="text-xs font-semibold text-foreground">
                     Nominal Minimal Belanja (Rp)
                   </Label>
-                  <Input
+                  <CurrencyInput
                     id="promo-min-spend"
-                    type="number"
-                    min={1000}
-                    step={1000}
                     value={minSpend || ''}
-                    onChange={(e) => setMinSpend(Number(e.target.value))}
-                    placeholder="Contoh: 50000"
+                    onValueChange={(_, n) => setMinSpend(n)}
+                    placeholder="50.000"
                     className="h-10 text-xs sm:text-sm rounded-xl font-bold bg-background"
                     required={hasMinSpend}
                   />

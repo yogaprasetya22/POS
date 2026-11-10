@@ -1,4 +1,5 @@
 import * as React from "react"
+import { m } from "motion/react"
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { cn } from "cn"
 
@@ -31,6 +32,14 @@ function Drawer({
   showSwipeHandle?: boolean
 }) {
   const hasSnapPoints = snapPoints != null && snapPoints.length > 0
+  // Drawer yang dirender langsung dalam keadaan open perlu satu frame tertutup dulu,
+  // kalau tidak transisi masuknya dilewati dan panel muncul tiba-tiba.
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  const open = props.open === undefined ? undefined : props.open && ready
   const contextValue = React.useMemo(
     () => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection }),
     [hasSnapPoints, modal, showSwipeHandle, swipeDirection]
@@ -44,6 +53,7 @@ function Drawer({
         snapPoints={snapPoints}
         swipeDirection={swipeDirection}
         {...props}
+        open={open}
       />
     </DrawerContext.Provider>
   )
@@ -94,13 +104,22 @@ function DrawerSwipeHandle({
   )
 }
 
+/** Lebar drawer samping dalam persen dari layar, naik-turun mengikuti ukuran jendela. */
+const SIDE_WIDTH = {
+  sm: "data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:md:[--drawer-content-width:60%] data-[swipe-axis=x]:lg:[--drawer-content-width:42%] data-[swipe-axis=x]:xl:[--drawer-content-width:32%]",
+  md: "data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:md:[--drawer-content-width:85%] data-[swipe-axis=x]:lg:[--drawer-content-width:68%] data-[swipe-axis=x]:xl:[--drawer-content-width:54%]",
+  lg: "data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:md:[--drawer-content-width:92%] data-[swipe-axis=x]:lg:[--drawer-content-width:78%] data-[swipe-axis=x]:xl:[--drawer-content-width:64%]",
+} as const
+
 function DrawerContent({
   className,
   children,
   overlayClassName,
+  size = "sm",
   ...props
 }: DrawerPrimitive.Popup.Props & {
   overlayClassName?: string
+  size?: keyof typeof SIDE_WIDTH
 }) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
   const swipeAxis =
@@ -125,13 +144,14 @@ function DrawerContent({
           data-snap-points={hasSnapPoints ? "" : undefined}
           className={cn(
             // Base.
-            "group/drawer-popup pointer-events-auto fixed z-50 m-(--drawer-inset,0px) flex h-(--drawer-content-height) max-h-(--drawer-content-max-height,none) min-h-0 w-(--drawer-content-width,auto) transform-[translate3d(var(--translate-x,0px),var(--translate-y,0px),0)_scale(var(--stack-scale))] flex-col bg-popover text-sm text-popover-foreground transition-[transform,height,opacity,filter] duration-450 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform outline-none select-none [interpolate-size:allow-keywords] data-[swipe-direction=down]:rounded-t-xl data-[swipe-direction=down]:border-t data-[swipe-direction=left]:rounded-r-xl data-[swipe-direction=left]:border-r data-[swipe-direction=right]:rounded-l-xl data-[swipe-direction=right]:border-l data-[swipe-direction=up]:rounded-b-xl data-[swipe-direction=up]:border-b",
+            "group/drawer-popup pointer-events-auto fixed z-50 m-(--drawer-inset,0px) flex h-(--drawer-content-height) max-h-(--drawer-content-max-height,none) min-h-0 w-(--drawer-content-width,auto) transform-[translate3d(var(--translate-x,0px),var(--translate-y,0px),0)_scale(var(--stack-scale))] flex-col bg-popover text-sm text-popover-foreground transition-[transform,height,opacity,filter] duration-500 ease-[cubic-bezier(0.34,1.25,0.64,1)] will-change-transform outline-none select-none [interpolate-size:allow-keywords] data-[swipe-direction=down]:rounded-t-xl data-[swipe-direction=down]:border-t data-[swipe-direction=left]:rounded-r-xl data-[swipe-direction=left]:border-r data-[swipe-direction=right]:rounded-l-xl data-[swipe-direction=right]:border-l data-[swipe-direction=up]:rounded-b-xl data-[swipe-direction=up]:border-b",
             // Nested.
             "data-nested-drawer-open:overflow-hidden data-nested-drawer-open:brightness-95",
             // Bleed.
             "after:pointer-events-none after:absolute after:bg-(--drawer-bleed-background,var(--color-popover)) data-[swipe-axis=x]:after:inset-y-0 data-[swipe-axis=x]:after:w-(--bleed) data-[swipe-axis=y]:after:inset-x-0 data-[swipe-axis=y]:after:h-(--bleed) data-[swipe-direction=down]:after:top-full data-[swipe-direction=left]:after:right-full data-[swipe-direction=right]:after:left-full data-[swipe-direction=up]:after:bottom-full",
             // Sizing.
-            "[--drawer-content-height:var(--drawer-height,auto)] data-[swipe-axis=x]:[--drawer-content-width:75%] data-[swipe-axis=y]:[--drawer-content-max-height:calc(100dvh-6rem)] data-[swipe-axis=y]:data-snap-points:[--drawer-content-height:100dvh] data-[swipe-axis=x]:sm:[--drawer-content-width:24rem]",
+            SIDE_WIDTH[size],
+            "[--drawer-content-height:var(--drawer-height,auto)] data-[swipe-axis=y]:[--drawer-content-max-height:90%] data-[swipe-axis=y]:data-snap-points:[--drawer-content-height:100dvh]",
             // Stack.
             "[--bleed:3rem] [--peek:1rem] [--stack-height:var(--drawer-frontmost-height,var(--drawer-height,0px))] [--stack-peek-offset:max(0px,calc((var(--nested-drawers)-var(--stack-progress))*var(--peek)))] [--stack-progress:clamp(0,var(--drawer-swipe-progress),1)] [--stack-scale-base:max(0,calc(1-(var(--nested-drawers)*var(--stack-step))))] [--stack-scale:clamp(0,calc(var(--stack-scale-base)+(var(--stack-step)*var(--stack-progress))),1)] [--stack-shrink:calc(1-var(--stack-scale))] [--stack-step:0.05]",
             // Transitions.
@@ -159,7 +179,15 @@ function DrawerContent({
               "flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain rounded-[inherit] transition-opacity duration-300 ease-[cubic-bezier(0.45,1.005,0,1.005)] select-text group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-swiping/drawer-popup:select-none"
             )}
           >
-            {children}
+            {/* Efek bubble: isi membal sedikit lewat pegas, geser searah kemunculan drawer */}
+            <m.div
+              initial={{ opacity: 0, x: swipeAxis === "x" ? 36 : 0, y: swipeAxis === "y" ? 36 : 0, scale: 0.96 }}
+              animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 320, damping: 20, mass: 0.9, delay: 0.05 }}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              {children}
+            </m.div>
           </DrawerPrimitive.Content>
         </DrawerPrimitive.Popup>
       </DrawerPrimitive.Viewport>

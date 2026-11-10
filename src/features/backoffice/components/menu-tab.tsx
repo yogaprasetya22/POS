@@ -9,6 +9,9 @@ import {
   Trash2,
   UtensilsCrossed,
 } from 'lucide-react'
+import { useClientPaged } from '@shared/lib/use-client-paged'
+import { Pagination } from '@shared/components/pagination'
+import { MCard, appear } from '@shared/components/motion'
 import { useEffect, useState } from 'react'
 import {
   AlertDialog,
@@ -96,6 +99,8 @@ export function MenuTab({
 
     return matchesCategory && matchesSearch && matchesAvailability
   })
+
+  const paged = useClientPaged(shown, { pageSize: viewMode === 'grid' ? 24 : 20, resetKey: `${query}|${category}|${availabilityFilter}|${viewMode}` })
 
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
   const soldOut = products.filter((p) => !p.is_available).length
@@ -248,10 +253,12 @@ export function MenuTab({
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-              {shown.map((p) => {
+              {paged.rows.map((p, idx) => {
                 const cat = categoryName(p.category_id)
                 return (
-                  <Card
+                  <MCard
+                    {...appear(idx)}
+                    whileTap={{ scale: 0.985 }}
                     key={p.id}
                     onClick={() => setEditing(p)}
                     className="group relative cursor-pointer overflow-hidden rounded-2xl border transition-all hover:border-primary/40 hover:shadow-md"
@@ -346,11 +353,12 @@ export function MenuTab({
                         </div>
                       </div>
                     </div>
-                  </Card>
+                  </MCard>
                 )
               })}
             </div>
           )}
+          <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
         </div>
       ) : (
         /* Table Mode */
@@ -367,7 +375,7 @@ export function MenuTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shown.map((p) => {
+              {paged.rows.map((p) => {
                 const cat = categoryName(p.category_id)
                 return (
                   <TableRow
@@ -469,6 +477,9 @@ export function MenuTab({
               )}
             </TableBody>
           </Table>
+          <div className="border-t px-4 pb-3">
+            <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+          </div>
         </Card>
       )}
 

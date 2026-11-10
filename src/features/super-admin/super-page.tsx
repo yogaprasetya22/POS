@@ -9,6 +9,9 @@ import {
   TrendingUp,
   User,
 } from 'lucide-react'
+import { MCard, appear } from '@shared/components/motion'
+import { Pagination } from '@shared/components/pagination'
+import { useClientPaged } from '@shared/lib/use-client-paged'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { z } from 'zod'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -28,8 +31,9 @@ import {
 import { Input } from '@shared/components/ui/input'
 import { Label } from '@shared/components/ui/label'
 import { PageSkeleton } from '@shared/components/page-skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select'
 import { Switch } from '@shared/components/ui/switch'
-import { supabase } from '@shared/lib/supabase'
+import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { StoreInputSchema, StoreRowSchema, type StoreRow } from '@shared/types/contracts'
 
@@ -48,7 +52,7 @@ export function SuperPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase.rpc('list_stores_with_sales')
+    const { data, error } = await rpc('list_stores_with_sales')
     setLoading(false)
     if (error) return setError(error.message)
     setStores(z.array(StoreRowSchema).parse(data))
@@ -57,7 +61,7 @@ export function SuperPage() {
   useEffect(() => void load(), [load])
 
   const toggleActive = async (s: StoreRow) => {
-    const { error } = await supabase.rpc('save_store', {
+    const { error } = await rpc('save_store', {
       p_id: s.id,
       p_slug: s.slug,
       p_name: s.name,
@@ -81,7 +85,7 @@ export function SuperPage() {
     if (!parsed.success) return setError(parsed.error.issues[0].message)
     const v = parsed.data
 
-    const saved = await supabase.rpc('save_store', {
+    const saved = await rpc('save_store', {
       p_id: editing === 'new' ? null : editing?.id,
       p_slug: v.slug,
       p_name: v.name,
@@ -94,8 +98,21 @@ export function SuperPage() {
       )
     }
 
+    // paket & masa berlaku (kosong = tanpa batas)
+    const plan = String(f.get('plan') ?? 'trial')
+    const expires = String(f.get('plan_expires') ?? '')
+    const planRes = await rpc('set_store_plan', {
+      p_store: saved.data,
+      p_plan: plan,
+      p_expires: expires ? new Date(`${expires}T23:59:59+07:00`).toISOString() : null,
+    })
+    if (planRes.error) {
+      load()
+      return setError(`Toko tersimpan, tapi paket gagal diatur: ${planRes.error.message}`)
+    }
+
     if (v.owner_email) {
-      const { error } = await supabase.rpc('assign_owner', {
+      const { error } = await rpc('assign_owner', {
         p_store_id: saved.data,
         p_email: v.owner_email,
       })
@@ -127,6 +144,8 @@ export function SuperPage() {
       return matchesSearch && matchesStatus
     })
   }, [stores, q, statusFilter])
+
+  const paged = useClientPaged(shownStores, { pageSize: 12, resetKey: `${q}|${statusFilter}` })
 
   if (loading && stores.length === 0) return <PageSkeleton />
 
@@ -274,8 +293,8 @@ export function SuperPage() {
 
       {/* Store Cards Grid */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {shownStores.map((s) => (
-          <Card key={s.id} className="rounded-2xl border transition-all hover:border-primary/40 hover:shadow-md">
+        {paged.rows.map((s, idx) => (
+          <MCard {...appear(idx)} key={s.id} className="rounded-2xl border transition-all hover:border-primary/40 hover:shadow-md">
             <CardHeader className="pb-3 border-b">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -292,8 +311,8 @@ export function SuperPage() {
                     /s/{s.slug} <ExternalLink className="size-3" aria-hidden />
                   </a>
                 </div>
-                <ToneBadge tone={s.is_active ? 'green' : 'gray'}>
-                  {s.is_active ? 'Aktif' : 'Nonaktif'}
+                <ToneBadge tone={s.plan_expires_at && new Date(s.plan_expires_at) < new Date() ? 'red' : s.is_active ? 'green' : 'gray'}>
+                  {s.plan_expires_at && new Date(s.plan_expires_at) < new Date() ? 'Langganan habis' : s.is_active ? 'Aktif' : 'Nonaktif'} · {s.plan}
                 </ToneBadge>
               </div>
             </CardHeader>
@@ -328,7 +347,7 @@ export function SuperPage() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </MCard>
         ))}
         {shownStores.length === 0 && (
           <div className="col-span-full rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
@@ -340,6 +359,7 @@ export function SuperPage() {
           </div>
         )}
       </div>
+      <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
 
       {/* Store Form Drawer - Standardized Drawer with ProductForm */}
       {editing && (
@@ -363,10 +383,14 @@ function StoreDrawer({
   onClose: () => void
 }) {
   const [active, setActive] = useState(store?.is_active ?? true)
+  const [plan, setPlan] = useState<string>(store?.plan ?? 'trial')
+  const [expires, setExpires] = useState(
+    store ? (store.plan_expires_at ? store.plan_expires_at.slice(0, 10) : '') : new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10),
+  )
 
   return (
     <Drawer open onOpenChange={(open) => !open && onClose()} swipeDirection="right">
-      <DrawerContent style={{ '--drawer-content-width': 'min(100vw, 30rem)' } as React.CSSProperties}>
+      <DrawerContent size="sm">
         <DrawerHeader className="border-b text-left">
           <DrawerTitle>{store ? `Ubah ${store.name}` : 'Tambah Toko Baru'}</DrawerTitle>
           <DrawerDescription>
@@ -398,6 +422,26 @@ function StoreDrawer({
             <Input id="input-owner" name="owner_email" type="email" placeholder="owner@gmail.com" defaultValue={store?.owner_emails ?? ''} className="h-10 rounded-xl" />
             <p className="text-[11px] text-muted-foreground">Owner harus sudah mendaftar akun terlebih dahulu di /register.</p>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Paket</Label>
+              <input type="hidden" name="plan" value={plan} />
+              <Select value={plan} onValueChange={(v) => setPlan(v ?? 'trial')} items={[{ value: 'trial', label: 'Uji coba' }, { value: 'basic', label: 'Basic' }, { value: 'pro', label: 'Pro' }]}>
+                <SelectTrigger aria-label="Paket" className="h-10 w-full rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="trial">Uji coba</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="input-expires" className="text-xs font-semibold">Berlaku sampai</Label>
+              <Input id="input-expires" name="plan_expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} className="h-10 rounded-xl" />
+            </div>
+          </div>
+          <p className="-mt-2 text-[11px] text-muted-foreground">Kosongkan tanggal = tanpa batas. Setelah lewat, toko tidak bisa menerima pesanan & pembayaran baru.</p>
 
           <div className="flex items-center justify-between rounded-2xl border p-3.5">
             <div>

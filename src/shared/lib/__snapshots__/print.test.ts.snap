@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden struk > struk 58 mm 1`] = `
+"         Warkop Contoh
+   Jl. Contoh No. 1, Jakarta
+--------------------------------
+Antrean                    A-007
+Nama                Budi Santoso
+Meja                     Meja T3
+Tanggal               2026-11-09
+Jam                        12.01
+--------------------------------
+2x Kopi Susu Gula       Rp36.000
+Aren
+  Es
+1x Nasi Goreng          Rp28.000
+Spesial Seafood
+Pedas Level Tiga
+--------------------------------
+Subtotal                Rp64.000
+Diskon 10%              -Rp6.400
+Service                  Rp2.880
+Pajak                    Rp6.336
+Pembulatan                 -Rp16
+TOTAL                   Rp66.800
+Bayar                      Tunai
+Tunai                  Rp100.000
+Kembali                 Rp33.200
+Poin didapat: +6
+--------------------------------
+          Makasih ya!
+✂ - - - - - - - -"
+`;
+
+exports[`golden struk > struk 80 mm 1`] = `
+"                 Warkop Contoh
+           Jl. Contoh No. 1, Jakarta
+------------------------------------------------
+Antrean                                    A-007
+Nama                                Budi Santoso
+Meja                                     Meja T3
+Tanggal                               2026-11-09
+Jam                                        12.01
+------------------------------------------------
+2x Kopi Susu Gula Aren                  Rp36.000
+  Es
+1x Nasi Goreng Spesial Seafood          Rp28.000
+Pedas Level Tiga
+------------------------------------------------
+Subtotal                                Rp64.000
+Diskon 10%                              -Rp6.400
+Service                                  Rp2.880
+Pajak                                    Rp6.336
+Pembulatan                                 -Rp16
+TOTAL                                   Rp66.800
+Bayar                                      Tunai
+Tunai                                  Rp100.000
+Kembali                                 Rp33.200
+Poin didapat: +6
+------------------------------------------------
+                  Makasih ya!
+✂ - - - - - - - -"
+`;
+
+exports[`golden struk > tiket dapur 58 mm 1`] = `
+"           A-007
+            Meja T3
+          Budi Santoso
+--------------------------------
+2x Kopi Susu Gula Aren
+  Es
+  Catatan: tanpa gula
+1x Nasi Goreng Spesial Seafood
+Pedas Level Tiga
+--------------------------------
+12.01
+✂ - - - - - - - -"
+`;

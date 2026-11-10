@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
+import { CurrencyInput } from '@shared/components/currency-input'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent } from '@shared/components/ui/card'
 import { Input } from '@shared/components/ui/input'
@@ -40,13 +41,12 @@ export function ModifierEditor({ value, onChange }: { value: ModifierGroup[]; on
               {g.options.map((o, oi) => (
                 <div key={oi} className="flex gap-2">
                   <Input value={o.name} onChange={(e) => setOption(gi, oi, { name: e.target.value })} placeholder="Nama opsi" aria-label="Nama opsi" />
-                  <Input
-                    value={o.price ? String(o.price) : ''}
-                    onChange={(e) => setOption(gi, oi, { price: Number(e.target.value.replace(/\D/g, '')) || 0 })}
-                    inputMode="numeric"
-                    placeholder="+ Rp"
+                  <CurrencyInput
+                    value={o.price || ''}
+                    onValueChange={(_, n) => setOption(gi, oi, { price: n })}
+                    placeholder="Tambahan"
                     aria-label="Tambahan harga"
-                    className="w-28"
+                    className="w-40"
                   />
                   <Button
                     type="button"

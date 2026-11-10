@@ -1,0 +1,16 @@
+{
+  "name": "POS Warkop, Resto & Kafe",
+  "short_name": "POS",
+  "description": "Kasir, dapur, dan pemesanan mandiri untuk warkop, resto, dan kafe.",
+  "start_url": "/cashier",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f4f8",
+  "theme_color": "#4f70f0",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

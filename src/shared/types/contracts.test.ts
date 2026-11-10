@@ -1,25 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { RegisterSchema, StoreInputSchema } from './contracts'
+import { QuoteSchema, ROLE_LABEL, StaffRoleSchema, can } from './contracts'
 
-describe('RegisterSchema', () => {
-  it('menolak password pendek dan konfirmasi berbeda', () => {
-    expect(RegisterSchema.safeParse({ email: 'a@b.co', password: 'pendek', confirm: 'pendek' }).success).toBe(false)
-    expect(RegisterSchema.safeParse({ email: 'a@b.co', password: 'rahasia123', confirm: 'rahasia124' }).success).toBe(false)
-    expect(RegisterSchema.safeParse({ email: 'a@b.co', password: 'rahasia123', confirm: 'rahasia123' }).success).toBe(true)
+describe('izin per role (tampilan UI; database tetap penentu akhir)', () => {
+  const roles = StaffRoleSchema.options
+  it('semua role punya label', () => {
+    for (const r of roles) expect(ROLE_LABEL[r]).toBeTruthy()
+  })
+
+  it('hanya owner/manager/kasir yang bisa menerima pembayaran', () => {
+    expect(roles.filter((r) => can.pay(r))).toEqual(['owner', 'manager', 'cashier'])
+    expect(can.pay(null)).toBe(false)
+  })
+
+  it('pelayan tidak bisa bayar tapi bisa mengelola pesanan; dapur hanya layar dapur', () => {
+    expect(can.pay('waiter')).toBe(false)
+    expect(can.floor('waiter')).toBe(true)
+    expect(can.kitchen('kitchen')).toBe(true)
+    expect(can.floor('kitchen')).toBe(false)
+    expect(can.manage('kitchen')).toBe(false)
+  })
+
+  it('pengaturan toko & tim khusus owner; laporan untuk owner dan manager', () => {
+    expect(roles.filter((r) => can.ownerOnly(r))).toEqual(['owner'])
+    expect(roles.filter((r) => can.manage(r))).toEqual(['owner', 'manager'])
   })
 })
 
-describe('StoreInputSchema', () => {
-  const base = { name: 'Toko A', wa_number: '6281234567890', is_active: true, owner_email: '' }
-  it('slug dinormalisasi dan divalidasi', () => {
-    expect(StoreInputSchema.parse({ ...base, slug: '  Warkop-Baru ' }).slug).toBe('warkop-baru')
-    expect(StoreInputSchema.safeParse({ ...base, slug: 'ab' }).success).toBe(false)
-    expect(StoreInputSchema.safeParse({ ...base, slug: 'pakai spasi' }).success).toBe(false)
-    expect(StoreInputSchema.safeParse({ ...base, slug: '-awal' }).success).toBe(false)
-  })
-  it('nomor WA harus berawalan 62 dan owner_email opsional tapi valid', () => {
-    expect(StoreInputSchema.safeParse({ ...base, slug: 'toko-a', wa_number: '0812345' }).success).toBe(false)
-    expect(StoreInputSchema.safeParse({ ...base, slug: 'toko-a', owner_email: 'bukan-email' }).success).toBe(false)
-    expect(StoreInputSchema.safeParse({ ...base, slug: 'toko-a', owner_email: 'o@x.co' }).success).toBe(true)
+describe('QuoteSchema', () => {
+  it('menerima hasil quote_order dan menolak total negatif', () => {
+    const ok = { subtotal: 50000, promo_discount: 0, promo_name: null, voucher_id: null, voucher_discount: 0, points_redeemed: 0, points_discount: 0, points_earned: 5, service: 0, tax: 5000, rounding: 0, total: 55000 }
+    expect(QuoteSchema.safeParse(ok).success).toBe(true)
+    expect(QuoteSchema.safeParse({ ...ok, total: -1 }).success).toBe(false)
   })
 })

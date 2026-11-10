@@ -181,14 +181,14 @@ begin
 
   insert into orders (
     id, store_id, queue_code, business_day, customer_name, order_type, table_no,
-    items, total, status, payment_method, cash_received, discount_amount, promo_name, promo_code,
+    items, subtotal, total, status, payment_method, cash_received, discount_amount, promo_name, promo_code,
     created_at, paid_at
   ) values (
     order_id, p_store_id,
     'A-' || case when seq < 1000 then lpad(seq::text, 3, '0') else seq::text end,
     d, p_customer_name, p_order_type,
     case when p_order_type = 'DINE_IN' then left(btrim(p_table_no), 10) else null end,
-    calculated_items, final_total, p_status, p_payment_method, p_cash_received,
+    calculated_items, sub_total, final_total, p_status, p_payment_method, p_cash_received,
     coalesce(p_discount, 0), p_promo_name, p_promo_code,
     t_created, t_paid
   );

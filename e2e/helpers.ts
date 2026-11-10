@@ -51,3 +51,22 @@ export async function login(page: Page, [email, password]: Account) {
   await page.getByRole('button', { name: 'Masuk' }).click()
   await page.waitForURL(/\/(cashier|kitchen|admin|super)/)
 }
+
+/** Pastikan laci tidak dipegang kasir lain (manager menutup paksa), supaya kasir uji bisa membuka shift sendiri. */
+export async function freeDrawer(except = ACCOUNTS.cashier1[0]) {
+  const manager = await client(['manager@pos.test', 'manager12345'])
+  const st = (await manager.rpc('shift_status')).data
+  if (st?.open && st.open.who !== except) {
+    const d = (await manager.rpc('shift_detail', { p_shift: st.open.id })).data
+    await manager.rpc('force_close_shift', { p_shift: st.open.id, p_counted_cash: d.totals.expected, p_note: 'dibersihkan tes e2e' })
+  }
+}
+
+/** Buka shift kasir bila belum. Modal awal sudah terisi otomatis dari uang serah terima shift sebelumnya. */
+export async function ensureShift(page: Page) {
+  const open = page.getByRole('button', { name: 'Buka shift' })
+  const running = page.getByText('Shift terbuka')
+  await open.or(running).first().waitFor() // tunggu status shift termuat
+  if (await open.isVisible()) await open.click()
+  await running.waitFor()
+}

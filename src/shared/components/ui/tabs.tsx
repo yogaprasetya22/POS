@@ -1,4 +1,5 @@
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
+import { m } from "motion/react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
@@ -67,13 +68,21 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
   )
 }
 
-function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
+function TabsContent({ className, children, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
       className={cn("flex-1 text-sm outline-none", className)}
       {...props}
-    />
+    >
+      <m.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 26 }}
+      >
+        {children}
+      </m.div>
+    </TabsPrimitive.Panel>
   )
 }
 

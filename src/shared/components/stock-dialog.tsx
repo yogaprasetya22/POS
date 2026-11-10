@@ -64,7 +64,7 @@ export function StockDialog({
   return (
     <Drawer open={open} onOpenChange={onOpenChange} swipeDirection="right">
       <DrawerContent
-        style={{ '--drawer-content-width': 'min(100vw, 32rem)' } as React.CSSProperties}
+        size="sm"
         className="h-full flex flex-col p-0 gap-0"
       >
         <DrawerHeader className="p-4 sm:p-5 border-b text-left bg-muted/20 shrink-0">

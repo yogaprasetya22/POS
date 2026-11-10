@@ -167,11 +167,22 @@ async function fresh() {
   await up();
 }
 
-async function seed() {
-  const seedPath = path.join(ROOT_DIR, 'supabase', 'seed.sql');
-  console.log(`🌱 Menjalankan seed ke Supabase (${PROJECT_REF}) ...`);
+async function runSeedFile(file) {
+  const seedPath = path.join(ROOT_DIR, 'supabase', file);
+  console.log(`🌱 Menjalankan ${file} ke Supabase (${PROJECT_REF}) ...`);
   await executeSql(`BEGIN;\n${fs.readFileSync(seedPath, 'utf8')}\n;COMMIT;`);
+}
+
+async function seed() {
+  await runSeedFile('seed.sql');
+  await runSeedFile('seed_pos.sql');
   console.log('✅ Data dummy berhasil dimasukkan!');
+}
+
+// Untuk database yang sudah pernah di-seed: hanya data fitur POS inti (aman diulang).
+async function seedPos() {
+  await runSeedFile('seed_pos.sql');
+  console.log('✅ Data demo fitur POS inti berhasil dimasukkan!');
 }
 
 async function main() {
@@ -183,6 +194,7 @@ async function main() {
     case 'reset': return reset();
     case 'fresh': return fresh();
     case 'seed': return seed();
+    case 'seed-pos': return seedPos();
     default:
       console.log(`
 Penggunaan:
@@ -192,7 +204,8 @@ Penggunaan:
   bun scripts/supabase-migrate.js down <file.sql> - Jalankan file <file.down.sql>
   bun scripts/supabase-migrate.js reset           - Hapus semua tabel/fungsi/enum di schema public
   bun scripts/supabase-migrate.js fresh           - Reset & jalankan ulang semua migrasi dari awal
-  bun scripts/supabase-migrate.js seed            - Isi data dummy dari supabase/seed.sql
+  bun scripts/supabase-migrate.js seed            - Isi data dummy dari supabase/seed.sql + seed_pos.sql
+  bun scripts/supabase-migrate.js seed-pos        - Hanya data demo fitur POS inti (supabase/seed_pos.sql)
       `);
   }
 }

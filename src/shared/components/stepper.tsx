@@ -1,4 +1,5 @@
 import { Minus, Plus } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
 import { Button } from '@shared/components/ui/button'
 
 /** Tombol jumlah (− n +) responsif & ramah mobile */
@@ -25,7 +26,7 @@ export function Stepper({
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="size-6 sm:size-8 rounded-full hover:bg-background active:scale-90 transition-transform"
+        className="size-6 sm:size-8 rounded-full hover:bg-background"
         aria-label="Kurangi"
         disabled={value <= min}
         onClick={() => onChange(value - 1)}
@@ -33,17 +34,27 @@ export function Stepper({
         <Minus className="size-3.5" />
       </Button>
       <span
-        className={`text-center font-black tabular-nums text-foreground select-none ${
+        className={`relative inline-flex justify-center overflow-hidden text-center font-black tabular-nums text-foreground select-none ${
           isSm ? 'w-4 text-xs' : 'w-6 sm:w-7 text-xs sm:text-sm'
         }`}
       >
-        {value}
+        <AnimatePresence mode="popLayout" initial={false}>
+          <m.span
+            key={value}
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 10, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          >
+            {value}
+          </m.span>
+        </AnimatePresence>
       </span>
       <Button
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="size-6 sm:size-8 rounded-full hover:bg-background active:scale-90 transition-transform"
+        className="size-6 sm:size-8 rounded-full hover:bg-background"
         aria-label="Tambah"
         disabled={value >= 99}
         onClick={() => onChange(value + 1)}

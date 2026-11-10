@@ -1,4 +1,11 @@
-import { CheckCircle2, CirclePlus, ClipboardList, PackageX, ReceiptText, Search, Trash2 } from 'lucide-react'
+import { liquid } from '@shared/lib/motion'
+import { Progressive } from '@shared/components/progressive'
+import { CurrencyInput } from '@shared/components/currency-input'
+import { BarSkeleton } from '@shared/components/skeletons'
+import { LiquidPill } from '@shared/components/liquid-pill'
+import { AnimatedRupiah } from '@shared/components/animated-rupiah'
+import { History, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { addItem, cartTotal, itemKey, setItemQty, toLines, type CartItem } from '@features/cart-checkout'
 import { ProductPicker, categoryIcon, useCatalog } from '@features/menu-catalog'
@@ -15,22 +22,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shar
 import { Input } from '@shared/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
 import { useStaff } from '@shared/lib/auth'
+import { useI18n } from '@shared/i18n'
+import { useShift } from '@shared/lib/use-shift'
+import { useQuote } from '@shared/lib/use-quote'
+import { useStoreConfig } from '@shared/lib/store-config'
 import { useLiveOrders } from '@shared/lib/orders'
 import { supabase } from '@shared/lib/supabase'
+import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
 import {
   CreatedOrderSchema,
+  MemberSchema,
   OrderSchema,
+  can,
   PAYMENT_LABEL,
   PaymentMethodSchema,
+  type Member,
   type Order,
   type OrderStatus,
   type OrderType,
   type PaymentMethod,
   type Product,
 } from '@shared/types/contracts'
+import { MergePanel, SplitPanel } from './components/bill-tools'
+import { ExtrasBox } from './components/extras-box'
+import { HistoryDrawer } from './components/history-drawer'
 import { Receipt } from './components/receipt'
+import { OpenShiftCard, ShiftBar } from './components/shift'
 
 const ACTIVE: OrderStatus[] = ['UNPAID', 'IN_KITCHEN', 'READY']
 const STATUS = {
@@ -39,8 +58,8 @@ const STATUS = {
   READY: { tone: 'green', label: 'Siap diambil' },
 } as const
 
-const PILL = 'rounded-full bg-card px-4 shadow-sm aria-pressed:bg-primary aria-pressed:text-primary-foreground'
-const CHOICE = 'h-10 aria-pressed:border-primary aria-pressed:bg-accent aria-pressed:text-accent-foreground'
+const PILL = 'relative h-10 rounded-full border bg-card px-4 aria-pressed:border-primary aria-pressed:bg-transparent aria-pressed:text-primary-foreground'
+const CHOICE = 'relative h-10 aria-pressed:border-primary aria-pressed:bg-transparent aria-pressed:text-accent-foreground'
 
 const toCartItem = (i: Order['items'][number]): CartItem => {
   const choices = i.choices.map(({ group, option }) => ({ group, option }))
@@ -49,7 +68,8 @@ const toCartItem = (i: Order['items'][number]): CartItem => {
 
 export function CashierPage() {
   const { orders } = useLiveOrders(ACTIVE)
-  const { storeId } = useStaff()
+  const { storeId, role } = useStaff()
+  const { t } = useI18n()
   const { data: catalog, error: catalogError, reload } = useCatalog('id', storeId)
 
   // Panel kanan: pesanan WA yang dipilih (UNPAID) atau pesanan baru walk-in.
@@ -69,11 +89,21 @@ export function CashierPage() {
   const [menuQuery, setMenuQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
+  const [code, setCode] = useState('')
+  const [member, setMember] = useState<Member | null>(null)
+  const [redeem, setRedeem] = useState(0)
+  const [splitOpen, setSplitOpen] = useState(false)
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [notice, setNotice] = useState('')
+  const { config } = useStoreConfig(storeId)
+  const payer = can.pay(role)
+  const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
 
   const soldOutCount = catalog?.products.filter((p) => !p.is_available).length ?? 0
 
   const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
-    const { error: err } = await supabase.from('products').update({ is_available: isAvailable }).eq('id', productId)
+    const { error: err } = await rpc('set_product_availability', { p_product: productId, p_available: isAvailable })
     if (err) {
       setError(`Gagal mengubah status menu: ${err.message}`)
     } else {
@@ -82,7 +112,7 @@ export function CashierPage() {
   }
 
   useEffect(() => {
-    const run = () => supabase.rpc('expire_stale_orders').then(({ error }) => error && console.error(error))
+    const run = () => rpc('expire_stale_orders').then(({ error }) => error && console.error(error))
     run()
     const t = setInterval(run, 60_000)
     return () => clearInterval(t)
@@ -97,6 +127,9 @@ export function CashierPage() {
     setCustomer('')
     setTable('')
     setError('')
+    setCode('')
+    setMember(null)
+    setRedeem(0)
   }
 
   // Sinkron dengan server: isi ulang draft saat order berubah via realtime; tutup jika sudah dibayar/batal di tempat lain.
@@ -105,9 +138,21 @@ export function CashierPage() {
     if (selected) {
       setItems(selected.items.map(toCartItem))
       setDirty(false)
+      setCode(selected.promo_code ?? '')
+      setRedeem(selected.points_redeemed)
+      if (!selected.member_id) setMember(null)
+      else
+        supabase.from('members').select('*').eq('id', selected.member_id).maybeSingle().then(({ data }) => {
+          const parsed = MemberSchema.safeParse(data)
+          setMember(parsed.success ? parsed.data : null)
+        })
     } else if (selectedId) reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncKey])
+
+  const lines = toLines(items)
+  const savedView = !!selected && !dirty
+  const { quote, loading: quoteLoading } = useQuote({ storeId, lines, code, memberId: member?.id ?? null, redeem, enabled: !savedView })
 
   if (catalogError) return <div className="p-6 text-destructive font-semibold">{catalogError}</div>
   if (!catalog) return <CashierSkeleton />
@@ -122,39 +167,94 @@ export function CashierPage() {
       : edit(addItem(items, { key: itemKey(p.id, [], ''), product_id: p.id, qty: 1, choices: [], note: '', name: p.name, unit_price: p.price, image: p.image_url }))
   const qtyOf = (productId: string) => items.filter((i) => i.product_id === productId).reduce((n, i) => n + i.qty, 0)
 
-  const subtotal = cartTotal(items)
+  // Total selalu dari database: pesanan tersimpan memakai angka tersimpan, draft memakai quote_order.
+  const subtotalLocal = cartTotal(items)
   const promoCalc = calculatePromo(items, catalog?.promotions ?? [], catalog?.products ?? [])
-  const discountAmount = selected && !dirty ? selected.discount_amount : promoCalc.discount
-  const promoName = selected && !dirty ? selected.promo_name : promoCalc.appliedPromo?.name
-  const total = selected && !dirty ? selected.total : Math.max(0, subtotal - discountAmount)
+  const view = savedView
+    ? {
+        subtotal: selected.subtotal || selected.total + selected.discount_amount,
+        promo: selected.discount_amount, promoName: selected.promo_name, voucher: selected.voucher_discount, points: selected.points_discount,
+        service: selected.service_amount, tax: selected.tax_amount, rounding: selected.rounding_amount, total: selected.total, earned: selected.points_earned,
+      }
+    : quote
+      ? {
+          subtotal: quote.subtotal, promo: quote.promo_discount, promoName: quote.promo_name, voucher: quote.voucher_discount, points: quote.points_discount,
+          service: quote.service, tax: quote.tax, rounding: quote.rounding, total: quote.total, earned: quote.points_earned,
+        }
+      : {
+          subtotal: subtotalLocal, promo: promoCalc.discount, promoName: promoCalc.appliedPromo?.name ?? null, voucher: 0, points: 0,
+          service: 0, tax: 0, rounding: 0, total: Math.max(0, subtotalLocal - promoCalc.discount), earned: 0,
+        }
+  const total = view.total
   const cashN = Number(cash) || 0
   const needsSave = !!selected && dirty
-  const canSubmit = items.length > 0 && (needsSave || method !== 'CASH' || cashN >= total)
+  const hasShift = !payer || !!shift
+  const canSubmit = items.length > 0 && hasShift && (needsSave || method !== 'CASH' || cashN >= total)
+
+  // Kode/member/poin pada pesanan tersimpan langsung diterapkan di server; pada draft cukup disimpan di state.
+  const applyExtras = async (next: { code?: string; member?: Member | null; redeem?: number }) => {
+    const c = next.code ?? code
+    const m = next.member === undefined ? member : next.member
+    const r = next.redeem ?? redeem
+    setCode(c)
+    setMember(m)
+    setRedeem(r)
+    if (selected && !dirty) {
+      const { error: err } = await rpc('apply_order_extras', { p_order_id: selected.id, p_promo_code: c || null, p_member_id: m?.id ?? null, p_redeem_points: r })
+      if (err) setError(err.message)
+    }
+  }
+
+  const createDraft = async () => {
+    if (orderType === 'DINE_IN' && !table.trim()) throw new Error('Nomor meja wajib untuk makan di tempat')
+    const { data, error } = await rpc('create_order', {
+      p_store_id: storeId,
+      p_customer_name: customer.trim() || 'Pelanggan',
+      p_order_type: orderType,
+      p_table_no: orderType === 'DINE_IN' ? table.trim() : null,
+      p_lines: toLines(items),
+      p_promo_code: code || null,
+      p_member_id: member?.id ?? null,
+      p_redeem_points: redeem,
+    })
+    if (error) throw error
+    return CreatedOrderSchema.parse(data).id
+  }
+
+  // Open bill: simpan pesanan tanpa membayar (dine-in makan dulu bayar belakangan, atau dibuat pelayan).
+  const saveOpenBill = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const id = await createDraft()
+      const row = (await supabase.from('orders').select('queue_code').eq('id', id).maybeSingle()).data
+      reset()
+      setNotice(`Pesanan ${row?.queue_code ?? ''} disimpan, menunggu pembayaran.`)
+      setTimeout(() => setNotice(''), 4000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const submit = async () => {
     setBusy(true)
     setError('')
     try {
       if (needsSave && selected) {
-        const { error } = await supabase.rpc('update_order_lines', { p_order_id: selected.id, p_lines: toLines(items) })
+        const { error } = await rpc('update_order_lines', { p_order_id: selected.id, p_lines: toLines(items) })
         if (error) throw error
         return setDirty(false)
       }
       let orderId = selected?.id
       if (!orderId) {
         if (orderType === 'DINE_IN' && !table.trim()) throw new Error('Nomor meja wajib untuk makan di tempat')
-        const { data, error } = await supabase.rpc('create_order', {
-          p_store_id: storeId,
-          p_customer_name: customer.trim() || 'Pelanggan',
-          p_order_type: orderType,
-          p_table_no: orderType === 'DINE_IN' ? table.trim() : null,
-          p_lines: toLines(items),
-        })
-        if (error) throw error
-        orderId = CreatedOrderSchema.parse(data).id
+        orderId = await createDraft()
         setSelectedId(orderId) // jika bayar gagal, pesanan tetap terbuka sebagai UNPAID
       }
-      const { data, error } = await supabase.rpc('pay_order', {
+      if (!shift) throw new Error(t('shift.required'))
+      const { data, error } = await rpc('pay_order', {
         p_order_id: orderId,
         p_method: method,
         p_cash_received: method === 'CASH' ? cashN : null,
@@ -162,6 +262,7 @@ export function CashierPage() {
       if (error) throw error
       setReceipt(OrderSchema.parse(data))
       reset()
+      void reloadShift()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -171,7 +272,7 @@ export function CashierPage() {
 
   const cancel = async () => {
     if (!selected) return
-    const { error } = await supabase.rpc('advance_order', { p_order_id: selected.id, p_to: 'CANCELLED' })
+    const { error } = await rpc('advance_order', { p_order_id: selected.id, p_to: 'CANCELLED' })
     if (error) return setError(error.message)
     reset()
   }
@@ -183,8 +284,12 @@ export function CashierPage() {
   const imageOf = (productId: string) => catalog?.products.find((p) => p.id === productId)?.image_url
 
   return (
-    <div className="grid gap-6 p-4 pb-24 md:p-6 lg:grid-cols-[1fr_22rem] lg:pb-6 xl:grid-cols-[1fr_25rem]">
-      <div className="min-w-0 space-y-6">
+    <div className="grid gap-4 p-3 pb-24 md:grid-cols-[1fr_20rem] md:pb-3 lg:grid-cols-[1fr_24rem] lg:gap-5 lg:p-5">
+      <div className="min-w-0 space-y-5">
+        {payer && shiftLoading && <BarSkeleton />}
+        {payer && !shiftLoading && (shift ? <ShiftBar shift={shift} onChange={reloadShift} /> : <OpenShiftCard status={shiftStatus} role={role} onOpened={reloadShift} />)}
+        {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">{notice}</p>}
+
         {/* Antrean pesanan */}
         <section>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -192,6 +297,10 @@ export function CashierPage() {
               Antrean Pesanan
               <Badge className="size-6 rounded-full p-0">{orders.length}</Badge>
             </h2>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <Button variant="outline" className="h-10 shrink-0" onClick={() => setHistoryOpen(true)}>
+              <History /> <span className="hidden md:inline">Riwayat</span>
+            </Button>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
@@ -206,27 +315,24 @@ export function CashierPage() {
                 className="pl-10"
               />
             </div>
+            </div>
           </div>
-          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {queue.map((o) => {
               const s = STATUS[o.status as keyof typeof STATUS]
               const clickable = o.status === 'UNPAID'
               return (
-                <Button key={o.id} variant="ghost" disabled={!clickable} onClick={() => setSelectedId(o.id)} className="w-60 shrink-0 h-auto justify-start whitespace-normal rounded-xl bg-transparent p-0 text-left font-normal hover:bg-transparent disabled:opacity-100">
-                  <Card className={`w-full ${o.id === selectedId ? 'ring-2 ring-primary' : clickable ? 'transition hover:ring-primary/40' : ''}`}>
+                <Button key={o.id} variant="ghost" disabled={!clickable} onClick={() => setSelectedId(o.id)} className="w-44 shrink-0 h-auto justify-start whitespace-normal rounded-xl bg-transparent p-0 text-left font-normal hover:bg-transparent disabled:opacity-100">
+                  <Card size="sm" className={`w-full ${o.id === selectedId ? 'ring-2 ring-primary' : clickable ? 'transition hover:ring-primary/40' : ''}`}>
                     <CardContent className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 font-bold">
-                          <ReceiptText className="size-4 text-primary" aria-hidden /> #{o.queue_code}
-                        </span>
+                        <span className="font-mono text-base font-bold">{o.queue_code}</span>
                         <span className="text-xs text-muted-foreground">{o.items.reduce((n, i) => n + i.qty, 0)} Item</span>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
                         {o.customer_name} · {o.order_type === 'DINE_IN' ? `Meja ${o.table_no}` : 'Bawa pulang'}
                       </p>
-                      <ToneBadge tone={s.tone} className="mt-2 h-6 w-full justify-between">
-                        {s.label} <CheckCircle2 aria-hidden />
-                      </ToneBadge>
+                      <ToneBadge tone={s.tone} className="mt-1.5 h-6 w-full justify-center">{s.label}</ToneBadge>
                     </CardContent>
                   </Card>
                 </Button>
@@ -282,49 +388,59 @@ export function CashierPage() {
                 const Icon = categoryIcon(c.id === null ? null : c.name)
                 return (
                   <ToggleGroupItem key={c.id ?? 'all'} value={c.id ?? 'all'} className={PILL}>
-                    <Icon /> {c.name}
+                    {category === c.id && <LiquidPill id="cashier-cat" className="bg-primary" />}
+                    <Icon className="relative" /> <span className="relative">{c.name}</span>
                   </ToggleGroupItem>
                 )
               })}
             </ToggleGroup>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
-            {products.map((p) => {
+          {/* Ubin menu: ketuk seluruh kartu untuk menambah; jumlah diatur di ringkasan */}
+          <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2.5">
+            <Progressive items={products} resetKey={`${category}|${menuQuery}`}>
+            {(rows) => (
+            <AnimatePresence mode="popLayout" initial={false}>
+            {rows.map((p, idx) => {
               const qty = qtyOf(p.id)
-              const simple = p.modifiers.length === 0
               return (
-                <Card key={p.id} className={`gap-3 p-3 ${qty ? 'ring-2 ring-primary/60' : ''} ${p.is_available ? '' : 'opacity-50 grayscale'}`}>
-                  <MenuImage src={p.image_url} alt={p.name} className="rounded-xl" />
-                  <div>
-                    <p className="truncate text-sm font-semibold">{p.name}</p>
-                    <p className="text-sm font-semibold text-primary">{rupiah(p.price)}</p>
+                <m.button
+                  key={p.id}
+                  type="button"
+                  layout="position"
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ ...liquid, delay: Math.min(idx, 12) * 0.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  disabled={!p.is_available}
+                  onClick={() => addProduct(p)}
+                  className={`relative flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors disabled:opacity-50 disabled:grayscale ${qty ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/50'}`}
+                >
+                  <MenuImage src={p.image_url} alt="" aspectRatio="aspect-[3/2]" fallbackIconSize="size-6" />
+                  <div className="w-full p-2.5">
+                    <p className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{p.name}</p>
+                    <p className="mt-1 text-sm font-semibold tabular-nums">{p.is_available ? rupiah(p.price) : 'Habis'}</p>
                   </div>
-                  {!p.is_available ? (
-                    <Badge variant="secondary" className="w-full justify-center">Habis</Badge>
-                  ) : qty && simple ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <Button size="sm">
-                        Dipilih <CheckCircle2 />
-                      </Button>
-                      <Stepper value={qty} min={0} onChange={(v) => edit(setItemQty(items, itemKey(p.id, [], ''), v))} />
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" className="w-full border-primary text-primary" onClick={() => addProduct(p)}>
-                      {qty ? `Tambah lagi (${qty})` : 'Tambah Item'} <CirclePlus />
-                    </Button>
+                  {qty > 0 && (
+                    <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-7 place-items-center rounded-full bg-primary px-1.5 py-0.5 text-sm font-bold text-primary-foreground tabular-nums">
+                      {qty}
+                    </m.span>
                   )}
-                </Card>
+                </m.button>
               )
             })}
+            </AnimatePresence>
+            )}
+            </Progressive>
           </div>
         </section>
       </div>
 
       {/* Ringkasan pesanan */}
-      <aside id="ringkasan" className="lg:sticky lg:top-20 lg:self-start">
-        <Card className="gap-0 py-0 lg:max-h-[calc(100dvh-6rem)]">
-          <CardHeader className="border-b py-4">
+      <aside id="ringkasan" className="md:sticky md:top-18 md:self-start">
+        <Card className="gap-0 py-0 md:max-h-[calc(100dvh-5.5rem)]">
+          <CardHeader className="border-b py-3">
             <CardTitle>Ringkasan Pesanan</CardTitle>
             <CardDescription>
               {selected
@@ -333,7 +449,7 @@ export function CashierPage() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4 py-4 scrollbar-none lg:flex-1 lg:overflow-y-auto">
+          <CardContent className="space-y-4 py-4 scrollbar-none md:flex-1 md:overflow-y-auto">
             {!selected && (
               <>
                 <ToggleGroup
@@ -343,8 +459,12 @@ export function CashierPage() {
                   value={[orderType]}
                   onValueChange={(v) => v[0] !== undefined && setOrderType(v[0] as OrderType)}
                 >
-                  <ToggleGroupItem value="DINE_IN" className={CHOICE}>Dine In</ToggleGroupItem>
-                  <ToggleGroupItem value="TAKEAWAY" className={CHOICE}>Take Away</ToggleGroupItem>
+                  {(['DINE_IN', 'TAKEAWAY'] as const).map((v) => (
+                    <ToggleGroupItem key={v} value={v} className={CHOICE}>
+                      {orderType === v && <LiquidPill id="cashier-type" className="rounded-md bg-accent" />}
+                      <span className="relative">{v === 'DINE_IN' ? 'Dine In' : 'Take Away'}</span>
+                    </ToggleGroupItem>
+                  ))}
                 </ToggleGroup>
                 <div className="flex gap-2">
                   <Input value={customer} onChange={(e) => setCustomer(e.target.value)} maxLength={40} placeholder="Nama pelanggan" aria-label="Nama pelanggan" />
@@ -359,17 +479,24 @@ export function CashierPage() {
               Total Item <span className="text-muted-foreground">({items.reduce((n, i) => n + i.qty, 0)})</span>
             </p>
             {items.length === 0 ? (
-              <div className="grid place-items-center gap-2 rounded-2xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-                <ClipboardList className="size-8 text-muted-foreground/40" aria-hidden />
-                Pilih pesanan di antrean atau tambah menu.
-              </div>
+              <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
+                Ketuk menu untuk menambah, atau pilih pesanan di antrean.
+              </p>
             ) : (
               <ul className="space-y-3">
+                <AnimatePresence initial={false}>
                 {items.map((i) => {
                   const img = imageOf(i.product_id)
                   return (
-                    <li key={i.key} className="flex items-start gap-3 rounded-2xl border p-2.5">
-                      <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-accent">{img && <img src={img} alt="" className="size-full object-cover" />}</div>
+                    <m.li
+                      key={i.key}
+                      layout="position"
+                      initial={{ opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
+                      className="flex items-start gap-3 border-b pb-3 last:border-0 last:pb-0"
+                    >
+                      <div className="size-12 shrink-0 overflow-hidden rounded-md bg-muted">{img && <img src={img} alt="" className="size-full object-cover" />}</div>
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -383,18 +510,34 @@ export function CashierPage() {
                           </Button>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-primary">{rupiah(i.unit_price * i.qty)}</span>
+                          <span className="text-sm font-semibold tabular-nums">{rupiah(i.unit_price * i.qty)}</span>
                           <Stepper value={i.qty} min={0} onChange={(v) => edit(setItemQty(items, i.key, v))} />
                         </div>
                       </div>
-                    </li>
+                    </m.li>
                   )
                 })}
+                </AnimatePresence>
               </ul>
             )}
 
-            <div className="space-y-3 rounded-2xl border p-4">
-              <p className="font-semibold">Pembayaran</p>
+            {items.length > 0 && can.floor(role) && (
+              <ExtrasBox
+                config={config}
+                code={code}
+                onCode={(c) => applyExtras({ code: c })}
+                member={member}
+                onMember={(m) => applyExtras({ member: m, redeem: m ? redeem : 0 })}
+                redeem={redeem}
+                onRedeem={(n) => applyExtras({ redeem: n })}
+                quote={savedView ? null : quote}
+                checking={quoteLoading}
+              />
+            )}
+
+            {payer && (
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-semibold">Pembayaran</p>
               <ToggleGroup
                 aria-label="Metode pembayaran"
                 className="grid w-full grid-cols-3"
@@ -404,16 +547,17 @@ export function CashierPage() {
               >
                 {PaymentMethodSchema.options.map((m) => (
                   <ToggleGroupItem key={m} value={m} className={`${CHOICE} text-xs`}>
-                    {PAYMENT_LABEL[m]}
+                    {method === m && <LiquidPill id="cashier-pay" className="rounded-md bg-accent" />}
+                    <span className="relative">{PAYMENT_LABEL[m]}</span>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
               {method === 'CASH' && (
                 <div className="space-y-2">
-                  <Input inputMode="numeric" value={cash} onChange={(e) => setCash(e.target.value.replace(/\D/g, ''))} placeholder="Uang diterima" aria-label="Uang diterima" />
+                  <CurrencyInput value={cash} onValueChange={setCash} placeholder="Uang diterima" aria-label="Uang diterima" />
                   <div className="flex flex-wrap gap-2">
                     {[total, 50_000, 100_000].map((v, n) => (
-                      <Button key={n} variant="secondary" size="sm" onClick={() => setCash(String(v))}>
+                      <Button key={n} variant="secondary" className="h-10 flex-1" onClick={() => setCash(String(v))}>
                         {n === 0 ? 'Uang pas' : rupiah(v)}
                       </Button>
                     ))}
@@ -421,21 +565,52 @@ export function CashierPage() {
                 </div>
               )}
             </div>
+            )}
           </CardContent>
 
           <div className="space-y-3 border-t bg-card p-4">
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span>{rupiah(subtotal)}</span>
+                <span className="tabular-nums">{rupiah(view.subtotal)}</span>
               </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
-                  <span>Promo ({promoName ?? 'Diskon'})</span>
-                  <span>-{rupiah(discountAmount)}</span>
+              {view.promo > 0 && (
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                  <span>Promo ({view.promoName ?? 'Diskon'})</span>
+                  <span className="tabular-nums">-{rupiah(view.promo)}</span>
                 </div>
               )}
-              {method === 'CASH' && (
+              {view.voucher > 0 && (
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                  <span>Voucher</span>
+                  <span className="tabular-nums">-{rupiah(view.voucher)}</span>
+                </div>
+              )}
+              {view.points > 0 && (
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                  <span>Poin</span>
+                  <span className="tabular-nums">-{rupiah(view.points)}</span>
+                </div>
+              )}
+              {view.service > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Service</span>
+                  <span className="tabular-nums">{rupiah(view.service)}</span>
+                </div>
+              )}
+              {view.tax > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Pajak</span>
+                  <span className="tabular-nums">{rupiah(view.tax)}</span>
+                </div>
+              )}
+              {view.rounding !== 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Pembulatan</span>
+                  <span className="tabular-nums">{view.rounding < 0 ? '-' : ''}{rupiah(Math.abs(view.rounding))}</span>
+                </div>
+              )}
+              {payer && method === 'CASH' && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Kembalian</span>
                   <span>{cashN >= total ? rupiah(cashN - total) : '—'}</span>
@@ -443,15 +618,39 @@ export function CashierPage() {
               )}
               <div className="flex justify-between pt-1 text-base font-bold">
                 <span>Total</span>
-                <span className="text-primary">{rupiah(total)}</span>
+                <span className="tabular-nums"><AnimatedRupiah value={total} /></span>
               </div>
             </div>
 
             <ErrorAlert message={error} />
 
-            <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="w-full">
-              {busy ? 'Memproses…' : needsSave ? 'Simpan Perubahan' : selected ? 'Terima Pembayaran' : 'Buat & Bayar'}
-            </Button>
+            {payer && !hasShift && <p className="text-sm text-muted-foreground">{t('shift.required')}</p>}
+            {payer || needsSave ? (
+              <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="h-12 w-full text-base">
+                {busy ? 'Memproses…' : needsSave ? 'Simpan Perubahan' : selected ? 'Terima Pembayaran' : 'Buat & Bayar'}
+              </Button>
+            ) : (
+              !selected && (
+                <Button size="lg" disabled={busy || items.length === 0} onClick={saveOpenBill} className="h-12 w-full text-base">
+                  {busy ? 'Menyimpan…' : 'Simpan pesanan'}
+                </Button>
+              )
+            )}
+            {payer && !selected && items.length > 0 && (
+              <Button variant="outline" disabled={busy} onClick={saveOpenBill} className="h-11 w-full">
+                Simpan sebagai open bill
+              </Button>
+            )}
+            {selected && !dirty && can.floor(role) && (
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" className="h-11" onClick={() => setSplitOpen(true)} disabled={selected.items.length < 2}>
+                  <Split /> Pisah bill
+                </Button>
+                <Button variant="outline" className="h-11" onClick={() => setMergeOpen(true)}>
+                  <Merge /> Gabung bill
+                </Button>
+              </div>
+            )}
             {selected ? (
               <ConfirmButton
                 variant="ghost"
@@ -476,7 +675,7 @@ export function CashierPage() {
       </aside>
 
       {/* Layar kecil: ringkasan ada di bawah menu, jadi total & pintasan selalu terlihat */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t bg-card p-3 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t bg-card p-3 md:hidden">
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">{items.length ? `${items.reduce((n, i) => n + i.qty, 0)} item` : 'Belum ada item'}</p>
           <p className="font-bold">{rupiah(total)}</p>
@@ -485,7 +684,14 @@ export function CashierPage() {
       </div>
 
       {picking && <ProductPicker product={picking} onAdd={(i) => edit(addItem(items, i))} onClose={() => setPicking(null)} />}
-      {receipt && catalog && <Receipt order={receipt} storeName={catalog.store.name} onClose={() => setReceipt(null)} />}
+      {receipt && catalog && (
+        <Receipt order={receipt} store={{ name: catalog.store.name, address: config?.address, footer: config?.receipt_footer }} onClose={() => setReceipt(null)} />
+      )}
+      <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} role={role} onReprint={(o) => { setHistoryOpen(false); setReceipt(o) }} />
+      {splitOpen && selected && (
+        <SplitPanel order={selected} onClose={() => setSplitOpen(false)} onDone={() => { setSplitOpen(false); setNotice('Bill dipisah. Pesanan baru ada di antrean.'); setTimeout(() => setNotice(''), 4000) }} />
+      )}
+      {mergeOpen && selected && <MergePanel order={selected} candidates={orders} onClose={() => setMergeOpen(false)} onDone={() => setMergeOpen(false)} />}
       <StockDialog
         open={stockOpen}
         onOpenChange={setStockOpen}
