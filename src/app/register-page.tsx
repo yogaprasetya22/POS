@@ -31,7 +31,7 @@ export function RegisterPage() {
   if (sent)
     return (
       <AuthShell>
-        <h2 className="text-xl font-bold">Cek email kamu</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Cek email kamu</h2>
         <p className="mt-2 text-sm text-muted-foreground">Klik link konfirmasi di email, lalu masuk. Akun baru perlu dihubungkan ke toko oleh owner sebelum bisa dipakai.</p>
         <Link to="/login" className={buttonVariants({ variant: "link", className: "mt-6 px-0" })}>Ke halaman masuk</Link>
       </AuthShell>
@@ -41,8 +41,8 @@ export function RegisterPage() {
     <AuthShell>
       <form onSubmit={submit} className="grid gap-4">
         <div>
-          <h2 className="text-xl font-bold">Daftar Staf</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Setelah mendaftar, minta owner tokomu menambahkan emailmu sebagai staf.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Buat akun</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Setelah mendaftar, kamu bisa membuat toko dengan uji coba gratis 14 hari, atau minta owner menambahkan emailmu sebagai staf.</p>
         </div>
         <Input name="email" type="email" required placeholder="Email" aria-label="Email" autoComplete="email" />
         <Input name="password" type="password" required placeholder="Password (min. 8 karakter)" aria-label="Password" autoComplete="new-password" />

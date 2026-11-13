@@ -3,10 +3,13 @@ import { supabase } from './supabase'
 
 type Result = { data: unknown; error: Error | null }
 
-/** Panggil fungsi SQL lewat /api/rpc (Vercel; saat `vite dev` dilayani plugin di vite.config.ts). */
-export async function rpc(name: string, args?: Record<string, unknown>): Promise<Result> {
-  const { data: s } = await supabase.auth.getSession()
-  const token = s.session?.access_token
+/**
+ * Panggil fungsi SQL lewat /api/rpc (Vercel; saat `vite dev` dilayani plugin di vite.config.ts).
+ * `asPublic`: kirim tanpa sesi login. Dipakai halaman pembeli supaya pesanan tetap tercatat "dari pelanggan"
+ * walau browsernya sedang login sebagai staf (mis. pemilik mencoba pesan lewat QR).
+ */
+export async function rpc(name: string, args?: Record<string, unknown>, opts?: { asPublic?: boolean }): Promise<Result> {
+  const token = opts?.asPublic ? undefined : (await supabase.auth.getSession()).data.session?.access_token
   try {
     const res = await fetch('/api/rpc', {
       method: 'POST',

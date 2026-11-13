@@ -13,7 +13,7 @@ import {
 } from '@shared/components/ui/drawer'
 import { Input } from '@shared/components/ui/input'
 import { rupiah } from '@shared/lib/utils'
-import type { Product } from '@shared/types/contracts'
+import { isSellable, type Product } from '@shared/types/contracts'
 
 interface StockDialogProps {
   open: boolean
@@ -39,15 +39,15 @@ export function StockDialog({
   const [filter, setFilter] = useState<Filter>('all')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const soldOutCount = useMemo(() => products.filter((p) => !p.is_available).length, [products])
+  const soldOutCount = useMemo(() => products.filter((p) => !isSellable(p)).length, [products])
   const availableCount = products.length - soldOutCount
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase().trim())
       if (!matchSearch) return false
-      if (filter === 'sold_out') return !p.is_available
-      if (filter === 'available') return p.is_available
+      if (filter === 'sold_out') return !isSellable(p)
+      if (filter === 'available') return isSellable(p)
       return true
     })
   }, [products, search, filter])

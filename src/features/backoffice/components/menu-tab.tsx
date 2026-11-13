@@ -45,7 +45,7 @@ import {
 import { supabase } from '@shared/lib/supabase'
 import { rupiah } from '@shared/lib/utils'
 import { MenuImage } from '@shared/components/menu-image'
-import type { Category, Product } from '@shared/types/contracts'
+import { isSellable, type Category, type Product } from '@shared/types/contracts'
 import { CategoriesDialog } from './categories-dialog'
 import { ProductForm } from './product-form'
 
@@ -64,6 +64,10 @@ const ALL = 'all'
  * Katalog Menu: Mode ganda (Grid Kartu visual & Tabel Data Padat)
  * Dilengkapi dengan filter chip kategori interaktif & modal manajemen kategori terintegrasi.
  */
+/** Label status menu: Habis (manual / bahan habis), sisa porsi dari stok bahan, atau Tersedia. */
+const portionLabel = (p: Product) =>
+  !p.is_available ? 'Habis' : p.portions === null ? 'Tersedia' : p.portions === 0 ? 'Bahan habis' : `Sisa ${p.portions} porsi`
+
 export function MenuTab({
   products,
   categories,
@@ -94,8 +98,8 @@ export function MenuTab({
       p.name.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q)
     const matchesAvailability =
       availabilityFilter === 'all' ||
-      (availabilityFilter === 'available' && p.is_available) ||
-      (availabilityFilter === 'soldout' && !p.is_available)
+      (availabilityFilter === 'available' && isSellable(p)) ||
+      (availabilityFilter === 'soldout' && !isSellable(p))
 
     return matchesCategory && matchesSearch && matchesAvailability
   })
@@ -103,7 +107,7 @@ export function MenuTab({
   const paged = useClientPaged(shown, { pageSize: viewMode === 'grid' ? 24 : 20, resetKey: `${query}|${category}|${availabilityFilter}|${viewMode}` })
 
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
-  const soldOut = products.filter((p) => !p.is_available).length
+  const soldOut = products.filter((p) => !isSellable(p)).length
 
   return (
     <div className="space-y-5">
@@ -284,12 +288,12 @@ export function MenuTab({
 
                       <div className="absolute top-2.5 right-2.5">
                         <Badge
-                          variant={p.is_available ? 'outline' : 'destructive'}
+                          variant={isSellable(p) ? 'outline' : 'destructive'}
                           className={`backdrop-blur-md text-[11px] font-semibold ${
-                            p.is_available ? 'bg-background/80 text-emerald-600 border-emerald-500/40' : 'bg-destructive/90 text-white'
+                            isSellable(p) ? 'bg-background/80 text-emerald-600 border-emerald-500/40' : 'bg-destructive/90 text-white'
                           }`}
                         >
-                          {p.is_available ? 'Tersedia' : 'Habis'}
+                          {portionLabel(p)}
                         </Badge>
                       </div>
                     </div>
@@ -429,10 +433,10 @@ export function MenuTab({
                         />
                         <span
                           className={`hidden text-xs sm:inline ${
-                            p.is_available ? 'text-muted-foreground' : 'font-semibold text-destructive'
+                            isSellable(p) ? 'text-muted-foreground' : 'font-semibold text-destructive'
                           }`}
                         >
-                          {p.is_available ? 'Tersedia' : 'Habis'}
+                          {portionLabel(p)}
                         </span>
                       </div>
                     </TableCell>

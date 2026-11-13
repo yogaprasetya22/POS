@@ -3,6 +3,7 @@ export {
   LanguagePage,
   MemberPage,
   MenuAdminPage,
+  MorePage,
   OverviewPage,
   PromoPage,
   ReportPage,

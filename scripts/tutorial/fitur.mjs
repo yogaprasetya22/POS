@@ -45,7 +45,7 @@ export const VIDEOS = {
 
   qr: {
     file: '02-pesan-qr', title: 'Pemesanan lewat QR',
-    before: async () => { await clearShifts(); return { name: 'Tamu Fitur' } },
+    before: async () => { await clearShifts(); await restock(); return { name: 'Tamu Fitur' } },
     after: async (c) => { await finishOrders([c.name]) },
     scenes: (c) => [
       ['Fitur pertama: pemesanan lewat kode QR. Setiap meja punya kode QR sendiri. Pelanggan tinggal memindainya dengan kamera ponsel, tanpa mengunduh aplikasi dan tanpa membuat akun.', (p) => p.goto(`/s/${SLUG}?meja=T1`), 'Halaman menu dari QR'],
@@ -53,9 +53,10 @@ export const VIDEOS = {
       ['Menu yang kehabisan ditandai dari dapur, sehingga pelanggan tidak memesan sesuatu yang tidak tersedia. Pilihan seperti tingkat gula atau tambahan bisa diatur per menu.', (p) => p.getByRole('button', { name: /Es Teh Lemon/ }).click(), 'Buka menu + pilihan'],
       ['Setelah memilih, pelanggan memeriksa keranjang, mengisi nama, lalu menekan kirim. Pesanan masuk ke kasir lewat WhatsApp, lengkap dengan kode antrean.', async (p) => {
         await p.getByRole('button', { name: /Tambah ke keranjang/ }).click()
-        await p.getByRole('button', { name: 'Lihat pesanan' }).click()
+        await p.waitForTimeout(400)
+        await p.getByRole('button', { name: /Lihat pesanan/ }).click()
         await p.getByLabel('Nama', { exact: true }).fill(c.name)
-        await p.getByRole('button', { name: /Kirim ke WhatsApp/ }).click()
+        await p.getByRole('button', { name: /Kirim (pesanan|ke WhatsApp)/i }).click()
       }, 'Keranjang → kirim → pesan WhatsApp'],
       ['Harga dihitung oleh sistem, bukan oleh ponsel pelanggan. Jadi total di layar pelanggan, kasir, dan struk selalu sama.', hold, 'Pesan WhatsApp'],
     ],

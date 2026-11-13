@@ -21,7 +21,6 @@ async function closeShiftOf(account: readonly [string, string]) {
 }
 
 async function customerOrders(page: Page, names: string[]) {
-  await page.route(/https:\/\/wa\.me\//, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: 'wa' }))
   const codes: string[] = []
   for (const name of names) {
     await page.goto(`/s/${STORE1}?meja=T1`)
@@ -29,10 +28,9 @@ async function customerOrders(page: Page, names: string[]) {
     await page.getByRole('button', { name: /Tambah ke keranjang/ }).click()
     await page.getByRole('button', { name: 'Lihat pesanan' }).click()
     await page.getByLabel('Nama', { exact: true }).fill(name)
-    await page.getByRole('button', { name: /Kirim ke WhatsApp/ }).click()
-    await page.waitForURL(/wa\.me/)
-    const code = /PESANAN (A-\d+)/.exec(new URL(page.url()).searchParams.get('text')!)?.[1]
-    expect(code, `kode antrean untuk ${name}`).toBeTruthy()
+    await page.getByRole('button', { name: /Kirim pesanan/ }).click()
+    const code = (await page.getByTestId('queue-code').textContent())?.trim()
+    expect(code, `kode antrean untuk ${name}`).toMatch(/^A-\d+$/)
     codes.push(code!)
   }
   return codes

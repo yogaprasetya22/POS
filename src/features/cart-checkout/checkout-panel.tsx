@@ -1,9 +1,6 @@
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import {
-  MessageCircle,
-  Trash2,
-} from 'lucide-react'
+import { CheckCircle2, Send, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useState, type FormEvent } from 'react'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -20,18 +17,15 @@ import { useQuote } from '@shared/lib/use-quote'
 import { CheckoutSchema, CreatedOrderSchema, type OrderType, type Product, type Promotion } from '@shared/types/contracts'
 import { cartTotal, toLines } from './cart'
 import { useCartStore } from './store/cart-store'
-import { buildWaText, waUrl } from './wa-message'
 
 export function CheckoutPanel({
   storeId,
-  waNumber,
   defaultTable,
   promotions = [],
   products = [],
   onClose,
 }: {
   storeId: string
-  waNumber: string
   defaultTable: string
   promotions?: Promotion[]
   products?: Product[]
@@ -43,6 +37,7 @@ export function CheckoutPanel({
   const [table, setTable] = useState(defaultTable)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState<{ queue_code: string; total: number } | null>(null)
   const [inputCode, setInputCode] = useState('')
   const [appliedCode, setAppliedCode] = useState<string | null>(null)
   const [codeFeedback, setCodeFeedback] = useState<string | null>(null)
@@ -103,26 +98,30 @@ export function CheckoutPanel({
       p_table_no: v.table_no || null,
       p_lines: v.lines,
       p_promo_code: appliedCode ?? null,
-    })
+    }, { asPublic: true })
     setBusy(false)
     if (rpcError) return setError(`Pesanan gagal: ${rpcError.message}`)
 
     const created = CreatedOrderSchema.parse(data)
-    const text = buildWaText({
-      ...created,
-      customer_name: v.customer_name,
-      order_type: v.order_type,
-      table_no: v.table_no,
-      total: created.total,
-      subtotal: grossSubtotal,
-      discount_amount: created.discount_amount ?? totalDiscount,
-      promo_name: created.promo_name ?? promo.appliedPromo?.name,
-      promo_code: created.promo_code ?? appliedCode,
-      bonus_item: promo.bonusItem,
-      items,
-    })
     clear()
-    window.location.href = waUrl(waNumber, text)
+    setDone({ queue_code: created.queue_code, total: created.total })
+  }
+
+  if (done) {
+    return (
+      <Panel onClose={onClose} title="Pesanan terkirim" footer={null}>
+        <div className="flex flex-col items-center py-8 text-center">
+          <CheckCircle2 className="size-14 text-emerald-600" aria-hidden />
+          <p className="mt-4 text-sm text-muted-foreground">Kode antrean kamu</p>
+          <p className="mt-1 font-mono text-5xl font-bold tracking-tight" data-testid="queue-code">{done.queue_code}</p>
+          <p className="mt-4 text-lg font-semibold tabular-nums">Total {rupiah(done.total)}</p>
+          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            Tunjukkan kode ini ke kasir lalu bayar. Setelah dibayar, pesananmu langsung disiapkan di dapur.
+          </p>
+          <Button size="lg" className="mt-8 w-full max-w-xs" onClick={onClose}>Selesai</Button>
+        </div>
+      </Panel>
+    )
   }
 
   return (
@@ -138,10 +137,10 @@ export function CheckoutPanel({
               {totalDiscount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground line-through">{rupiah(grossSubtotal)}</span>}
             </p>
           </div>
-          <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 bg-emerald-600 px-5 text-base text-white hover:bg-emerald-700">
+          <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base">
             {busy ? 'Memproses…' : (
               <>
-                <MessageCircle /> Kirim ke WhatsApp
+                <Send /> Kirim pesanan
               </>
             )}
           </Button>

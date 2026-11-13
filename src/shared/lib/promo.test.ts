@@ -11,6 +11,7 @@ describe('calculatePromo', () => {
     sku: 'KOP-01',
     price: 15000,
     is_available: true,
+    portions: null,
     modifiers: [],
     image_url: null,
     images: [],

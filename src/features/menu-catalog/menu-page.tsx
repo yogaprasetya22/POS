@@ -14,7 +14,7 @@ import { MenuSkeleton } from '@shared/components/page-skeleton'
 import { MenuImage } from '@shared/components/menu-image'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
-import type { Product } from '@shared/types/contracts'
+import { isSellable, type Product } from '@shared/types/contracts'
 import { ProductPicker } from './components/product-picker'
 import { useCatalog } from './use-catalog'
 
@@ -153,12 +153,12 @@ export function MenuPage() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ ...liquid, delay: Math.min(idx, 12) * 0.025 }}
                   whileTap={{ scale: 0.97 }}
-                  disabled={!p.is_available}
+                  disabled={!isSellable(p)}
                   onClick={() => setPicking(p)}
                   className={`relative flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors disabled:opacity-60 ${qty ? 'border-primary ring-1 ring-primary' : ''}`}
                 >
                   <MenuImage src={p.image_url} alt="" />
-                  {!p.is_available && <span className="absolute inset-x-0 top-0 grid aspect-4/3 place-items-center bg-black/50 font-semibold text-white">Habis</span>}
+                  {!isSellable(p) && <span className="absolute inset-x-0 top-0 grid aspect-4/3 place-items-center bg-black/50 font-semibold text-white">Habis</span>}
                   {qty > 0 && (
                     <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-8 place-items-center rounded-full bg-primary px-2 py-1 text-sm font-bold text-primary-foreground tabular-nums">{qty}</m.span>
                   )}
@@ -221,7 +221,6 @@ export function MenuPage() {
       {checkout && (
         <CheckoutPanel
           storeId={data.store.id}
-          waNumber={data.store.wa_number}
           defaultTable={table ?? ''}
           promotions={data.promotions}
           products={data.products}

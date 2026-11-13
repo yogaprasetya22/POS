@@ -4,12 +4,12 @@ import {
   Building2,
   ChefHat,
   ClipboardList,
+  Ellipsis,
   Gift,
   Languages,
-  LayoutDashboard,
   QrCode,
-  Settings,
   ShoppingBag,
+  Store,
   Tag,
   Users,
   UtensilsCrossed,
@@ -18,68 +18,53 @@ import {
 import type { Staff } from '@shared/lib/auth'
 import { can } from '@shared/types/contracts'
 
-export type NavItem = { to: string; label: string; icon: LucideIcon; show: (s: Staff) => boolean; end?: boolean }
-export type NavGroup = { label: string; items: NavItem[] }
+export type NavItem = { to: string; label: string; icon: LucideIcon; show: (s: Staff) => boolean; end?: boolean; hint?: string }
 
 const manage = (s: Staff) => can.manage(s.role)
 const owner = (s: Staff) => can.ownerOnly(s.role)
 
-/** Mode kerja layar penuh (tanpa sidebar): dipakai kasir & dapur sepanjang shift. */
-export const WORK_NAV: NavItem[] = [
-  { to: '/cashier', label: 'Kasir', icon: ShoppingBag, show: (s) => can.floor(s.role) },
-  { to: '/kitchen', label: 'Dapur', icon: ChefHat, show: (s) => can.kitchen(s.role) },
+/**
+ * Navigasi utama: paling banyak 4 tombol berlabel, sama di semua layar staf.
+ * Owner/manager: Jualan · Hari Ini · Menu · Lainnya. Kasir: Jualan · Dapur. Dapur: tanpa navigasi (satu layar saja).
+ */
+export const MAIN_NAV: NavItem[] = [
+  { to: '/cashier', label: 'Jualan', icon: ShoppingBag, show: (s) => can.floor(s.role) },
+  { to: '/kitchen', label: 'Dapur', icon: ChefHat, show: (s) => can.kitchen(s.role) && !can.manage(s.role) },
+  { to: '/admin', label: 'Hari Ini', icon: BarChart3, show: manage, end: true },
+  { to: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, show: manage },
+  { to: '/admin/lainnya', label: 'Lainnya', icon: Ellipsis, show: manage },
+  { to: '/super', label: 'Kelola toko', icon: Building2, show: (s) => s.isSuper },
 ]
 
-/** Back office: dikelompokkan menurut tugas, satu halaman (route) per fitur. */
-export const ADMIN_NAV: NavGroup[] = [
-  {
-    label: 'Ringkasan',
-    items: [{ to: '/admin', label: 'Ikhtisar', icon: LayoutDashboard, show: manage, end: true }],
-  },
-  {
-    label: 'Katalog',
-    items: [
-      { to: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, show: manage },
-      { to: '/admin/promo', label: 'Promo & diskon', icon: Tag, show: manage },
-    ],
-  },
-  {
-    label: 'Pelanggan',
-    items: [{ to: '/admin/member', label: 'Member & voucher', icon: Gift, show: manage }],
-  },
-  {
-    label: 'Persediaan',
-    items: [{ to: '/admin/stok', label: 'Stok & resep', icon: Boxes, show: manage }],
-  },
-  {
-    label: 'Laporan',
-    items: [
-      { to: '/admin/laporan', label: 'Penjualan', icon: BarChart3, show: manage },
-      { to: '/admin/shift', label: 'Shift & audit', icon: ClipboardList, show: manage },
-    ],
-  },
-  {
-    label: 'Toko',
-    items: [
-      { to: '/admin/meja', label: 'Meja & QR', icon: QrCode, show: manage },
-      { to: '/admin/tim', label: 'Tim & peran', icon: Users, show: owner },
-      { to: '/admin/toko', label: 'Pengaturan', icon: Settings, show: owner },
-      { to: '/admin/bahasa', label: 'Bahasa & pesan', icon: Languages, show: owner },
-    ],
-  },
-  {
-    label: 'Platform',
-    items: [{ to: '/super', label: 'Kelola toko', icon: Building2, show: (s) => s.isSuper }],
-  },
+/** Isi halaman "Lainnya": fitur yang tidak dipakai setiap hari. Maksimal 5 di depan. */
+export const MORE_NAV: NavItem[] = [
+  { to: '/admin/promo', label: 'Potongan harga', hint: 'Diskon, beli 2 gratis 1, kode kupon', icon: Tag, show: manage },
+  { to: '/admin/member', label: 'Pelanggan tetap', hint: 'Kumpulkan poin untuk pembeli langganan', icon: Gift, show: manage },
+  { to: '/admin/stok', label: 'Stok bahan', hint: 'Cek bahan yang hampir habis', icon: Boxes, show: manage },
+  { to: '/admin/tim', label: 'Karyawan', hint: 'Tambah kasir atau tukang masak', icon: Users, show: owner },
+  { to: '/admin/toko', label: 'Pengaturan toko', hint: 'Nama, alamat, jam buka, struk', icon: Store, show: owner },
 ]
 
-/** Grup + item yang cocok dengan path (untuk breadcrumb). */
-export function findNav(pathname: string): { group: string; item: NavItem } | null {
-  let best: { group: string; item: NavItem } | null = null
-  for (const g of ADMIN_NAV)
-    for (const item of g.items) {
-      const hit = item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + '/')
-      if (hit && (!best || item.to.length > best.item.to.length)) best = { group: g.label, item }
-    }
-  return best
+/** Fitur lanjutan, disembunyikan di balik "Fitur lanjutan" pada halaman Lainnya. */
+export const ADVANCED_NAV: NavItem[] = [
+  { to: '/admin/laporan', label: 'Laporan lengkap', hint: 'Penjualan per hari, per menu, unduh', icon: BarChart3, show: manage },
+  { to: '/admin/shift', label: 'Catatan laci kasir', hint: 'Uang laci saat buka dan tutup kasir', icon: ClipboardList, show: manage },
+  { to: '/admin/meja', label: 'Meja & kode QR', hint: 'Pembeli pesan sendiri dari meja', icon: QrCode, show: manage },
+  { to: '/admin/bahasa', label: 'Bahasa & pesan', hint: 'Pilihan bahasa dan kalimat peringatan', icon: Languages, show: owner },
+  { to: '/kitchen', label: 'Layar dapur', hint: 'Daftar pesanan yang harus dimasak', icon: ChefHat, show: (s) => can.kitchen(s.role) },
+]
+
+const hit = (item: NavItem, pathname: string) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + '/'))
+
+/** Halaman yang sedang dibuka: judulnya, dan apakah ia berada di dalam "Lainnya" (untuk tombol Kembali). */
+export function findNav(pathname: string): { item: NavItem; inMore: boolean } | null {
+  for (const item of [...MORE_NAV, ...ADVANCED_NAV]) if (item.to.startsWith('/admin/') && hit(item, pathname)) return { item, inMore: true }
+  for (const item of MAIN_NAV) if (hit(item, pathname)) return { item, inMore: false }
+  return null
+}
+
+/** Tombol navigasi utama yang menyala: halaman di dalam Lainnya menyalakan "Lainnya". */
+export function isActive(item: NavItem, pathname: string, inMore = !!findNav(pathname)?.inMore) {
+  if (item.to === '/admin/lainnya') return hit(item, pathname) || inMore
+  return hit(item, pathname)
 }

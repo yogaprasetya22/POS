@@ -6,7 +6,7 @@ POS F&B multi-toko untuk warkop, resto, dan kafe: pelanggan memesan lewat link/Q
 
 | Area | Isi |
 |---|---|
-| Pelanggan | Menu per toko via `/s/{slug}?meja=T1`, promo & kode, kirim pesanan ke WhatsApp kasir. Meja harus terdaftar bila toko punya daftar meja. |
+| Pelanggan | Menu per toko via `/s/{slug}?meja=T1`, promo & kode, kirim pesanan ke antrean kasir (kode antrean tampil di layar). Meja harus terdaftar bila toko punya daftar meja. |
 | Kasir | Shift & laci kas, bayar tunai/QRIS/kartu (dicatat manual), open bill, pisah/gabung bill, member & poin, voucher, void/refund dengan PIN supervisor, riwayat hari ini, cetak struk & tiket dapur. |
 | Dapur | Layar antrean realtime, tandai menu habis. |
 | Backoffice | Menu, promo, laporan (+ekspor CSV), stok bahan & resep (HPP), meja & QR cetak, member & voucher, riwayat shift & log audit, tim, pengaturan pajak/service/pembulatan/poin/struk/PIN. |
@@ -124,29 +124,24 @@ bun run test:e2e   # Playwright: pesan → bayar (shift) → dapur realtime, iso
 
 `db-check` dan `test:e2e` memakai akun demo dan **mengubah data** di database yang ada di `.env`; jalankan hanya ke database demo/dev.
 
-## Video panduan per peran
+## Video panduan tutorial (19 Video)
 
-Tujuh video (pelanggan, kasir, dapur, pelayan, manager, owner, super admin) dengan suara bahasa Indonesia direkam otomatis dari aplikasi yang berjalan: Playwright merekam layar, Piper membuat suara (offline), ffmpeg menggabungkannya. Hasil di `docs/videos/` (tidak di-commit).
-
-```bash
-bun run dev --port 5199 --strictPort        # terminal 1
-node scripts/tutorial/record.mjs all        # terminal 2 (atau satu peran: kasir, dapur, ...)
-```
-
-Naskah dan langkah layar ada di `scripts/tutorial/roles.mjs`; ubah teks lalu rekam ulang. Butuh `ffmpeg`, plus mesin suara di `scripts/tutorial/.tts` (venv dengan `piper-tts` dan model `id.onnx` dari rhasspy/piper-voices `id_ID-news_tts-medium`). Skrip mengubah database di `.env` (membuka/menutup shift, membuat pesanan demo, mengisi ulang stok): jalankan hanya ke database demo.
-
-### Suara Fish Audio untuk semua video (19 video)
-
-Satu `docs/narasi.txt` memuat narasi seri fitur (12 video, slide 1–61) lalu seri peran (7 video, slide 62–129). Naskah dan langkah layar ada di `scripts/tutorial/fitur.mjs` dan `scripts/tutorial/roles.mjs`.
+Tersedia 19 video panduan lengkap (12 seri fitur + 7 seri peran staf) berbahasa Indonesia yang direkam otomatis dari aplikasi yang berjalan menggunakan Playwright, Microsoft Edge Neural TTS / Piper, dan FFmpeg. Panduan teknis lengkap dapat dibaca di [`docs/PANDUAN_VIDEO_TUTORIAL.md`](docs/PANDUAN_VIDEO_TUTORIAL.md).
 
 ```bash
-PY=scripts/tutorial/.tts/venv/bin/python                 # sudah berisi playwright + chromium
-node scripts/tutorial/export-narasi.mjs                  # tulis docs/narasi.txt + docs/narasi-peta.md
-$PY docs/fish_ai.py login                                # sekali saja: login Fish Audio di jendela browser, lalu Enter
-$PY docs/fish_ai.py docs/narasi.txt                      # -> docs/audio/slide-01.mp3 ... slide-129.mp3 (slide yang sudah ada dilewati)
-bun run dev --port 5199 --strictPort                     # terminal lain
+# 1. Jalankan dev server
+bun run dev
+
+# 2. (Opsional) Buat atau perbarui suara TTS (ArdiNeural / GadisNeural)
+python3 scripts/tutorial/gen-edge.py docs/narasi.txt docs/audio id-ID-ArdiNeural
+
+# 3. Rekam seri fitur (12 video) -> docs/videos/fitur/
 node scripts/tutorial/record.mjs all --set fitur --audio docs/audio
+
+# 4. Rekam seri peran (7 video) -> docs/videos/peran/
 node scripts/tutorial/record.mjs all --set peran --audio docs/audio
 ```
 
-Tanpa `--audio`, video direkam dengan suara Piper (draf). Nomor slide mengikuti urutan adegan global: setelah menambah atau menghapus adegan, jalankan ulang `export-narasi.mjs` dan hapus `docs/audio` agar suara dibuat ulang. `docs/.fish-profile` (sesi login) dan `docs/audio` tidak di-commit.
+Hasil video otomatis disimpan terorganisir di:
+* `docs/videos/fitur/` (12 video fitur produk)
+* `docs/videos/peran/` (7 video peran staf: pelanggan, kasir, dapur, pelayan, manager, owner, super admin)

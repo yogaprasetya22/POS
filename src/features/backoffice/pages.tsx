@@ -6,6 +6,7 @@ import { useAdmin } from './backoffice-page'
 import { LanguageTab } from './components/language-tab'
 import { MembersTab } from './components/members-tab'
 import { MenuTab } from './components/menu-tab'
+import { MorePageView } from './components/more-page'
 import { OpsTab } from './components/ops-tab'
 import { Dashboard } from './components/dashboard'
 import { PromoTab } from './components/promo-tab'
@@ -112,4 +113,8 @@ export function StorePage() {
       <StoreTab store={data.store} run={run} fail={fail} />
     </OwnerOnly>
   )
+}
+
+export function MorePage() {
+  return <MorePageView />
 }

@@ -4,7 +4,7 @@ import { CurrencyInput } from '@shared/components/currency-input'
 import { BarSkeleton } from '@shared/components/skeletons'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { History, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
+import { ChevronDown, History, ListOrdered, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { addItem, cartTotal, itemKey, setItemQty, toLines, type CartItem } from '@features/cart-checkout'
@@ -13,7 +13,6 @@ import { ConfirmButton } from '@shared/components/confirm-button'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { Stepper } from '@shared/components/stepper'
 import { StockDialog } from '@shared/components/stock-dialog'
-import { ToneBadge } from '@shared/components/tone-badge'
 import { CashierSkeleton } from '@shared/components/page-skeleton'
 import { MenuImage } from '@shared/components/menu-image'
 import { Badge } from '@shared/components/ui/badge'
@@ -44,19 +43,16 @@ import {
   type OrderType,
   type PaymentMethod,
   type Product,
+  isSellable,
 } from '@shared/types/contracts'
 import { MergePanel, SplitPanel } from './components/bill-tools'
 import { ExtrasBox } from './components/extras-box'
 import { HistoryDrawer } from './components/history-drawer'
 import { Receipt } from './components/receipt'
 import { OpenShiftCard, ShiftBar } from './components/shift'
+import { AllOrdersDrawer, QueueSection, fromCustomer, matches, sortQueue } from './components/order-queue'
 
 const ACTIVE: OrderStatus[] = ['UNPAID', 'IN_KITCHEN', 'READY']
-const STATUS = {
-  UNPAID: { tone: 'amber', label: 'Menunggu bayar' },
-  IN_KITCHEN: { tone: 'blue', label: 'Dimasak' },
-  READY: { tone: 'green', label: 'Siap diambil' },
-} as const
 
 const PILL = 'relative h-10 rounded-full border bg-card px-4 aria-pressed:border-primary aria-pressed:bg-transparent aria-pressed:text-primary-foreground'
 const CHOICE = 'relative h-10 aria-pressed:border-primary aria-pressed:bg-transparent aria-pressed:text-accent-foreground'
@@ -95,12 +91,14 @@ export function CashierPage() {
   const [splitOpen, setSplitOpen] = useState(false)
   const [mergeOpen, setMergeOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [allOpen, setAllOpen] = useState(false)
+  const [allSource, setAllSource] = useState<'all' | 'customer' | 'cashier'>('all')
   const [notice, setNotice] = useState('')
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
   const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
 
-  const soldOutCount = catalog?.products.filter((p) => !p.is_available).length ?? 0
+  const soldOutCount = catalog?.products.filter((p) => !isSellable(p)).length ?? 0
 
   const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
     const { error: err } = await rpc('set_product_availability', { p_product: productId, p_available: isAvailable })
@@ -278,7 +276,7 @@ export function CashierPage() {
   }
 
   const oq = orderQuery.trim().toLowerCase()
-  const queue = orders.filter((o) => o.queue_code.toLowerCase().includes(oq) || o.customer_name.toLowerCase().includes(oq))
+  const queue = sortQueue(orders).filter((o) => matches(o, oq))
   const mq = menuQuery.trim().toLowerCase()
   const products = (catalog?.products ?? []).filter((p) => (!category || p.category_id === category) && p.name.toLowerCase().includes(mq))
   const imageOf = (productId: string) => catalog?.products.find((p) => p.id === productId)?.image_url
@@ -290,56 +288,38 @@ export function CashierPage() {
         {payer && !shiftLoading && (shift ? <ShiftBar shift={shift} onChange={reloadShift} /> : <OpenShiftCard status={shiftStatus} role={role} onOpened={reloadShift} />)}
         {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">{notice}</p>}
 
-        {/* Antrean pesanan */}
-        <section>
+        {/* Antrean pesanan: dipisah pelanggan (QR) & kasir, masing-masing maksimal 10; sisanya di "Semua pesanan" */}
+        <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-semibold">
+            <h2 className="flex items-center gap-2 text-lg font-bold">
               Antrean Pesanan
               <Badge className="size-6 rounded-full p-0">{orders.length}</Badge>
             </h2>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-            <Button variant="outline" className="h-10 shrink-0" onClick={() => setHistoryOpen(true)}>
-              <History /> <span className="hidden md:inline">Riwayat</span>
-            </Button>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <Input
-                value={orderQuery}
-                onChange={(e) => setOrderQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  const first = queue.find((o) => o.status === 'UNPAID')
-                  if (e.key === 'Enter' && first) setSelectedId(first.id)
-                }}
-                placeholder="Cari kode (042) / nama…"
-                aria-label="Cari pesanan"
-                className="pl-10"
-              />
-            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <Button className="h-10 shrink-0" onClick={() => { setAllSource('all'); setAllOpen(true) }}>
+                <ListOrdered /> <span>Semua pesanan</span>
+              </Button>
+              <Button variant="outline" className="h-10 shrink-0" onClick={() => setHistoryOpen(true)}>
+                <History /> <span>Riwayat</span>
+              </Button>
+              <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
+                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input
+                  value={orderQuery}
+                  onChange={(e) => setOrderQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    const first = queue.find((o) => o.status === 'UNPAID')
+                    if (e.key === 'Enter' && first) setSelectedId(first.id)
+                  }}
+                  placeholder="Cari kode (042) / nama…"
+                  aria-label="Cari pesanan"
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {queue.map((o) => {
-              const s = STATUS[o.status as keyof typeof STATUS]
-              const clickable = o.status === 'UNPAID'
-              return (
-                <Button key={o.id} variant="ghost" disabled={!clickable} onClick={() => setSelectedId(o.id)} className="w-44 shrink-0 h-auto justify-start whitespace-normal rounded-xl bg-transparent p-0 text-left font-normal hover:bg-transparent disabled:opacity-100">
-                  <Card size="sm" className={`w-full ${o.id === selectedId ? 'ring-2 ring-primary' : clickable ? 'transition hover:ring-primary/40' : ''}`}>
-                    <CardContent className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-base font-bold">{o.queue_code}</span>
-                        <span className="text-xs text-muted-foreground">{o.items.reduce((n, i) => n + i.qty, 0)} Item</span>
-                      </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {o.customer_name} · {o.order_type === 'DINE_IN' ? `Meja ${o.table_no}` : 'Bawa pulang'}
-                      </p>
-                      <ToneBadge tone={s.tone} className="mt-1.5 h-6 w-full justify-center">{s.label}</ToneBadge>
-                    </CardContent>
-                  </Card>
-                </Button>
-              )
-            })}
-            {queue.length === 0 && <p className="py-6 text-sm text-muted-foreground">Belum ada pesanan aktif.</p>}
-          </div>
+          <QueueSection source="customer" orders={queue.filter(fromCustomer)} selectedId={selectedId} onPick={setSelectedId} onShowAll={() => { setAllSource('customer'); setAllOpen(true) }} />
+          <QueueSection source="cashier" orders={queue.filter((o) => !fromCustomer(o))} selectedId={selectedId} onPick={setSelectedId} onShowAll={() => { setAllSource('cashier'); setAllOpen(true) }} />
         </section>
 
         {/* Menu */}
@@ -373,7 +353,7 @@ export function CashierPage() {
                 title="Kelola Ketersediaan Menu"
               >
                 <PackageX className="size-4" />
-                <span className="hidden md:inline">Stok Menu</span>
+                <span>Stok Menu</span>
               </Button>
             </div>
           </div>
@@ -413,14 +393,14 @@ export function CashierPage() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ ...liquid, delay: Math.min(idx, 12) * 0.02 }}
                   whileTap={{ scale: 0.96 }}
-                  disabled={!p.is_available}
+                  disabled={!isSellable(p)}
                   onClick={() => addProduct(p)}
                   className={`relative flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors disabled:opacity-50 disabled:grayscale ${qty ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/50'}`}
                 >
                   <MenuImage src={p.image_url} alt="" aspectRatio="aspect-[3/2]" fallbackIconSize="size-6" />
                   <div className="w-full p-2.5">
                     <p className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{p.name}</p>
-                    <p className="mt-1 text-sm font-semibold tabular-nums">{p.is_available ? rupiah(p.price) : 'Habis'}</p>
+                    <p className="mt-1 text-sm font-semibold tabular-nums">{isSellable(p) ? rupiah(p.price) : 'Habis'}{isSellable(p) && p.portions !== null && p.portions <= 5 && <span className="ml-1 text-xs font-normal text-amber-600">· sisa {p.portions}</span>}</p>
                   </div>
                   {qty > 0 && (
                     <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-7 place-items-center rounded-full bg-primary px-1.5 py-0.5 text-sm font-bold text-primary-foreground tabular-nums">
@@ -445,7 +425,7 @@ export function CashierPage() {
             <CardDescription>
               {selected
                 ? `#${selected.queue_code} · ${selected.customer_name} · ${selected.order_type === 'DINE_IN' ? `Meja ${selected.table_no}` : 'Bawa pulang'}`
-                : 'Pesanan baru (walk-in)'}
+                : 'Pesanan baru'}
             </CardDescription>
           </CardHeader>
 
@@ -462,7 +442,7 @@ export function CashierPage() {
                   {(['DINE_IN', 'TAKEAWAY'] as const).map((v) => (
                     <ToggleGroupItem key={v} value={v} className={CHOICE}>
                       {orderType === v && <LiquidPill id="cashier-type" className="rounded-md bg-accent" />}
-                      <span className="relative">{v === 'DINE_IN' ? 'Dine In' : 'Take Away'}</span>
+                      <span className="relative">{v === 'DINE_IN' ? 'Makan di sini' : 'Bawa pulang'}</span>
                     </ToggleGroupItem>
                   ))}
                 </ToggleGroup>
@@ -476,7 +456,7 @@ export function CashierPage() {
             )}
 
             <p className="font-semibold">
-              Total Item <span className="text-muted-foreground">({items.reduce((n, i) => n + i.qty, 0)})</span>
+              Barang dipesan <span className="text-muted-foreground">({items.reduce((n, i) => n + i.qty, 0)})</span>
             </p>
             {items.length === 0 ? (
               <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
@@ -505,8 +485,8 @@ export function CashierPage() {
                               <div className="truncate text-xs text-muted-foreground">{[...i.choices.map((c) => c.option), i.note].filter(Boolean).join(' · ')}</div>
                             )}
                           </div>
-                          <Button variant="ghost" size="icon-sm" className="-mt-1 -mr-1 shrink-0 text-destructive hover:text-destructive" aria-label={`Hapus ${i.name}`} onClick={() => edit(setItemQty(items, i.key, 0))}>
-                            <Trash2 />
+                          <Button variant="ghost" className="-mt-1 -mr-1 h-11 shrink-0 px-2 text-destructive hover:text-destructive" aria-label={`Hapus ${i.name}`} onClick={() => edit(setItemQty(items, i.key, 0))}>
+                            <Trash2 /> Hapus
                           </Button>
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -626,30 +606,35 @@ export function CashierPage() {
 
             {payer && !hasShift && <p className="text-sm text-muted-foreground">{t('shift.required')}</p>}
             {payer || needsSave ? (
-              <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="h-12 w-full text-base">
+              <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="h-16 w-full text-xl font-bold">
                 {busy ? 'Memproses…' : needsSave ? 'Simpan Perubahan' : selected ? 'Terima Pembayaran' : 'Buat & Bayar'}
               </Button>
             ) : (
               !selected && (
-                <Button size="lg" disabled={busy || items.length === 0} onClick={saveOpenBill} className="h-12 w-full text-base">
+                <Button size="lg" disabled={busy || items.length === 0} onClick={saveOpenBill} className="h-16 w-full text-xl font-bold">
                   {busy ? 'Menyimpan…' : 'Simpan pesanan'}
                 </Button>
               )
             )}
             {payer && !selected && items.length > 0 && (
-              <Button variant="outline" disabled={busy} onClick={saveOpenBill} className="h-11 w-full">
-                Simpan sebagai open bill
+              <Button variant="outline" disabled={busy} onClick={saveOpenBill} className="h-12 w-full text-base">
+                Simpan dulu, bayar nanti
               </Button>
             )}
             {selected && !dirty && can.floor(role) && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-11" onClick={() => setSplitOpen(true)} disabled={selected.items.length < 2}>
-                  <Split /> Pisah bill
-                </Button>
-                <Button variant="outline" className="h-11" onClick={() => setMergeOpen(true)}>
-                  <Merge /> Gabung bill
-                </Button>
-              </div>
+              <details className="group rounded-lg border">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-3 text-base font-semibold [&::-webkit-details-marker]:hidden">
+                  Pilihan lain <ChevronDown className="size-5 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="grid grid-cols-2 gap-2 border-t p-2">
+                  <Button variant="outline" className="h-12" onClick={() => setSplitOpen(true)} disabled={selected.items.length < 2}>
+                    <Split /> Pisah tagihan
+                  </Button>
+                  <Button variant="outline" className="h-12" onClick={() => setMergeOpen(true)}>
+                    <Merge /> Gabung tagihan
+                  </Button>
+                </div>
+              </details>
             )}
             {selected ? (
               <ConfirmButton
@@ -665,9 +650,17 @@ export function CashierPage() {
               </ConfirmButton>
             ) : (
               items.length > 0 && (
-                <Button variant="ghost" disabled={busy} onClick={reset} className="w-full">
-                  Kosongkan
-                </Button>
+                <ConfirmButton
+                  variant="ghost"
+                  disabled={busy}
+                  className="h-12 w-full text-base text-destructive hover:text-destructive"
+                  title="Hapus pesanan ini?"
+                  description="Semua barang yang sudah dipilih akan dihapus dari pesanan. Ini tidak bisa dibatalkan."
+                  confirmLabel="Ya, hapus pesanan"
+                  onConfirm={reset}
+                >
+                  Hapus pesanan
+                </ConfirmButton>
               )
             )}
           </div>
@@ -675,18 +668,19 @@ export function CashierPage() {
       </aside>
 
       {/* Layar kecil: ringkasan ada di bawah menu, jadi total & pintasan selalu terlihat */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t bg-card p-3 md:hidden">
+      <div className="fixed inset-x-0 bottom-(--bottom-nav) z-20 flex items-center gap-3 border-t bg-card p-3 md:hidden">
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">{items.length ? `${items.reduce((n, i) => n + i.qty, 0)} item` : 'Belum ada item'}</p>
           <p className="font-bold">{rupiah(total)}</p>
         </div>
-        <Button onClick={() => document.getElementById('ringkasan')?.scrollIntoView({ behavior: 'smooth' })}>Lihat pesanan</Button>
+        <Button className="h-12 px-5 text-base" onClick={() => document.getElementById('ringkasan')?.scrollIntoView({ behavior: 'smooth' })}>Lihat pesanan</Button>
       </div>
 
       {picking && <ProductPicker product={picking} onAdd={(i) => edit(addItem(items, i))} onClose={() => setPicking(null)} />}
       {receipt && catalog && (
         <Receipt order={receipt} store={{ name: catalog.store.name, address: config?.address, footer: config?.receipt_footer }} onClose={() => setReceipt(null)} />
       )}
+      <AllOrdersDrawer open={allOpen} onOpenChange={setAllOpen} orders={orders} initialSource={allSource} onPick={setSelectedId} />
       <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} role={role} onReprint={(o) => { setHistoryOpen(false); setReceipt(o) }} />
       {splitOpen && selected && (
         <SplitPanel order={selected} onClose={() => setSplitOpen(false)} onDone={() => { setSplitOpen(false); setNotice('Bill dipisah. Pesanan baru ada di antrean.'); setTimeout(() => setNotice(''), 4000) }} />

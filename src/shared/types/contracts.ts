@@ -28,6 +28,8 @@ export const ProductSchema = z.object({
   sku: z.string().nullable(),
   price: RupiahSchema,
   is_available: z.boolean(),
+  /** Sisa porsi dari stok bahan; null = menu tanpa resep (tidak dilacak). */
+  portions: z.number().int().nullable().default(null),
   modifiers: z.array(ModifierGroupSchema),
   image_url: z.string().nullable(),
   images: z.array(z.string()).default([]),
@@ -259,6 +261,9 @@ export type StaffRole = z.infer<typeof StaffRoleSchema>
 export type ModifierGroup = z.infer<typeof ModifierGroupSchema>
 export type Category = z.infer<typeof CategorySchema>
 export type Product = z.infer<typeof ProductSchema>
+
+/** Bisa dijual: tidak dimatikan manual dan bahan resepnya masih cukup untuk minimal 1 porsi. */
+export const isSellable = (p: Pick<Product, 'is_available' | 'portions'>) => p.is_available && (p.portions === null || p.portions > 0)
 export type Store = z.infer<typeof StoreSchema>
 export type StoreRow = z.infer<typeof StoreRowSchema>
 export type Choice = z.infer<typeof ChoiceSchema>

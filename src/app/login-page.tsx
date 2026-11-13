@@ -26,7 +26,10 @@ export function LoginPage() {
   return (
     <AuthShell>
       <m.form initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="grid gap-4">
-        <h2 className="text-xl font-bold">Masuk Staf</h2>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Masuk</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Masuk dengan akun owner atau staf tokomu.</p>
+        </div>
         <Input name="email" type="email" required placeholder="Email" aria-label="Email" />
         <Input name="password" type="password" required placeholder="Password" aria-label="Password" />
         <ErrorAlert message={error} />

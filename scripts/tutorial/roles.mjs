@@ -102,7 +102,7 @@ export const ROLES = {
       ['Atur pilihan seperti ukuran atau tambahan, lalu tekan Tambah ke keranjang.', (p) => p.getByRole('button', { name: /Tambah ke keranjang/ }).click()],
       ['Tekan Lihat pesanan untuk memeriksa isi keranjang dan total harga.', (p) => p.getByRole('button', { name: 'Lihat pesanan' }).click()],
       ['Isi nama Anda supaya pesanan mudah dipanggil.', (p) => p.getByLabel('Nama', { exact: true }).fill(c.name)],
-      ['Terakhir, tekan Kirim ke WhatsApp. Pesanan masuk ke kasir dan Anda mendapat kode antrean.', (p) => p.getByRole('button', { name: /Kirim ke WhatsApp/ }).click()],
+      ['Terakhir, tekan Kirim ke WhatsApp. Pesanan masuk ke kasir dan Anda mendapat kode antrean.', (p) => p.getByRole('button', { name: /Kirim (pesanan|ke WhatsApp)/i }).click()],
       ['Tunjukkan kode antrean ke kasir, lalu bayar. Setelah dibayar, pesanan langsung disiapkan di dapur. Selamat menikmati.', hold],
     ],
   },

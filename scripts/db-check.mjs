@@ -122,6 +122,22 @@ const after = (await cashier.from('members').select('points').eq('id', member.id
 ok(after === before - 20 + o1row.points_earned, 'poin member: ditukar & didapat', `${before} -> ${after}`)
 const stockAfter = (await owner.from('ingredients').select('stock').eq('store_id', W).eq('name', 'Biji kopi').single()).data.stock
 ok(Number(stockBefore) - Number(stockAfter) === 36, 'stok bahan berkurang sesuai resep (2 latte × 18 g)', `${stockBefore} -> ${stockAfter}`)
+// Stok bahan ↔ menu: sisa porsi dihitung otomatis & menu ditolak bila bahan kurang
+const recs = (await owner.from('recipes').select('qty, ingredients(stock)').eq('product_id', latte.id)).data
+const expPortions = Math.min(...recs.map((r) => Math.floor(Number(r.ingredients.stock) / Number(r.qty))))
+const portionsOf = async () => (await owner.from('products').select('portions').eq('id', latte.id).single()).data.portions
+ok((await portionsOf()) === expPortions, 'sisa porsi menu = min(stok / takaran resep)', `${await portionsOf()} vs ${expPortions}`)
+const coffee = (await owner.from('ingredients').select('id, stock').eq('store_id', W).eq('name', 'Biji kopi').single()).data
+const coffeeQty = Number(recs.length ? (await owner.from('recipes').select('qty').eq('product_id', latte.id).eq('ingredient_id', coffee.id).single()).data.qty : 0)
+const cut = Number(coffee.stock) - coffeeQty * 1.5   // sisakan 1,5 porsi dari bahan ini
+await owner.rpc('stock_adjust', { p_ingredient: coffee.id, p_delta: -cut, p_reason: 'ADJUST', p_note: 'db-check' })
+ok((await portionsOf()) <= 1, 'stok bahan turun → sisa porsi ikut turun', `${await portionsOf()}`)
+ok((await err(cashier.rpc('quote_order', { p_store_id: W, p_lines: [line(latte, 2)] })))?.includes('tinggal'), 'pesanan melebihi sisa porsi ditolak')
+await owner.rpc('stock_adjust', { p_ingredient: coffee.id, p_delta: -(coffeeQty * 1.5), p_reason: 'ADJUST', p_note: 'db-check habiskan' })
+ok((await portionsOf()) === 0, 'bahan habis → sisa porsi 0', `${await portionsOf()}`)
+ok((await err(cashier.rpc('quote_order', { p_store_id: W, p_lines: [line(latte)] })))?.includes('tidak tersedia'), 'menu dengan bahan habis tidak bisa dipesan')
+await owner.rpc('stock_adjust', { p_ingredient: coffee.id, p_delta: Number(coffee.stock), p_reason: 'ADJUST', p_note: 'db-check pulihkan' })
+ok((await portionsOf()) === expPortions, 'restock → menu tersedia lagi', `${await portionsOf()}`)
 const vch = (await owner.from('vouchers').select('redeemed_at').eq('store_id', W).eq('code', VC).single()).data
 ok(!!vch.redeemed_at, 'voucher sekali pakai ditandai terpakai')
 const q2 = (await cashier.rpc('quote_order', { p_store_id: W, p_lines: [line(latte)], p_promo_code: VC })).data

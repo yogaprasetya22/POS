@@ -1,4 +1,4 @@
-Selamat datang di WA-Order POS, aplikasi kasir untuk warung kopi, restoran, dan kafe. Satu aplikasi untuk pesanan pelanggan, kasir, dapur, dan laporan.
+Selamat datang di POS, aplikasi kasir untuk warung kopi, restoran, dan kafe. Satu aplikasi untuk pesanan pelanggan, kasir, dapur, dan laporan.
 ---
 Pelanggan memesan sendiri dari meja lewat kode QR. Kasir menerima pembayaran, dapur langsung melihat pesanan, dan pemilik memantau penjualan. Semuanya terhubung dan berjalan waktu nyata.
 ---
@@ -12,7 +12,7 @@ Nomor meja sudah terisi otomatis, jadi pesanan tidak salah meja. Menu tampil len
 ---
 Menu yang kehabisan ditandai dari dapur, sehingga pelanggan tidak memesan sesuatu yang tidak tersedia. Pilihan seperti tingkat gula atau tambahan bisa diatur per menu.
 ---
-Setelah memilih, pelanggan memeriksa keranjang, mengisi nama, lalu menekan kirim. Pesanan masuk ke kasir lewat WhatsApp, lengkap dengan kode antrean.
+Setelah memilih, pelanggan memeriksa keranjang, mengisi nama, lalu menekan Kirim pesanan. Pesanan langsung masuk ke antrean kasir, dan layar menampilkan kode antrean.
 ---
 Harga dihitung oleh sistem, bukan oleh ponsel pelanggan. Jadi total di layar pelanggan, kasir, dan struk selalu sama.
 ---
@@ -96,7 +96,7 @@ Aturan ini dijaga langsung di database, bukan sekadar disembunyikan di layar. Ja
 ---
 Fitur kesembilan: pengaturan toko.
 ---
-Atur profil usaha, nomor WhatsApp kasir, dan link pemesanan untuk pelanggan.
+Atur profil usaha, nomor kontak toko, dan link pemesanan untuk pelanggan.
 ---
 Di tab Pajak dan Poin, atur pajak, biaya layanan, pembulatan, dan aturan poin.
 ---
@@ -114,7 +114,7 @@ Data setiap toko terpisah di tingkat database. Owner satu toko tidak bisa meliha
 ---
 Halaman privasi dan syarat layanan tersedia, dan aplikasi bisa dipasang seperti aplikasi di ponsel atau tablet.
 ---
-Itulah fitur WA-Order POS: pesan lewat QR, kasir, shift, dapur, member, laporan, dan banyak toko, dalam satu aplikasi.
+Itulah fitur POS: pesan lewat QR, kasir, shift, dapur, member, laporan, dan banyak toko, dalam satu aplikasi.
 ---
 Kami jujur soal batasnya. Pembayaran QRIS dan kartu masih dicatat manual oleh kasir, dan transaksi baru tetap membutuhkan internet. Printer thermal sudah disiapkan, tetapi perlu diuji dengan printer toko Anda.
 ---
@@ -134,7 +134,7 @@ Tekan Lihat pesanan untuk memeriksa isi keranjang dan total harga.
 ---
 Isi nama Anda supaya pesanan mudah dipanggil.
 ---
-Terakhir, tekan Kirim ke WhatsApp. Pesanan masuk ke kasir dan Anda mendapat kode antrean.
+Terakhir, tekan Kirim pesanan. Pesanan masuk ke antrean kasir dan layar menampilkan kode antrean Anda.
 ---
 Tunjukkan kode antrean ke kasir, lalu bayar. Setelah dibayar, pesanan langsung disiapkan di dapur. Selamat menikmati.
 ---

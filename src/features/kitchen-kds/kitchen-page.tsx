@@ -12,7 +12,7 @@ import { useAutoPrint } from '@shared/lib/use-auto-print'
 import { Printer } from 'lucide-react'
 import { rpc } from '@shared/lib/api'
 import { timeJakarta } from '@shared/lib/utils'
-import type { Order, OrderStatus } from '@shared/types/contracts'
+import { isSellable, type Order, type OrderStatus } from '@shared/types/contracts'
 
 const ACTIVE: OrderStatus[] = ['IN_KITCHEN', 'READY']
 const STEP = {
@@ -37,7 +37,7 @@ export function KitchenPage() {
   }
 
   const products = catalog?.products ?? []
-  const soldOutCount = products.filter((p) => !p.is_available).length
+  const soldOutCount = products.filter((p) => !isSellable(p)).length
 
   const advance = async (o: Order) => {
     const { error } = await rpc('advance_order', {

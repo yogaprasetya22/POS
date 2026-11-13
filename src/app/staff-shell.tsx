@@ -2,8 +2,7 @@ import { Suspense } from 'react'
 import { I18nBoot } from './i18n-boot'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { PageTransition } from '@shared/components/page-transition'
-import { AdminLayout } from '@shared/components/layout/admin-layout'
-import { OpsLayout } from '@shared/components/layout/ops-layout'
+import { AppLayout } from '@shared/components/layout/app-layout'
 import { CashierSkeleton, KitchenSkeleton, PageSkeleton } from '@shared/components/page-skeleton'
 import { Button } from '@shared/components/ui/button'
 import { StaffContext, useStaffRole, type Staff } from '@shared/lib/auth'
@@ -32,8 +31,8 @@ export function StaffShell() {
   const isCashier = pathname.startsWith('/cashier')
   const isKitchen = pathname.startsWith('/kitchen')
 
-  // kasir & dapur: mode layar penuh; back office & super admin: sidebar berkelompok
-  const Layout = isCashier || isKitchen ? OpsLayout : AdminLayout
+  // satu layout untuk semua: navigasi 4 tombol berlabel (bilah bawah di HP, kolom kiri di layar lebar)
+  const Layout = AppLayout
   const fallbackSkeleton = isCashier ? <CashierSkeleton /> : isKitchen ? <KitchenSkeleton /> : <PageSkeleton />
 
   if (staff.loading) {
@@ -62,13 +61,13 @@ export function StaffShell() {
     if (home && home.path !== pathname) return <Navigate to={home.path} replace />
     return (
       <AuthShell>
-        <h2 className="text-xl font-bold">{staff.role ? 'Akses ditolak' : 'Selamat datang'}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{staff.role ? 'Halaman ini bukan untuk akunmu' : 'Selamat datang'}</h2>
         {staff.role ? (
-          <p className="mt-2 text-sm text-muted-foreground">Role kamu tidak punya akses ke halaman ini.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Minta pemilik toko membuka halaman ini, atau tekan tombol menu di bawah untuk kembali.</p>
         ) : (
           <>
             <p className="mt-2 text-sm text-muted-foreground">
-              Akunmu belum terhubung ke toko. Buat toko sendiri (uji coba gratis 14 hari), atau minta owner menambahkan emailmu di Admin → Tim.
+              Akunmu belum terhubung ke toko. Buat toko sendiri (uji coba gratis 14 hari), atau minta pemilik toko menambahkan emailmu di Lainnya → Karyawan.
             </p>
             <CreateStoreForm />
           </>

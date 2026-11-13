@@ -215,7 +215,7 @@ export function StoreTab({ store, run, fail }: Props) {
             <Row label="Nama usaha" htmlFor="st-name">
               <Input id="st-name" value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={60} className="h-11" />
             </Row>
-            <Row label="WhatsApp kasir" htmlFor="st-wa" hint="Menerima ringkasan pesanan saat pelanggan checkout. Diawali 62, tanpa tanda +.">
+            <Row label="WhatsApp toko" htmlFor="st-wa" hint="Nomor kontak toko. Diawali 62, tanpa tanda +.">
               <div className="relative">
                 <MessageCircle className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <Input id="st-wa" inputMode="numeric" value={form.wa} onChange={(e) => set('wa', digits(e.target.value).slice(0, 15))} placeholder="6281234567890" className="h-11 pl-9 font-mono" />

@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
 import { supabase } from '@shared/lib/supabase'
 import { rupiah, todayJakarta } from '@shared/lib/utils'
-import { OrderSchema, PAYMENT_LABEL, type Order, type Product } from '@shared/types/contracts'
+import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
 import { addDays, clock, compact, dayLabel, fetchReport, type Report } from './report-page'
 
 type Range = '7d' | '30d' | '90d'
@@ -113,20 +113,20 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   const aov = orders ? Math.round(net / orders) : 0
   const prevNet = before?.totals.net ?? 0
   const prevAov = before && before.totals.orders ? Math.round(before.totals.net / before.totals.orders) : 0
-  const soldOut = products.filter((p) => !p.is_available)
+  const soldOut = products.filter((p) => !isSellable(p))
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ikhtisar" description={`${new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ringkasan operasional hari ini.`} />
+      <PageHeader title="Hari Ini" description={`${new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · uang masuk dan hal yang perlu dicek.`} />
 
       {!now || !before ? (
         <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
       ) : (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard index={0} label="Penjualan hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={prevNet} />} title={`${orders} transaksi terbayar`} hint={before ? `Kemarin ${rupiah(prevNet)}` : 'Memuat…'} />
-        <StatCard index={1} label="Rata-rata per transaksi" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Nilai belanja rata-rata" hint={prevAov ? `Kemarin ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
-        <StatCard index={2} label="Menu tersedia" value={`${products.length - soldOut.length}/${products.length}`} title={soldOut.length ? `${soldOut.length} menu habis` : 'Semua menu tersedia'} hint={soldOut.length ? soldOut.slice(0, 2).map((p) => p.name).join(', ') + (soldOut.length > 2 ? '…' : '') : 'Tidak ada yang perlu diaktifkan'} />
-        <StatCard index={3} label="Stok menipis" value={String(low.length)} badge={low.length > 0 ? <Badge variant="outline" className="text-destructive">Perlu belanja</Badge> : undefined} title={low.length ? 'Bahan di bawah batas minimum' : 'Stok aman'} hint={low.length ? low.slice(0, 2).map((i) => i.name).join(', ') + (low.length > 2 ? '…' : '') : 'Semua bahan di atas minimum'} />
+        <StatCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={prevNet} />} title={`dari ${orders} penjualan`} hint={before ? `Kemarin ${rupiah(prevNet)}` : 'Memuat…'} />
+        <StatCard index={1} label="Rata-rata belanja per pembeli" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Rata-rata uang per penjualan" hint={prevAov ? `Kemarin ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
+        <StatCard index={2} label="Menu yang bisa dijual" value={`${products.length - soldOut.length}/${products.length}`} title={soldOut.length ? `${soldOut.length} menu habis` : 'Semua menu tersedia'} hint={soldOut.length ? soldOut.slice(0, 2).map((p) => p.name).join(', ') + (soldOut.length > 2 ? '…' : '') : 'Tidak ada yang perlu dicek'} />
+        <StatCard index={3} label="Bahan hampir habis" value={String(low.length)} badge={low.length > 0 ? <Badge variant="outline" className="text-destructive">Perlu belanja</Badge> : undefined} title={low.length ? 'Segera belanja bahan ini' : 'Bahan masih cukup'} hint={low.length ? low.slice(0, 2).map((i) => i.name).join(', ') + (low.length > 2 ? '…' : '') : 'Tidak ada yang perlu dibeli'} />
       </div>
       )}
 
@@ -151,7 +151,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
           {!chart ? (
             <ChartSkeleton />
           ) : rangeTotal === 0 ? (
-            <EmptyState title="Belum ada penjualan" hint="Grafik muncul setelah ada transaksi terbayar." />
+            <EmptyState title="Belum ada penjualan" hint="Grafik muncul setelah ada penjualan pertama." />
           ) : (
             <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
               <AreaChart data={series}>
@@ -175,11 +175,11 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard title="Transaksi terbaru" hint="8 terakhir yang sudah dibayar" className="xl:col-span-2 [&>div]:p-0">
+        <SectionCard title="Penjualan terakhir" hint="8 penjualan terakhir yang sudah dibayar" className="xl:col-span-2 [&>div]:p-0">
           {!recentLoaded ? (
             <RowsSkeleton rows={5} />
           ) : recent.length === 0 ? (
-            <div className="p-4"><EmptyState title="Belum ada transaksi" hint="Transaksi terbayar muncul di sini." /></div>
+            <div className="p-4"><EmptyState title="Belum ada penjualan" hint="Penjualan yang sudah dibayar muncul di sini. Mulai dari tombol Jualan." /></div>
           ) : (
             <Table>
               <TableHeader>
@@ -211,7 +211,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
             </Table>
           )}
           <div className="border-t px-4 py-3">
-            <Link to="/admin/laporan" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Lihat semua transaksi <ArrowUpRight /></Link>
+            <Link to="/admin/laporan" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Lihat semua penjualan <ArrowUpRight /></Link>
           </div>
         </SectionCard>
 
@@ -219,7 +219,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
           {!lowLoaded ? (
             <RowsSkeleton rows={3} />
           ) : soldOut.length === 0 && low.length === 0 ? (
-            <EmptyState title="Semua aman" hint="Tidak ada menu habis atau stok menipis." />
+            <EmptyState title="Semua aman" hint="Tidak ada menu habis atau bahan yang hampir habis." />
           ) : (
             <ul className="space-y-4">
               {soldOut.length > 0 && (
@@ -237,7 +237,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
               )}
               {low.length > 0 && (
                 <li>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Stok menipis</p>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Bahan hampir habis</p>
                   <ul className="divide-y">
                     {low.map((i) => (
                       <li key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">

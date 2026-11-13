@@ -7,10 +7,13 @@ test-results
 playwright-report
 .playwright-mcp
 gdrive_oauth.json
-docs.vitest
+.vitest
 scripts/tutorial/.tts
+scripts/tutorial/.fish-profile
+docs/.fish-profile
 docs/videos
 docs/screenshots
-docs/stitch-redesign-packdocs/.fish-profile
+docs/stitch-redesign-pack
+docs/stitch
 docs/audio
 docs/error-*.png

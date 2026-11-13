@@ -16,7 +16,18 @@ import { ROLES } from './roles.mjs'
 import { VIDEOS } from './fitur.mjs'
 
 try { process.loadEnvFile('.env') } catch { /* env dari shell */ }
-const BASE = process.env.BASE_URL || 'http://localhost:5199'
+async function resolveBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL
+  for (const port of [5173, 5199, 3000]) {
+    try {
+      const res = await fetch(`http://localhost:${port}/`)
+      if (res.ok) return `http://localhost:${port}`
+    } catch {}
+  }
+  return 'http://localhost:5173'
+}
+const BASE = await resolveBaseUrl()
+console.log(`[tutorial] Base URL: ${BASE}`)
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const TTS_PY = process.env.TTS_PYTHON || path.join(ROOT, 'scripts/tutorial/.tts/venv/bin/python')
 const TTS_MODEL = process.env.TTS_MODEL || path.join(ROOT, 'scripts/tutorial/.tts/id.onnx')
@@ -26,7 +37,7 @@ const SET = opt('set') || 'peran'
 const SETS = { peran: ROLES, fitur: VIDEOS }
 if (!SETS[SET]) throw new Error(`--set harus salah satu: ${Object.keys(SETS).join(', ')}`)
 const AUDIO = opt('audio') ? path.resolve(opt('audio')) : null
-const OUT = path.join(ROOT, 'docs/videos', SET === 'fitur' ? 'fitur' : '')
+const OUT = path.join(ROOT, 'docs/videos', SET === 'fitur' ? 'fitur' : 'peran')
 const TMP = fs.mkdtempSync(path.join(process.env.TUTORIAL_TMP || os.tmpdir(), 'tutorial-'))
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 /** Batas waktu keras: langkah yang menggantung tidak boleh memanjangkan video. */
@@ -56,8 +67,10 @@ const CURSOR = () => {
   document.readyState === 'loading' ? addEventListener('DOMContentLoaded', mk) : mk()
 }
 
-const caption = (page, text) =>
-  page.evaluate((t) => {
+const WITH_CAPTION = argv.includes('--caption')
+const caption = async (page, text) => {
+  if (!WITH_CAPTION) return
+  return page.evaluate((t) => {
     let el = document.getElementById('__cap')
     if (!el) {
       el = document.createElement('div')
@@ -67,6 +80,7 @@ const caption = (page, text) =>
     }
     el.textContent = t
   }, text).catch(() => {})
+}
 
 /** Nomor slide pertama video ini: urutan global adegan = docs/narasi.txt (seri fitur dulu, lalu seri peran). */
 function slideBase(name) {
@@ -83,7 +97,7 @@ function loadAudio(name, count) {
   const base = slideBase(name)
   return Array.from({ length: count }, (_, i) => {
     const file = path.join(AUDIO, `slide-${String(base + i + 1).padStart(2, '0')}.mp3`)
-    if (!fs.existsSync(file)) throw new Error(`file suara tidak ada: ${file} (jalankan docs/fish_ai.py dulu)`)
+    if (!fs.existsSync(file)) throw new Error(`file suara tidak ada: ${file} (jalankan scripts/tutorial/gen-edge.py dulu)`)
     return { file, ms: duration(file) }
   })
 }

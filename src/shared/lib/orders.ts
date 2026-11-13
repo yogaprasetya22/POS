@@ -3,7 +3,29 @@ import { z } from 'zod'
 import { OrderSchema, type Order, type OrderStatus } from '@shared/types/contracts'
 import { supabase } from './supabase'
 
-/** Daftar order live untuk status tertentu (Kasir & KDS). */
+type Change = { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: unknown; old: { id?: string } }
+
+/**
+ * Terapkan satu perubahan realtime ke daftar: tambah/ganti pesanan yang berubah, buang yang statusnya
+ * keluar dari `statuses` atau dihapus. Mengembalikan null bila baris tidak bisa dibaca (pemanggil memuat ulang penuh).
+ */
+export function applyOrderChange(list: Order[], change: Change, statuses: string[]): Order[] | null {
+  if (change.eventType === 'DELETE') return change.old.id ? list.filter((o) => o.id !== change.old.id) : null
+  const parsed = OrderSchema.safeParse(change.new)
+  if (!parsed.success) return null
+  const row = parsed.data
+  const rest = list.filter((o) => o.id !== row.id)
+  if (!statuses.includes(row.status)) return rest
+  const next = [...rest, row]
+  next.sort((a, b) => a.created_at.localeCompare(b.created_at))
+  return next
+}
+
+/**
+ * Daftar order live untuk status tertentu (Kasir & KDS).
+ * Dimuat penuh sekali, lalu tiap perubahan hanya memperbarui satu pesanan, jadi tetap ringan saat ramai.
+ * Muat ulang penuh hanya setelah koneksi realtime sempat putus, supaya perubahan yang terlewat selama putus tetap masuk.
+ */
 export function useLiveOrders(statuses: OrderStatus[]) {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -11,24 +33,36 @@ export function useLiveOrders(statuses: OrderStatus[]) {
 
   useEffect(() => {
     let alive = true
+    const wanted = key.split(',')
     const load = async () => {
-      const { data, error } = await supabase.from('orders').select('*').in('status', key.split(',')).order('created_at')
+      const { data, error } = await supabase.from('orders').select('*').in('status', wanted).order('created_at')
+      if (!alive) return
       if (error) {
         console.error(error)
-        if (alive) setLoading(false)
+        setLoading(false)
         return
       }
-      if (alive) {
-        setOrders(z.array(OrderSchema).parse(data))
-        setLoading(false)
-      }
+      setOrders(z.array(OrderSchema).parse(data))
+      setLoading(false)
     }
-    load()
-    // shortcut: refetch penuh tiap perubahan, cukup untuk 1 outlet; ganti ke patch payload jika order/hari ribuan
+
+    void load()
+    let dropped = false
     const channel = supabase
       .channel(`orders:${key}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, load)
-      .subscribe()
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        const change = payload as unknown as Change
+        // Baris yang tidak bisa dibaca: muat ulang penuh daripada menampilkan data setengah.
+        if (change.eventType !== 'DELETE' && !OrderSchema.safeParse(change.new).success) return void load()
+        setOrders((list) => applyOrderChange(list, change, wanted) ?? list)
+      })
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') dropped = true
+        else if (status === 'SUBSCRIBED' && dropped) {
+          dropped = false
+          void load()
+        }
+      })
     return () => {
       alive = false
       supabase.removeChannel(channel)
@@ -37,4 +71,3 @@ export function useLiveOrders(statuses: OrderStatus[]) {
 
   return { orders, loading }
 }
-

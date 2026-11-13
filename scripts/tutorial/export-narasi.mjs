@@ -1,5 +1,5 @@
 /**
- * Tulis docs/narasi.txt (untuk docs/fish_ai.py: blok dipisah baris '---') dan docs/narasi-peta.md.
+ * Tulis docs/narasi.txt (untuk gen-edge.py / gen-fish.py: blok dipisah baris '---') dan docs/narasi-peta.md.
  * Urutan slide global: seri fitur (12 video) lalu seri peran (7 video); record.mjs memakai urutan yang sama.
  *   node scripts/tutorial/export-narasi.mjs
  */
