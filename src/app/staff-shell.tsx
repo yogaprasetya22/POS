@@ -16,6 +16,7 @@ type Access = StaffRole | 'super'
 // Urutan = prioritas halaman awal tiap role (route pertama yang diizinkan). Database tetap penentu akhir lewat RLS.
 const STAFF_ROUTES: { path: string; title: string; allow: Access[] }[] = [
   { path: '/cashier', title: 'Kasir', allow: ['owner', 'manager', 'cashier', 'waiter'] },
+  { path: '/antrean', title: 'Antrean', allow: ['owner', 'manager', 'cashier', 'waiter'] },
   { path: '/kitchen', title: 'Dapur', allow: ['owner', 'manager', 'cashier', 'kitchen'] },
   { path: '/admin', title: 'Admin', allow: ['owner', 'manager'] },
   { path: '/super', title: 'Kelola Toko', allow: ['super'] },

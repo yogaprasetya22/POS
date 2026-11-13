@@ -7,6 +7,7 @@ import { AnimatedRupiah } from '@shared/components/animated-rupiah'
 import { ChevronDown, History, ListOrdered, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { addItem, cartTotal, itemKey, setItemQty, toLines, type CartItem } from '@features/cart-checkout'
 import { ProductPicker, categoryIcon, useCatalog } from '@features/menu-catalog'
 import { ConfirmButton } from '@shared/components/confirm-button'
@@ -15,8 +16,7 @@ import { Stepper } from '@shared/components/stepper'
 import { StockDialog } from '@shared/components/stock-dialog'
 import { CashierSkeleton } from '@shared/components/page-skeleton'
 import { MenuImage } from '@shared/components/menu-image'
-import { Badge } from '@shared/components/ui/badge'
-import { Button } from '@shared/components/ui/button'
+import { Button, buttonVariants } from '@shared/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
 import { Input } from '@shared/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
@@ -50,7 +50,7 @@ import { ExtrasBox } from './components/extras-box'
 import { HistoryDrawer } from './components/history-drawer'
 import { Receipt } from './components/receipt'
 import { OpenShiftCard, ShiftBar } from './components/shift'
-import { AllOrdersDrawer, QueueSection, fromCustomer, matches, sortQueue } from './components/order-queue'
+import { STATUS, matches, sortQueue } from './components/order-queue'
 
 const ACTIVE: OrderStatus[] = ['UNPAID', 'IN_KITCHEN', 'READY']
 
@@ -69,7 +69,12 @@ export function CashierPage() {
   const { data: catalog, error: catalogError, reload } = useCatalog('id', storeId)
 
   // Panel kanan: pesanan WA yang dipilih (UNPAID) atau pesanan baru walk-in.
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+  // Dari halaman Antrean: "Terima bayar" membuka Jualan dengan pesanan itu terpilih
+  const [selectedId, setSelectedId] = useState<string | null>(() => params.get('pesanan'))
+  useEffect(() => {
+    if (params.has('pesanan')) setParams({}, { replace: true })
+  }, [params, setParams])
   const [items, setItems] = useState<CartItem[]>([])
   const [dirty, setDirty] = useState(false)
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
@@ -91,8 +96,6 @@ export function CashierPage() {
   const [splitOpen, setSplitOpen] = useState(false)
   const [mergeOpen, setMergeOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [allOpen, setAllOpen] = useState(false)
-  const [allSource, setAllSource] = useState<'all' | 'customer' | 'cashier'>('all')
   const [notice, setNotice] = useState('')
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
@@ -277,6 +280,7 @@ export function CashierPage() {
 
   const oq = orderQuery.trim().toLowerCase()
   const queue = sortQueue(orders).filter((o) => matches(o, oq))
+  const unpaidCount = orders.filter((o) => o.status === 'UNPAID').length
   const mq = menuQuery.trim().toLowerCase()
   const products = (catalog?.products ?? []).filter((p) => (!category || p.category_id === category) && p.name.toLowerCase().includes(mq))
   const imageOf = (productId: string) => catalog?.products.find((p) => p.id === productId)?.image_url
@@ -288,38 +292,48 @@ export function CashierPage() {
         {payer && !shiftLoading && (shift ? <ShiftBar shift={shift} onChange={reloadShift} /> : <OpenShiftCard status={shiftStatus} role={role} onOpened={reloadShift} />)}
         {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">{notice}</p>}
 
-        {/* Antrean pesanan: dipisah pelanggan (QR) & kasir, masing-masing maksimal 10; sisanya di "Semua pesanan" */}
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              Antrean Pesanan
-              <Badge className="size-6 rounded-full p-0">{orders.length}</Badge>
-            </h2>
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <Button className="h-10 shrink-0" onClick={() => { setAllSource('all'); setAllOpen(true) }}>
-                <ListOrdered /> <span>Semua pesanan</span>
-              </Button>
-              <Button variant="outline" className="h-10 shrink-0" onClick={() => setHistoryOpen(true)}>
-                <History /> <span>Riwayat</span>
-              </Button>
-              <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
-                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <Input
-                  value={orderQuery}
-                  onChange={(e) => setOrderQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    const first = queue.find((o) => o.status === 'UNPAID')
-                    if (e.key === 'Enter' && first) setSelectedId(first.id)
-                  }}
-                  placeholder="Cari kode (042) / nama…"
-                  aria-label="Cari pesanan"
-                  className="pl-10"
-                />
-              </div>
-            </div>
+        {/* Antrean lengkap ada di halaman Antrean; di sini cukup cari cepat (ketik kode lalu Enter) + jumlah yang menunggu bayar */}
+        <section className="flex flex-wrap items-center gap-3 rounded-2xl border-2 bg-card p-3">
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={orderQuery}
+              onChange={(e) => setOrderQuery(e.target.value)}
+              onKeyDown={(e) => {
+                const first = queue.find((o) => o.status === 'UNPAID')
+                if (e.key === 'Enter' && first) {
+                  setSelectedId(first.id)
+                  setOrderQuery('')
+                }
+              }}
+              placeholder="Ketik kode pesanan (042) lalu Enter…"
+              aria-label="Cari pesanan"
+              className="h-12 pl-11 text-base"
+            />
           </div>
-          <QueueSection source="customer" orders={queue.filter(fromCustomer)} selectedId={selectedId} onPick={setSelectedId} onShowAll={() => { setAllSource('customer'); setAllOpen(true) }} />
-          <QueueSection source="cashier" orders={queue.filter((o) => !fromCustomer(o))} selectedId={selectedId} onPick={setSelectedId} onShowAll={() => { setAllSource('cashier'); setAllOpen(true) }} />
+          <Link to="/antrean" className={buttonVariants({ variant: unpaidCount ? 'default' : 'outline', className: 'h-12 shrink-0 px-4 text-base font-bold' })}>
+            <ListOrdered /> {unpaidCount ? `${unpaidCount} menunggu bayar` : 'Antrean'}
+          </Link>
+          <Button variant="outline" className="h-12 shrink-0 px-4 text-base" onClick={() => setHistoryOpen(true)}>
+            <History /> Riwayat
+          </Button>
+          {oq && (
+            <div className="flex w-full flex-wrap gap-2" aria-label="Hasil pencarian pesanan">
+              {queue.slice(0, 6).map((o) => (
+                <Button
+                  key={o.id}
+                  variant="outline"
+                  disabled={o.status !== 'UNPAID'}
+                  onClick={() => { setSelectedId(o.id); setOrderQuery('') }}
+                  className="h-11 gap-2 text-base"
+                >
+                  <span className="font-mono font-bold">{o.queue_code}</span> {o.customer_name}
+                  <span className="text-sm text-muted-foreground">· {STATUS[o.status as keyof typeof STATUS]?.label}</span>
+                </Button>
+              ))}
+              {queue.length === 0 && <p className="text-base text-muted-foreground">Tidak ada pesanan dengan kode atau nama itu.</p>}
+            </div>
+          )}
         </section>
 
         {/* Menu */}
@@ -680,7 +694,6 @@ export function CashierPage() {
       {receipt && catalog && (
         <Receipt order={receipt} store={{ name: catalog.store.name, address: config?.address, footer: config?.receipt_footer }} onClose={() => setReceipt(null)} />
       )}
-      <AllOrdersDrawer open={allOpen} onOpenChange={setAllOpen} orders={orders} initialSource={allSource} onPick={setSelectedId} />
       <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} role={role} onReprint={(o) => { setHistoryOpen(false); setReceipt(o) }} />
       {splitOpen && selected && (
         <SplitPanel order={selected} onClose={() => setSplitOpen(false)} onDone={() => { setSplitOpen(false); setNotice('Bill dipisah. Pesanan baru ada di antrean.'); setTimeout(() => setNotice(''), 4000) }} />

@@ -7,6 +7,7 @@ import {
   Ellipsis,
   Gift,
   Languages,
+  ListOrdered,
   QrCode,
   ShoppingBag,
   Store,
@@ -24,11 +25,12 @@ const manage = (s: Staff) => can.manage(s.role)
 const owner = (s: Staff) => can.ownerOnly(s.role)
 
 /**
- * Navigasi utama: paling banyak 4 tombol berlabel, sama di semua layar staf.
- * Owner/manager: Jualan · Hari Ini · Menu · Lainnya. Kasir: Jualan · Dapur. Dapur: tanpa navigasi (satu layar saja).
+ * Navigasi utama: paling banyak 5 tombol berlabel, sama di semua layar staf.
+ * Owner/manager: Jualan · Antrean · Hari Ini · Menu · Lainnya. Kasir: Jualan · Antrean · Dapur. Dapur: tanpa navigasi (satu layar saja).
  */
 export const MAIN_NAV: NavItem[] = [
   { to: '/cashier', label: 'Jualan', icon: ShoppingBag, show: (s) => can.floor(s.role) },
+  { to: '/antrean', label: 'Antrean', icon: ListOrdered, show: (s) => can.floor(s.role) },
   { to: '/kitchen', label: 'Dapur', icon: ChefHat, show: (s) => can.kitchen(s.role) && !can.manage(s.role) },
   { to: '/admin', label: 'Hari Ini', icon: BarChart3, show: manage, end: true },
   { to: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, show: manage },

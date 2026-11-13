@@ -10,6 +10,7 @@ import './index.css'
 // Setiap halaman jadi file JS sendiri: HP pelanggan tidak mengunduh kode kasir/admin.
 const MenuPage = lazy(() => import('@features/menu-catalog').then((m) => ({ default: m.MenuPage })))
 const CashierPage = lazy(() => import('@features/cashier-pos').then((m) => ({ default: m.CashierPage })))
+const QueuePage = lazy(() => import('@features/cashier-pos').then((m) => ({ default: m.QueuePage })))
 const KitchenPage = lazy(() => import('@features/kitchen-kds').then((m) => ({ default: m.KitchenPage })))
 // Satu bundel backoffice, satu route per halaman
 const bo = <K extends string>(name: K) => lazy(() => import('@features/backoffice').then((m) => ({ default: (m as unknown as Record<K, React.ComponentType>)[name] })))
@@ -57,6 +58,7 @@ const router = createBrowserRouter([
     element: page(<StaffShell />),
     children: [
       { path: '/cashier', element: <CashierPage /> },
+      { path: '/antrean', element: <QueuePage /> },
       { path: '/kitchen', element: <KitchenPage /> },
       {
         path: '/admin',
