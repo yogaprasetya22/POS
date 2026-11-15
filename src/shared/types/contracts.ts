@@ -45,6 +45,9 @@ export const StoreSchema = z.object({
   name: z.string().trim().min(1, 'Nama toko wajib diisi'),
   wa_number: WaNumberSchema,
   is_active: z.boolean(),
+  // tampilan halaman pembeli; default dipakai bila kolomnya belum ada
+  theme: z.string().default('biru'),
+  buyer_template: z.string().default('klasik'),
 })
 
 /** Pengaturan uang & struk toko (basis poin: 1100 = 11%). Dibaca staf; diubah owner lewat save_store_settings. */
@@ -63,6 +66,7 @@ export const StoreConfigSchema = z.object({
   // Default dipakai bila migrasi 20261016000018 belum dijalankan
   logo: z.string().default(''),
   theme: z.string().default('biru'),
+  buyer_template: z.string().default('klasik'),
   plan_expires_at: z.string().nullable(),
   // Default dipakai bila migrasi 20261016000014 belum dijalankan
   use_kitchen_screen: z.boolean().default(true),

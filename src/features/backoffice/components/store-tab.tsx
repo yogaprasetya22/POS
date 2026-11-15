@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/
 import { rpc } from '@shared/lib/api'
 import { useStaff } from '@shared/lib/auth'
 import { PermissionSettings, ShiftNamesSettings } from './access-settings'
-import { LogoPicker, ThemePicker } from './branding'
+import { BuyerTemplatePicker, LogoPicker, ThemePicker } from './branding'
 import { KitchenSettings } from './kitchen-settings'
 import { PrinterCalibration } from './printer-calibration'
 import { getPaperChars, previewReceipt, setPaperChars } from '@shared/lib/print'
@@ -213,7 +213,7 @@ export function StoreTab({ store, run, fail }: Props) {
             ['profil', 'Profil'],
             ['pajak', 'Pajak & poin'],
             ['struk', 'Struk'],
-            ['tampilan', 'Warna'],
+            ['tampilan', 'Tampilan'],
             ['dapur', 'Dapur'],
             ['shift', 'Shift'],
             ['akses', 'Hak akses'],
@@ -337,6 +337,9 @@ export function StoreTab({ store, run, fail }: Props) {
         <TabsContent value="tampilan" className="max-w-3xl space-y-5">
           <SectionCard title="Warna aplikasi" hint="Warna tombol dan menu untuk semua perangkat toko. Langsung tersimpan.">
             <ThemePicker config={config} onSaved={reload} />
+          </SectionCard>
+          <SectionCard title="Halaman pembeli" hint="Tampilan menu yang dilihat pembeli dari QR. Warnanya mengikuti warna aplikasi.">
+            <BuyerTemplatePicker config={config} onSaved={reload} />
           </SectionCard>
         </TabsContent>
 

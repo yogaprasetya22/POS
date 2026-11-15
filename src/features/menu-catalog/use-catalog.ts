@@ -71,7 +71,7 @@ export function useCatalog(by: 'slug' | 'id', value: string | null) {
         // Optimasi Ponytail: Jika by === 'id', storeId sudah diketahui!
         // Jalankan seluruh 4 query sekaligus secara PARALEL tanpa menunggu query store selesai lebih dulu.
         const [s, c, p, pr] = await Promise.all([
-          supabase.from('stores').select('id, slug, name, wa_number, is_active').eq('id', value).maybeSingle(),
+          supabase.from('stores').select('id, slug, name, wa_number, is_active, theme, buyer_template').eq('id', value).maybeSingle(),
           supabase.from('categories').select('*').eq('store_id', value).order('sort'),
           fetchAll((a, b) => supabase.from('products').select('*').eq('store_id', value).order('sort').order('id').range(a, b)),
           supabase.from('promotions').select('*').eq('store_id', value).eq('is_active', true),

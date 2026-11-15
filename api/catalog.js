@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (!slug) return res.status(400).json({ success: false, error: 'slug wajib diisi' })
 
   const db = supabaseFor(req)
-  const s = await db.from('stores').select('id, slug, name, wa_number, is_active').eq('slug', slug).maybeSingle()
+  const s = await db.from('stores').select('id, slug, name, wa_number, is_active, theme, buyer_template').eq('slug', slug).maybeSingle()
   if (s.error) return res.status(500).json({ success: false, error: s.error.message })
   if (!s.data) return res.status(404).json({ success: false, error: 'Toko tidak ditemukan' })
 

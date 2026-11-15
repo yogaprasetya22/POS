@@ -1,4 +1,5 @@
 import { liquid } from '@shared/lib/motion'
+import { LAYOUT, applyBuyerLook, asTemplate } from '@shared/lib/buyer-look'
 import { rememberMenu } from '@shared/lib/last-menu'
 import { Progressive } from '@shared/components/progressive'
 import { LiquidPill } from '@shared/components/liquid-pill'
@@ -43,6 +44,14 @@ export function MenuPage() {
   useEffect(() => {
     if (data) rememberMenu(`/s/${slug}${query ? `?${query}` : ''}`, new URLSearchParams(query).get('meja'))
   }, [data, slug, query])
+
+  // Warna toko + template pilihan pemilik; ?template=... untuk pratinjau dari Pengaturan toko
+  const template = asTemplate(params.get('template') ?? data?.store.buyer_template)
+  const storeTheme = data?.store.theme
+  useEffect(() => {
+    if (storeTheme) return applyBuyerLook(storeTheme, template)
+  }, [storeTheme, template])
+  const L = LAYOUT[template]
 
   if (error)
     return (
@@ -135,7 +144,7 @@ export function MenuPage() {
         {shown.length === 0 ? (
           <p className="rounded-lg border border-dashed py-14 text-center text-muted-foreground">Menu tidak ditemukan.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
+          <div className={L.grid}>
             <Progressive items={shown} resetKey={`${category}|${q}`}>
             {(rows) => (
             <AnimatePresence mode="popLayout" initial={false}>
@@ -163,18 +172,20 @@ export function MenuPage() {
                   whileTap={{ scale: 0.97 }}
                   disabled={!isSellable(p)}
                   onClick={() => setPicking(p)}
-                  className={`relative flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors disabled:opacity-60 ${qty ? 'border-primary ring-1 ring-primary' : ''}`}
+                  className={`relative flex overflow-hidden text-left transition-colors disabled:opacity-60 ${L.card} ${qty ? 'border-primary ring-2 ring-primary' : ''}`}
                 >
-                  <MenuImage src={p.image_url} alt="" />
-                  {!isSellable(p) && <span className="absolute inset-x-0 top-0 grid aspect-4/3 place-items-center bg-black/50 font-semibold text-white">Habis</span>}
+                  <div className={`relative ${L.image}`}>
+                    <MenuImage src={p.image_url} alt="" aspectRatio={L.aspect} />
+                    {!isSellable(p) && <span className="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold text-white">Habis</span>}
+                  </div>
                   {qty > 0 && (
                     <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-8 place-items-center rounded-full bg-primary px-2 py-1 text-sm font-bold text-primary-foreground tabular-nums">{qty}</m.span>
                   )}
-                  <div className="w-full space-y-1 p-3">
-                    <p className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{p.name}</p>
-                    <p className="font-semibold tabular-nums">{rupiah(p.price)}</p>
+                  <div className={L.body}>
+                    <p className={L.name}>{p.name}</p>
+                    <p className={`tabular-nums ${L.price}`}>{rupiah(p.price)}</p>
                     {(promoLabel || p.modifiers.length > 0 || p.video_url || p.images.length > 1) && (
-                      <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+                      <p className="flex w-full flex-wrap gap-x-2 text-sm text-muted-foreground">
                         {promoLabel && <span className="font-medium text-primary">{promoLabel}</span>}
                         {p.modifiers.length > 0 && <span>Bisa pilih varian</span>}
                         {p.video_url ? <span>Ada video</span> : p.images.length > 1 && <span>{p.images.length} foto</span>}

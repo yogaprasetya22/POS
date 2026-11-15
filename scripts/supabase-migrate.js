@@ -185,6 +185,12 @@ async function seedInventory() {
   console.log('✅ Data demo Inventory Stock berhasil dimasukkan!');
 }
 
+// Data contoh Pembelian: pemasok + pembelian di setiap keadaan (aman diulang; stok tidak diubah).
+async function seedPurchasing() {
+  await runSeedFile('seed_purchasing.sql');
+  console.log('✅ Data contoh Pembelian berhasil dimasukkan!');
+}
+
 // Untuk database yang sudah pernah di-seed: hanya data fitur POS inti (aman diulang).
 async function seedPos() {
   await runSeedFile('seed_pos.sql');
@@ -202,6 +208,7 @@ async function main() {
     case 'seed': return seed();
     case 'seed-pos': return seedPos();
     case 'seed-inventory': return seedInventory();
+    case 'seed-purchasing': return seedPurchasing();
     default:
       console.log(`
 Penggunaan:
@@ -214,6 +221,7 @@ Penggunaan:
   bun scripts/supabase-migrate.js seed            - Isi data dummy dari supabase/seed.sql + seed_pos.sql
   bun scripts/supabase-migrate.js seed-pos        - Hanya data demo fitur POS inti (supabase/seed_pos.sql)
   bun scripts/supabase-migrate.js seed-inventory  - Data demo Inventory Stock (supabase/seed_inventory.sql)
+  bun scripts/supabase-migrate.js seed-purchasing - Data contoh Pembelian (supabase/seed_purchasing.sql)
       `);
   }
 }

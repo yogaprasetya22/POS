@@ -70,6 +70,9 @@ seed-pos:
 seed-inventory: ## Data demo Inventory Stock (bahan, resep, barcode)
 	bun scripts/supabase-migrate.js seed-inventory
 
+seed-purchasing: ## Data contoh Pembelian (pemasok, daftar belanja, utang)
+	bun scripts/supabase-migrate.js seed-purchasing
+
 db-check:
 	bun scripts/db-check.mjs
 
