@@ -10,6 +10,7 @@ import {
   ListOrdered,
   QrCode,
   ShoppingBag,
+  ShoppingCart,
   Store,
   Tag,
   Users,
@@ -42,7 +43,8 @@ export const MAIN_NAV: NavItem[] = [
 export const MORE_NAV: NavItem[] = [
   { to: '/admin/promo', label: 'Potongan harga', hint: 'Diskon, beli 2 gratis 1, kode kupon', icon: Tag, show: manage },
   { to: '/admin/member', label: 'Pelanggan tetap', hint: 'Kumpulkan poin untuk pembeli langganan', icon: Gift, show: manage },
-  { to: '/admin/stok', label: 'Stok bahan', hint: 'Cek bahan yang hampir habis', icon: Boxes, show: manage },
+  { to: '/admin/stok', label: 'Inventory Stock', hint: 'Stok bahan, resep, stock opname', icon: Boxes, show: manage },
+  { to: '/admin/pembelian', label: 'Pembelian', hint: 'Daftar belanja, terima barang, utang pemasok', icon: ShoppingCart, show: manage },
   { to: '/admin/tim', label: 'Karyawan', hint: 'Tambah kasir atau tukang masak', icon: Users, show: owner },
   { to: '/admin/toko', label: 'Pengaturan toko', hint: 'Nama, alamat, jam buka, struk', icon: Store, show: owner },
 ]

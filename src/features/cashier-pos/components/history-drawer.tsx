@@ -13,7 +13,7 @@ import { OrderSchema, PAYMENT_LABEL, can, type Order, type StaffRole } from '@sh
 import { ReversePanel } from './bill-tools'
 
 const LABEL: Record<string, { tone: 'green' | 'blue' | 'amber' | 'red'; text: string }> = {
-  IN_KITCHEN: { tone: 'blue', text: 'Dimasak' },
+  IN_KITCHEN: { tone: 'blue', text: 'Sudah dibayar' },
   READY: { tone: 'green', text: 'Siap' },
   COMPLETED: { tone: 'green', text: 'Selesai' },
   VOID: { tone: 'red', text: 'Void' },

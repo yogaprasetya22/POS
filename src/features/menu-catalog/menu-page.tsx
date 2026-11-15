@@ -1,4 +1,5 @@
 import { liquid } from '@shared/lib/motion'
+import { rememberMenu } from '@shared/lib/last-menu'
 import { Progressive } from '@shared/components/progressive'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
@@ -6,7 +7,7 @@ import { ArrowRight, Search, X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
-import { CheckoutPanel, cartTotal, useCartStore } from '@features/cart-checkout'
+import { CheckoutPanel, MyOrders, cartTotal, useCartStore } from '@features/cart-checkout'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
@@ -36,6 +37,12 @@ export function MenuPage() {
   useEffect(() => {
     if (data) bind(data.store.id)
   }, [data, bind])
+
+  // Ingat menu + meja ini supaya tombol "kembali" di halaman lain mengarah ke sini, bukan ke landing page
+  const query = params.toString()
+  useEffect(() => {
+    if (data) rememberMenu(`/s/${slug}${query ? `?${query}` : ''}`, new URLSearchParams(query).get('meja'))
+  }, [data, slug, query])
 
   if (error)
     return (
@@ -124,6 +131,7 @@ export function MenuPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pt-4">
+        <MyOrders storeId={data.store.id} />
         {shown.length === 0 ? (
           <p className="rounded-lg border border-dashed py-14 text-center text-muted-foreground">Menu tidak ditemukan.</p>
         ) : (

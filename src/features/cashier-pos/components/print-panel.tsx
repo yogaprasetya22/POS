@@ -48,7 +48,7 @@ export function PrintPanel({ order, store, onClose }: { order: Order; store: Rec
           </Button>
         ))}
       </div>
-      <ThermalPaper lines={lines} chars={chars} />
+      <ThermalPaper lines={lines} chars={chars} logo={kind === 'receipt' ? store.logo : undefined} />
       <ErrorAlert message={error} />
       <p className="text-center text-xs text-muted-foreground">Pratinjau dibaca dari perintah yang sama persis dengan yang dikirim ke printer.</p>
     </Panel>

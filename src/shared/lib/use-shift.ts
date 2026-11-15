@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { rpc } from '@shared/lib/api'
+import { useStaff } from '@shared/lib/auth'
+import { useBroadcast } from '@shared/lib/live'
 import { ShiftStatusSchema, ShiftSummarySchema, type ShiftStatus, type ShiftSummary } from '@shared/types/contracts'
 
 /**
@@ -24,6 +26,10 @@ export function useShift(enabled = true) {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  // laci dibuka/ditutup dari perangkat lain: status ikut berubah tanpa refresh
+  const { storeId } = useStaff()
+  useBroadcast(enabled && storeId ? `store:${storeId}` : null, 'shift', () => void reload())
 
   return { shift, status, loading, reload }
 }

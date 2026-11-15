@@ -10,6 +10,7 @@ export {
   ShiftPage,
   StaffPage,
   StockPage,
+  PurchasePage,
   StorePage,
   TablesPage,
 } from './pages'

@@ -1,4 +1,5 @@
 import { LiquidPill } from '@shared/components/liquid-pill'
+import { saveMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
 import { CheckCircle2, Send, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
@@ -103,6 +104,7 @@ export function CheckoutPanel({
     if (rpcError) return setError(`Pesanan gagal: ${rpcError.message}`)
 
     const created = CreatedOrderSchema.parse(data)
+    saveMyOrder(storeId, { id: created.id, queue_code: created.queue_code, total: created.total })
     clear()
     setDone({ queue_code: created.queue_code, total: created.total })
   }
@@ -116,7 +118,7 @@ export function CheckoutPanel({
           <p className="mt-1 font-mono text-5xl font-bold tracking-tight" data-testid="queue-code">{done.queue_code}</p>
           <p className="mt-4 text-lg font-semibold tabular-nums">Total {rupiah(done.total)}</p>
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            Tunjukkan kode ini ke kasir lalu bayar. Setelah dibayar, pesananmu langsung disiapkan di dapur.
+            Tunjukkan kode ini ke kasir lalu bayar. Status pesananmu bisa dilihat di bagian atas halaman menu, jadi tidak perlu bertanya ke kasir.
           </p>
           <Button size="lg" className="mt-8 w-full max-w-xs" onClick={onClose}>Selesai</Button>
         </div>

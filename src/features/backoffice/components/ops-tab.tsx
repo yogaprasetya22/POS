@@ -30,6 +30,7 @@ const ShiftRowSchema = z.object({
   note: z.string(),
   forced: z.boolean(),
   reviewed_at: z.string().nullable(),
+  shift_name: z.string().default(''),
 })
 type ShiftRow = z.infer<typeof ShiftRowSchema>
 const AuditSchema = z.object({ id: z.number(), user_id: z.string().nullable(), action: z.string(), detail: z.record(z.string(), z.unknown()), created_at: z.string() })
@@ -269,6 +270,7 @@ export function OpsTab() {
                     <TableCell>
                       <Person email={name(s.opened_by)} />
                       <p className="mt-0.5 flex flex-wrap gap-x-2 pl-[2.625rem] text-xs text-muted-foreground">
+                        {s.shift_name && <span className="font-bold text-foreground">Shift {s.shift_name}</span>}
                         {s.forced && <span className="text-amber-700 dark:text-amber-400">ditutup paksa</span>}
                         {s.opening_expected != null && s.opening_cash !== s.opening_expected && <span className="text-destructive">modal awal beda {signed(s.opening_cash - s.opening_expected)}</span>}
                         {s.note && <span className="max-w-56 truncate" title={s.note}>“{s.note}”</span>}
@@ -300,6 +302,7 @@ export function OpsTab() {
                   <button type="button" onClick={() => setDetailId(s.id)} className="w-full space-y-2 p-4 text-left">
                     <div className="flex items-center justify-between gap-3">
                       <Person email={name(s.opened_by)} />
+                      {s.shift_name && <span className="rounded-full bg-muted px-2.5 py-0.5 text-sm font-bold">Shift {s.shift_name}</span>}
                       <Diff s={s} />
                     </div>
                     <p className="text-sm text-muted-foreground tabular-nums">

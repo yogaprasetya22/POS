@@ -1,4 +1,5 @@
 import { Banknote, Lock, TriangleAlert } from 'lucide-react'
+import { useShiftNames } from '@shared/lib/shift-names'
 import { useI18n } from '@shared/i18n'
 import { useEffect, useState } from 'react'
 import { CurrencyInput } from '@shared/components/currency-input'
@@ -36,6 +37,8 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [force, setForce] = useState(false)
+  const shiftNames = useShiftNames().active
+  const [shiftName, setShiftName] = useState('')
 
   useEffect(() => {
     if (!touched && handover != null) setCash(String(handover))
@@ -66,7 +69,7 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
 
   const open = async () => {
     setBusy(true)
-    const { error: err } = await rpc('open_shift', { p_opening_cash: amount, p_note: note })
+    const { error: err } = await rpc('open_shift', { p_opening_cash: amount, p_note: note, p_shift_name: shiftName || null })
     setBusy(false)
     if (err) return setError(err.message)
     onOpened()
@@ -91,11 +94,29 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
         <div className="flex items-center gap-2">
           <Label htmlFor="open-cash" className="sr-only">Modal awal (Rp)</Label>
           <CurrencyInput id="open-cash" value={cash} onValueChange={(raw) => { setTouched(true); setCash(raw) }} placeholder="Modal awal" aria-label="Modal awal (Rp)" className="h-11 w-48 bg-background" />
-          <Button type="submit" disabled={busy || (differs && note.trim().length < 3)} className="h-11 px-5">
+          <Button type="submit" disabled={busy || (differs && note.trim().length < 3) || (shiftNames.length > 0 && !shiftName)} className="h-11 px-5">
             {busy ? 'Membuka…' : 'Buka shift'}
           </Button>
         </div>
       </div>
+      {shiftNames.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Shift yang dibuka">
+          <span className="text-base font-semibold">Shift mana?</span>
+          {shiftNames.map((n) => (
+            <button
+              key={n.id}
+              type="button"
+              role="radio"
+              aria-checked={shiftName === n.id}
+              onClick={() => setShiftName(n.id)}
+              className={`h-12 rounded-full border-2 px-5 text-base font-bold ${shiftName === n.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+            >
+              {n.name}
+            </button>
+          ))}
+          {!shiftName && <span className="text-base text-muted-foreground">Pilih dulu sebelum membuka shift.</span>}
+        </div>
+      )}
       {differs && (
         <div className="mt-2 space-y-1.5">
           <p className="text-sm font-medium text-destructive">{t('shift.ui.opening_differs', { diff: amount - (handover ?? 0) })}</p>

@@ -11,8 +11,12 @@ import { Switch } from '@shared/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
 import { rpc } from '@shared/lib/api'
 import { useStaff } from '@shared/lib/auth'
+import { PermissionSettings, ShiftNamesSettings } from './access-settings'
+import { LogoPicker, ThemePicker } from './branding'
+import { KitchenSettings } from './kitchen-settings'
 import { PrinterCalibration } from './printer-calibration'
 import { getPaperChars, previewReceipt, setPaperChars } from '@shared/lib/print'
+import { loadLogo } from '@shared/lib/receipt-logo'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { supabase } from '@shared/lib/supabase'
 import { liquid } from '@shared/lib/motion'
@@ -112,6 +116,11 @@ export function StoreTab({ store, run, fail }: Props) {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => setForm(initial), [initial])
+  // piksel logo dimuat dulu supaya pratinjau struk ikut menampilkan logo
+  const [logoReady, setLogoReady] = useState(0)
+  useEffect(() => {
+    void loadLogo(config?.logo).then(() => setLogoReady((n) => n + 1))
+  }, [config?.logo])
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }))
   const dirty = (Object.keys(form) as (keyof Form)[]).filter((k) => form[k] !== initial[k])
@@ -181,8 +190,9 @@ export function StoreTab({ store, run, fail }: Props) {
       subtotal: 58_000, service_amount: q.service, tax_amount: q.tax, rounding_amount: q.rounding, total: q.total,
       status: 'COMPLETED', payment_method: 'CASH', cash_received: 100_000, created_at: '2026-11-09T05:00:00Z', paid_at: '2026-11-09T05:01:00Z',
     })
-    return previewReceipt(order, { name: form.name || 'Nama usaha', address: form.address, footer: form.footer }, paper)
-  }, [form, paper])
+    return previewReceipt(order, { name: form.name || 'Nama usaha', address: form.address, footer: form.footer, logo: config?.logo }, paper)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- logoReady: muat ulang setelah piksel logo siap
+  }, [form, paper, config?.logo, logoReady])
 
   const sample = 100_000
   const p = preview(sample, form)
@@ -198,11 +208,15 @@ export function StoreTab({ store, run, fail }: Props) {
       />
 
       <Tabs value={tab} onValueChange={setTab} className="gap-5">
-        <TabsList variant="line" className="w-full justify-start border-b">
+        <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b scrollbar-none">
           {[
             ['profil', 'Profil'],
             ['pajak', 'Pajak & poin'],
             ['struk', 'Struk'],
+            ['tampilan', 'Warna'],
+            ['dapur', 'Dapur'],
+            ['shift', 'Shift'],
+            ['akses', 'Hak akses'],
             ['keamanan', 'Keamanan'],
           ].map(([v, l]) => (
             <TabsTrigger key={v} value={v} className="h-11 flex-none px-4">{l}</TabsTrigger>
@@ -291,6 +305,9 @@ export function StoreTab({ store, run, fail }: Props) {
         <TabsContent value="struk" className="space-y-5">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <SectionCard title="Isi struk" hint="Tampil di struk cetak dan printer thermal" className="[&>div]:divide-y [&>div]:p-0">
+              <Row label="Logo" hint="Tercetak hitam-putih di atas struk. Tersimpan langsung.">
+                <LogoPicker config={config} onSaved={reload} />
+              </Row>
               <Row label="Alamat usaha" htmlFor="st-addr">
                 <Input id="st-addr" value={form.address} onChange={(e) => set('address', e.target.value)} maxLength={200} placeholder="Jl. Contoh No. 1, Jakarta" className="h-11" />
               </Row>
@@ -309,11 +326,30 @@ export function StoreTab({ store, run, fail }: Props) {
             </SectionCard>
 
             <aside className="xl:sticky xl:top-4 xl:self-start">
-              <ThermalPaper lines={receiptLines} chars={paper} />
+              <ThermalPaper lines={receiptLines} chars={paper} logo={config?.logo} />
               <p className="mt-2 text-center text-xs text-muted-foreground">Pratinjau dari perintah printer yang sebenarnya (contoh isi)</p>
               <PrinterCalibration chars={paper} onChars={setPaper} />
             </aside>
           </div>
+        </TabsContent>
+
+        {/* ===== Warna aplikasi ===== */}
+        <TabsContent value="tampilan" className="max-w-3xl space-y-5">
+          <SectionCard title="Warna aplikasi" hint="Warna tombol dan menu untuk semua perangkat toko. Langsung tersimpan.">
+            <ThemePicker config={config} onSaved={reload} />
+          </SectionCard>
+        </TabsContent>
+
+        {/* ===== Dapur ===== */}
+        <TabsContent value="dapur" className="max-w-3xl space-y-5">
+          <KitchenSettings config={config} onSaved={reload} />
+        </TabsContent>
+
+        <TabsContent value="shift" className="max-w-3xl space-y-5">
+          <ShiftNamesSettings />
+        </TabsContent>
+        <TabsContent value="akses" className="max-w-3xl space-y-5">
+          <PermissionSettings />
         </TabsContent>
 
         {/* ===== Keamanan ===== */}

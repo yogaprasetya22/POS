@@ -3,6 +3,7 @@ import { fetchAll } from '@shared/lib/fetch-all'
 import { z } from 'zod'
 import { supabase } from '@shared/lib/supabase'
 import { fetchCatalogBySlug } from '@shared/lib/api'
+import { useBroadcast } from '@shared/lib/live'
 import { CategorySchema, ProductSchema, PromotionSchema, StoreSchema, type Category, type Product, type Promotion, type Store } from '@shared/types/contracts'
 
 type Catalog = { store: Store; categories: Category[]; products: Product[]; promotions: Promotion[] }
@@ -121,6 +122,16 @@ export function useCatalog(by: 'slug' | 'id', value: string | null) {
       active.current = false
     }
   }, [fetchCatalog])
+
+  // Menu habis/tersedia & sisa porsi berubah langsung, tanpa refresh (pembeli dan layar Jualan)
+  useBroadcast<{ id: string; is_available: boolean; portions: number | null }>(data ? `store:${data.store.id}` : null, 'product', (p) => {
+    setData((d) => {
+      if (!d || !d.products.some((x) => x.id === p.id)) return d
+      const next = { ...d, products: d.products.map((x) => (x.id === p.id ? { ...x, is_available: p.is_available, portions: p.portions } : x)) }
+      setCatalogCache(next)
+      return next
+    })
+  })
 
   return { data, error, reload }
 }

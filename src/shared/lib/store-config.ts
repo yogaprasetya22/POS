@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@shared/lib/supabase'
 import { StoreConfigSchema, type StoreConfig } from '@shared/types/contracts'
 
-const COLUMNS = 'slug, locale, tax_bp, tax_inclusive, service_bp, rounding_to, points_earn_per, points_value, receipt_footer, address, plan, plan_expires_at'
+// '*': kolom baru (mis. use_kitchen_screen) ikut terbaca tanpa merusak bila migrasinya belum dijalankan; schema mengisi default.
+const COLUMNS = '*'
 const cache = new Map<string, StoreConfig>()
 
 /** Pengaturan uang/struk/langganan toko. Cache in-memory; `reload` setelah owner mengubah pengaturan. */

@@ -1,4 +1,5 @@
 import { Download, Printer } from 'lucide-react'
+import { ProfitTab } from './profit-tab'
 import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
@@ -193,7 +194,7 @@ const STATUS_IN: Record<StatusFilter, string[] | null> = {
 }
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   UNPAID: { label: 'Belum dibayar', tone: 'warn' },
-  IN_KITCHEN: { label: 'Dimasak', tone: 'info' },
+  IN_KITCHEN: { label: 'Sudah dibayar', tone: 'info' },
   READY: { label: 'Siap', tone: 'info' },
   COMPLETED: { label: 'Selesai', tone: 'good' },
   VOID: { label: 'Void', tone: 'bad' },
@@ -452,6 +453,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
         <TabsList variant="line" className="w-full justify-start border-b">
           <TabsTrigger value="summary" className="h-11 flex-none px-4">Ringkasan</TabsTrigger>
           <TabsTrigger value="orders" className="h-11 flex-none px-4">Transaksi</TabsTrigger>
+          <TabsTrigger value="profit" className="h-11 flex-none px-4">Untung per menu</TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary" className={`space-y-4 transition-opacity ${loading ? 'opacity-60' : ''}`}>
@@ -511,10 +513,14 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
         <TabsContent value="orders">
           <Transactions from={from} to={to} onOpen={setOpen} />
         </TabsContent>
+
+        <TabsContent value="profit">
+          <ProfitTab from={from} to={to} />
+        </TabsContent>
       </Tabs>
 
       <OrderDrawer order={open} onClose={() => setOpen(null)} onReprint={(o) => { setOpen(null); setReceipt(o) }} />
-      {receipt && <Receipt order={receipt} store={{ name: storeName, address: config?.address, footer: config?.receipt_footer }} onClose={() => setReceipt(null)} />}
+      {receipt && <Receipt order={receipt} store={{ name: storeName, address: config?.address, footer: config?.receipt_footer, logo: config?.logo }} onClose={() => setReceipt(null)} />}
     </div>
   )
 }

@@ -5,7 +5,11 @@ import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'reac
 import { MenuSkeleton } from '@shared/components/page-skeleton'
 import { getMotionPref } from '@shared/lib/motion-pref'
 import { LandingPage } from '@features/landing'
+import { NotFoundPage, RouteErrorPage } from './app/error-pages'
+import { applySavedTheme } from '@shared/lib/theme'
 import './index.css'
+
+applySavedTheme()
 
 // Setiap halaman jadi file JS sendiri: HP pelanggan tidak mengunduh kode kasir/admin.
 const MenuPage = lazy(() => import('@features/menu-catalog').then((m) => ({ default: m.MenuPage })))
@@ -20,6 +24,7 @@ const MenuAdminPage = bo('MenuAdminPage')
 const PromoPage = bo('PromoPage')
 const MemberPage = bo('MemberPage')
 const StockPage = bo('StockPage')
+const PurchasePage = bo('PurchasePage')
 const ReportPage = bo('ReportPage')
 const ShiftPage = bo('ShiftPage')
 const TablesPage = bo('TablesPage')
@@ -48,37 +53,46 @@ function RootRoute() {
 const page = (el: ReactNode, fallback: ReactNode = null) => <Suspense fallback={fallback}>{el}</Suspense>
 
 const router = createBrowserRouter([
-  { path: '/', element: <RootRoute /> },
-  { path: '/s/:slug', element: page(<MenuPage />, <MenuSkeleton />) },
-  { path: '/privasi', element: page(<PrivacyPage />) },
-  { path: '/syarat', element: page(<TermsPage />) },
-  { path: '/login', element: page(<LoginPage />) },
-  { path: '/register', element: page(<RegisterPage />) },
   {
-    element: page(<StaffShell />),
+    // Semua error tampil sebagai halaman ramah; detail teknis hanya di mode pengembangan
+    errorElement: <RouteErrorPage />,
     children: [
-      { path: '/cashier', element: <CashierPage /> },
-      { path: '/antrean', element: <QueuePage /> },
-      { path: '/kitchen', element: <KitchenPage /> },
+      { path: '/', element: <RootRoute /> },
+      { path: '/s/:slug', element: page(<MenuPage />, <MenuSkeleton />) },
+      { path: '/privasi', element: page(<PrivacyPage />) },
+      { path: '/syarat', element: page(<TermsPage />) },
+      { path: '/login', element: page(<LoginPage />) },
+      { path: '/register', element: page(<RegisterPage />) },
       {
-        path: '/admin',
-        element: page(<AdminRoot />),
+        element: page(<StaffShell />),
         children: [
-          { index: true, element: page(<OverviewPage />) },
-          { path: 'menu', element: page(<MenuAdminPage />) },
-          { path: 'promo', element: page(<PromoPage />) },
-          { path: 'member', element: page(<MemberPage />) },
-          { path: 'stok', element: page(<StockPage />) },
-          { path: 'laporan', element: page(<ReportPage />) },
-          { path: 'shift', element: page(<ShiftPage />) },
-          { path: 'meja', element: page(<TablesPage />) },
-          { path: 'tim', element: page(<StaffPage />) },
-          { path: 'toko', element: page(<StorePage />) },
-          { path: 'bahasa', element: page(<LanguagePage />) },
-          { path: 'lainnya', element: page(<MorePage />) },
+          { path: '/cashier', element: <CashierPage />, errorElement: <RouteErrorPage /> },
+          { path: '/antrean', element: <QueuePage />, errorElement: <RouteErrorPage /> },
+          { path: '/kitchen', element: <KitchenPage />, errorElement: <RouteErrorPage /> },
+          {
+            path: '/admin',
+            element: page(<AdminRoot />),
+            errorElement: <RouteErrorPage />,
+            children: [
+              { index: true, element: page(<OverviewPage />) },
+              { path: 'menu', element: page(<MenuAdminPage />) },
+              { path: 'promo', element: page(<PromoPage />) },
+              { path: 'member', element: page(<MemberPage />) },
+              { path: 'stok', element: page(<StockPage />) },
+      { path: 'pembelian', element: page(<PurchasePage />) },
+              { path: 'laporan', element: page(<ReportPage />) },
+              { path: 'shift', element: page(<ShiftPage />) },
+              { path: 'meja', element: page(<TablesPage />) },
+              { path: 'tim', element: page(<StaffPage />) },
+              { path: 'toko', element: page(<StorePage />) },
+              { path: 'bahasa', element: page(<LanguagePage />) },
+              { path: 'lainnya', element: page(<MorePage />) },
+            ],
+          },
+          { path: '/super', element: <SuperPage />, errorElement: <RouteErrorPage /> },
         ],
       },
-      { path: '/super', element: <SuperPage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

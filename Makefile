@@ -1,4 +1,4 @@
-.PHONY: reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos
+.PHONY: reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos seed-inventory
 
 # Default target
 help:
@@ -66,6 +66,9 @@ seed:
 
 seed-pos:
 	bun scripts/supabase-migrate.js seed-pos
+
+seed-inventory: ## Data demo Inventory Stock (bahan, resep, barcode)
+	bun scripts/supabase-migrate.js seed-inventory
 
 db-check:
 	bun scripts/db-check.mjs

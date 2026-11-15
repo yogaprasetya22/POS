@@ -60,7 +60,13 @@ export const StoreConfigSchema = z.object({
   receipt_footer: z.string().max(200),
   address: z.string().max(200),
   plan: z.enum(['trial', 'basic', 'pro']),
+  // Default dipakai bila migrasi 20261016000018 belum dijalankan
+  logo: z.string().default(''),
+  theme: z.string().default('biru'),
   plan_expires_at: z.string().nullable(),
+  // Default dipakai bila migrasi 20261016000014 belum dijalankan
+  use_kitchen_screen: z.boolean().default(true),
+  cook_minutes: z.number().int().min(1).max(180).default(15),
 })
 export type StoreConfig = z.infer<typeof StoreConfigSchema>
 
@@ -252,6 +258,8 @@ export const OrderSchema = z.object({
   cash_received: RupiahSchema.nullable(),
   created_at: z.string(),
   paid_at: z.string().nullable(),
+  /** Nomor urut baris `items` yang sudah jadi (centang per menu). */
+  items_done: z.array(z.number().int()).default([]),
 })
 
 export type OrderStatus = z.infer<typeof OrderStatusSchema>

@@ -2,11 +2,14 @@ import { ChevronDown, ChevronRight, ExternalLink, LogOut } from 'lucide-react'
 import { Link } from 'react-router'
 import { ADVANCED_NAV, MORE_NAV, type NavItem } from '@shared/components/layout/nav'
 import { useStaff } from '@shared/lib/auth'
+import { useLowStockCount } from '@shared/lib/low-stock-alerts'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { supabase } from '@shared/lib/supabase'
 
 function Row({ item }: { item: NavItem }) {
   const Icon = item.icon
+  const low = useLowStockCount()
+  const badge = item.to === '/admin/stok' ? low : 0
   return (
     <Link to={item.to} className="flex min-h-20 items-center gap-4 px-4 py-3 transition-colors hover:bg-muted">
       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -16,6 +19,7 @@ function Row({ item }: { item: NavItem }) {
         <span className="text-lg font-bold">{item.label}</span>
         {item.hint && <span className="text-base text-muted-foreground">{item.hint}</span>}
       </span>
+      {badge > 0 && <span className="shrink-0 rounded-full bg-red-600 px-3 py-1 text-base font-extrabold text-white">{badge} hampir habis</span>}
       <ChevronRight className="size-6 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
   )
@@ -26,7 +30,7 @@ export function MorePageView() {
   const staff = useStaff()
   const { config } = useStoreConfig(staff.storeId)
   const main = MORE_NAV.filter((i) => i.show(staff))
-  const advanced = ADVANCED_NAV.filter((i) => i.show(staff))
+  const advanced = ADVANCED_NAV.filter((i) => i.show(staff) && !(config?.use_kitchen_screen === false && i.to === '/kitchen'))
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">

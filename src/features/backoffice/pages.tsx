@@ -1,4 +1,5 @@
 import { Navigate, useSearchParams } from 'react-router'
+import { PurchasingPage } from './components/purchasing/purchasing-page'
 import { useStaff } from '@shared/lib/auth'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { can } from '@shared/types/contracts'
@@ -12,7 +13,7 @@ import { Dashboard } from './components/dashboard'
 import { PromoTab } from './components/promo-tab'
 import { ReportPageView } from './components/report-page'
 import { StaffList } from './components/staff-list'
-import { StockTab } from './components/stock-tab'
+import { InventoryPage } from './components/inventory/inventory-page'
 import { StoreTab } from './components/store-tab'
 import { TablesTab } from './components/tables-tab'
 
@@ -64,8 +65,12 @@ export function MemberPage() {
 }
 
 export function StockPage() {
-  const { data } = useAdmin()
-  return <StockTab store={data.store} products={data.products} />
+  const { data, reload } = useAdmin()
+  return <InventoryPage store={data.store} products={data.products} onCatalogChanged={reload} />
+}
+
+export function PurchasePage() {
+  return <PurchasingPage />
 }
 
 export function ReportPage() {

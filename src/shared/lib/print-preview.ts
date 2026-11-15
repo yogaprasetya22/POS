@@ -1,7 +1,7 @@
 import CodepageEncoder from '@point-of-sale/codepage-encoder'
 
 /** Satu baris di atas kertas thermal: teks apa adanya (spasi = posisi kolom), dengan gaya cetaknya. */
-export type PreviewLine = { text: string; bold: boolean; scale: number; kind: 'text' | 'cut' | 'qrcode' | 'barcode' }
+export type PreviewLine = { text: string; bold: boolean; scale: number; kind: 'text' | 'cut' | 'qrcode' | 'barcode' | 'image' }
 
 type Cmd = { type: string; property?: string; value?: unknown; payload?: number[] }
 
@@ -42,8 +42,9 @@ export function toPreview(lines: object[][]): PreviewLine[] {
       } else if (c.type === 'cut') marker = 'cut'
       else if (c.type === 'qrcode' && c.property === undefined) marker = 'qrcode'
       else if (c.type === 'barcode' && c.property === undefined) marker = 'barcode'
+      else if (c.type === 'image' && c.property === 'data') marker = 'image'
     }
-    if (marker) out.push({ text: marker === 'cut' ? '' : marker === 'qrcode' ? 'QR' : 'BARCODE', bold: false, scale: 1, kind: marker })
+    if (marker) out.push({ text: marker === 'cut' ? '' : marker === 'qrcode' ? 'QR' : marker === 'image' ? 'LOGO' : 'BARCODE', bold: false, scale: 1, kind: marker })
     else if (sawText) out.push({ text: text.replace(/\s+$/, ''), bold: lineBold, scale: lineScale, kind: 'text' })
   }
   return out

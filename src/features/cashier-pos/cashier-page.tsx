@@ -63,7 +63,7 @@ const toCartItem = (i: Order['items'][number]): CartItem => {
 }
 
 export function CashierPage() {
-  const { orders } = useLiveOrders(ACTIVE)
+  const { orders, loading: ordersLoading } = useLiveOrders(ACTIVE)
   const { storeId, role } = useStaff()
   const { t } = useI18n()
   const { data: catalog, error: catalogError, reload } = useCatalog('id', storeId)
@@ -147,9 +147,9 @@ export function CashierPage() {
           const parsed = MemberSchema.safeParse(data)
           setMember(parsed.success ? parsed.data : null)
         })
-    } else if (selectedId) reset()
+    } else if (selectedId && !ordersLoading) reset() // tunggu antrean termuat: pesanan pilihan dari halaman Antrean belum ada di daftar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncKey])
+  }, [syncKey, ordersLoading])
 
   const lines = toLines(items)
   const savedView = !!selected && !dirty
@@ -692,7 +692,7 @@ export function CashierPage() {
 
       {picking && <ProductPicker product={picking} onAdd={(i) => edit(addItem(items, i))} onClose={() => setPicking(null)} />}
       {receipt && catalog && (
-        <Receipt order={receipt} store={{ name: catalog.store.name, address: config?.address, footer: config?.receipt_footer }} onClose={() => setReceipt(null)} />
+        <Receipt order={receipt} store={{ name: catalog.store.name, address: config?.address, footer: config?.receipt_footer, logo: config?.logo }} onClose={() => setReceipt(null)} />
       )}
       <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} role={role} onReprint={(o) => { setHistoryOpen(false); setReceipt(o) }} />
       {splitOpen && selected && (

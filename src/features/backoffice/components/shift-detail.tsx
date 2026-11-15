@@ -8,6 +8,7 @@ import { Button } from '@shared/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@shared/components/ui/drawer'
 import { Input } from '@shared/components/ui/input'
 import { rpc } from '@shared/lib/api'
+import { supabase } from '@shared/lib/supabase'
 import { rupiah } from '@shared/lib/utils'
 import { PAYMENT_LABEL, ShiftDetailSchema, type ShiftDetail } from '@shared/types/contracts'
 
@@ -30,6 +31,31 @@ function Step({ sign, label, hint, value, strong }: { sign?: '+' | '−' | '='; 
   )
 }
 
+type StockLine = { name: string; unit: string; qty: number; value: number }
+type ShiftStock = { used: StockLine[]; wasted: StockLine[]; used_value: number; wasted_value: number }
+const qty = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 3 })
+
+function StockLines({ title, note, rows, total }: { title: string; note: string; rows: StockLine[]; total: number }) {
+  return (
+    <section>
+      <H note={note}>{title} · {rupiah(total)}</H>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Tidak ada.</p>
+      ) : (
+        <ul className="divide-y rounded-lg border">
+          {rows.map((r) => (
+            <li key={r.name} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <span className="min-w-0 truncate">{r.name}</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">{qty(r.qty)} {r.unit}</span>
+              <span className="w-24 shrink-0 text-right font-medium tabular-nums">{rupiah(r.value)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 const H = ({ children, note }: { children: React.ReactNode; note?: string }) => (
   <div className="mb-2">
     <h3 className="text-sm font-semibold">{children}</h3>
@@ -44,6 +70,8 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [force, setForce] = useState(false)
+  const [shiftName, setShiftName] = useState('')
+  const [stock, setStock] = useState<ShiftStock | null>(null)
 
   const load = useCallback(async () => {
     if (!shiftId) return
@@ -53,10 +81,15 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
     if (!p.success) return setError('Format rincian shift tidak dikenali')
     setError('')
     setDetail(p.data)
+    // nama shift & pemakaian bahan: pelengkap, rincian tetap tampil bila gagal dimuat
+    void supabase.from('shifts').select('shift_name').eq('id', shiftId).maybeSingle().then(({ data: d }) => setShiftName((d as { shift_name?: string } | null)?.shift_name ?? ''))
+    void rpc('shift_stock', { p_shift: shiftId }).then(({ data: d }) => setStock((d as ShiftStock | null) ?? null))
   }, [shiftId])
 
   useEffect(() => {
     setDetail(null)
+    setStock(null)
+    setShiftName('')
     setNote('')
     void load()
   }, [load])
@@ -84,7 +117,7 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
         <DrawerContent size="md">
           <DrawerHeader className="border-b text-left">
             <DrawerTitle className="flex flex-wrap items-center gap-2">
-              Rincian shift {sh?.opened_by ?? ''}
+              Rincian shift {shiftName ? `${shiftName} · ` : ''}{sh?.opened_by ?? ''}
               {sh?.forced && <Chip tone="warn">Ditutup paksa</Chip>}
               {!closed && sh && <Chip tone="info">Berjalan</Chip>}
             </DrawerTitle>
@@ -196,6 +229,13 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                       ))}
                     </ul>
                   </section>
+                )}
+
+                {stock && (
+                  <>
+                    <StockLines title="Bahan terpakai" note="Dari menu yang terjual selama shift ini, dihitung dari resep dan harga beli sekarang." rows={stock.used} total={stock.used_value} />
+                    <StockLines title="Bahan terbuang" note="Yang dicatat terbuang selama shift ini." rows={stock.wasted} total={stock.wasted_value} />
+                  </>
                 )}
 
                 {closed && (diff ?? 0) !== 0 && (

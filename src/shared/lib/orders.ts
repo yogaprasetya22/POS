@@ -32,6 +32,11 @@ export function useLiveOrders(statuses: OrderStatus[]) {
   const key = statuses.join(',')
 
   useEffect(() => {
+    if (!key) {
+      setOrders([])
+      setLoading(false)
+      return
+    }
     let alive = true
     const wanted = key.split(',')
     const load = async () => {
@@ -49,7 +54,8 @@ export function useLiveOrders(statuses: OrderStatus[]) {
     void load()
     let dropped = false
     const channel = supabase
-      .channel(`orders:${key}`)
+      // nama unik per pemakai: dua layar dengan status sama (mis. Dapur + pengingat di layout) tidak boleh berbagi channel
+      .channel(`orders:${key}:${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         const change = payload as unknown as Change
         // Baris yang tidak bisa dibaca: muat ulang penuh daripada menampilkan data setengah.

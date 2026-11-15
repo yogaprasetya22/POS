@@ -1,0 +1,11 @@
+drop function if exists record_waste(uuid, numeric, text);
+drop function if exists receive_purchase(text, jsonb, text, text);
+drop table if exists purchase_items;
+drop table if exists purchases;
+drop trigger if exists ingredients_no_negative on ingredients;
+drop function if exists trg_ingredients_no_negative();
+delete from stock_movements where reason in ('PURCHASE', 'WASTE', 'COUNT');
+alter table stock_movements drop constraint stock_movements_reason_check;
+alter table stock_movements add constraint stock_movements_reason_check check (reason in ('SALE', 'VOID', 'RESTOCK', 'ADJUST'));
+alter table ingredients drop column if exists purchase_factor, drop column if exists purchase_unit;
+alter publication supabase_realtime drop table ingredients;

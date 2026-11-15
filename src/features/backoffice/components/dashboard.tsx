@@ -31,7 +31,7 @@ const chartConfig = { net: { label: 'Penjualan', color: 'var(--chart-1)' } } sat
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
-  IN_KITCHEN: { label: 'Dimasak', tone: 'info' },
+  IN_KITCHEN: { label: 'Sudah dibayar', tone: 'info' },
   READY: { label: 'Siap', tone: 'info' },
   COMPLETED: { label: 'Selesai', tone: 'good' },
 }

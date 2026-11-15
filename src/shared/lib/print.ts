@@ -1,10 +1,12 @@
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { PAYMENT_LABEL, type Order } from '@shared/types/contracts'
 import { toPreview } from './print-preview'
+import { logoPixels } from './receipt-logo'
 import { rupiah, timeJakarta } from './utils'
 
 /** Info toko untuk kepala/kaki struk. */
-export type ReceiptStore = { name: string; address?: string; footer?: string }
+/** logo: data URL dari pengaturan toko; dicetak bila pikselnya sudah dimuat (loadLogo). */
+export type ReceiptStore = { name: string; address?: string; footer?: string; logo?: string }
 
 const num = (key: string, fallback: number, min: number, max: number) => {
   try {
@@ -57,6 +59,8 @@ const dash = (e: ReceiptPrinterEncoder, columns: number) => e.line('-'.repeat(co
 
 function buildReceipt(order: Order, store: ReceiptStore, columns: number) {
   const e = encoder(columns).initialize()
+  const logo = logoPixels(store.logo)
+  if (logo) e.align('center').image(logo, logo.width, logo.height, 'threshold')
   e.align('center').bold(true).line(store.name).bold(false)
   if (store.address) e.line(store.address)
   e.align('left')

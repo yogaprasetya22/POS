@@ -9,7 +9,7 @@ import { Button } from '@shared/components/ui/button'
 import { useStaff } from '@shared/lib/auth'
 import { useLiveOrders } from '@shared/lib/orders'
 import { useAutoPrint } from '@shared/lib/use-auto-print'
-import { Printer } from 'lucide-react'
+import { Check, Printer } from 'lucide-react'
 import { rpc } from '@shared/lib/api'
 import { timeJakarta } from '@shared/lib/utils'
 import { isSellable, type Order, type OrderStatus } from '@shared/types/contracts'
@@ -47,6 +47,21 @@ export function KitchenPage() {
     setError(error?.message ?? '')
   }
 
+  const toggleItem = async (o: Order, index: number) => {
+    const { error } = await rpc('set_item_done', { p_order_id: o.id, p_index: index, p_done: !o.items_done.includes(index) })
+    setError(error ? `${error.message} Coba lagi.` : '')
+  }
+
+  // Gabungan menu yang belum jadi dari semua pesanan: dimasak sekaligus, bukan per meja
+  const todo = new Map<string, number>()
+  for (const o of orders) {
+    if (o.status !== 'IN_KITCHEN') continue
+    o.items.forEach((i, n) => {
+      if (!o.items_done.includes(n)) todo.set(i.name, (todo.get(i.name) ?? 0) + i.qty)
+    })
+  }
+  const todoList = [...todo].sort((a, b) => b[1] - a[1])
+
   const handleToggleAvailability = async (productId: string, isAvailable: boolean) => {
     const { error: err } = await rpc('set_product_availability', { p_product: productId, p_available: isAvailable })
     if (err) {
@@ -80,6 +95,20 @@ export function KitchenPage() {
 
       <ErrorAlert message={error || auto.error} />
 
+      {todoList.length > 0 && (
+        <section aria-label="Yang perlu dimasak" className="rounded-2xl border-2 bg-card p-4">
+          <h2 className="text-lg font-bold">Yang perlu dimasak sekarang</h2>
+          <p className="text-base text-muted-foreground">Gabungan dari semua pesanan. Ketuk menu di tiap pesanan saat sudah jadi.</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {todoList.map(([name, qty]) => (
+              <li key={name} className="rounded-xl bg-amber-100 px-3 py-2 text-base font-semibold text-amber-950 dark:bg-amber-500/20 dark:text-amber-100">
+                <span className="text-lg font-extrabold tabular-nums">{qty}×</span> {name}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {orders.length === 0 && (
         <p className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">Belum ada pesanan yang perlu dimasak.</p>
       )}
@@ -110,27 +139,42 @@ export function KitchenPage() {
               </header>
 
               <ul className="flex-1 divide-y px-4">
-                {o.items.map((i, n) => (
-                  <li key={n} className="flex gap-3 py-2.5">
-                    <span className="w-7 shrink-0 text-lg font-bold tabular-nums">{i.qty}×</span>
-                    <div className="min-w-0">
-                      <p className="text-base font-medium leading-6">{i.name}</p>
-                      {i.choices.length > 0 && <p className="text-sm text-muted-foreground">{i.choices.map((c) => c.option).join(', ')}</p>}
-                      {i.note && <p className="mt-1 rounded bg-amber-100 px-2 py-1 text-sm font-medium text-amber-950 dark:bg-amber-500/20 dark:text-amber-100">{i.note}</p>}
-                    </div>
-                  </li>
-                ))}
+                {o.items.map((i, n) => {
+                  const done = ready || o.items_done.includes(n)
+                  return (
+                    <li key={n}>
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={done}
+                        disabled={ready}
+                        onClick={() => void toggleItem(o, n)}
+                        className="flex min-h-12 w-full items-start gap-3 py-2.5 text-left"
+                      >
+                        <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border-2 ${done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-foreground/40'}`}>
+                          {done && <Check className="size-5" aria-hidden />}
+                        </span>
+                        <span className="w-7 shrink-0 text-lg font-bold tabular-nums">{i.qty}×</span>
+                        <span className="min-w-0">
+                          <span className={`block text-base font-medium leading-6 ${done ? 'text-muted-foreground line-through' : ''}`}>{i.name}</span>
+                          {i.choices.length > 0 && <span className="block text-sm text-muted-foreground">{i.choices.map((c) => c.option).join(', ')}</span>}
+                          {i.note && <span className="mt-1 block rounded bg-amber-100 px-2 py-1 text-sm font-medium text-amber-950 dark:bg-amber-500/20 dark:text-amber-100">{i.note}</span>}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
 
               <div className="p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">{step.badge}</p>
+                  <p className="text-base font-semibold text-muted-foreground">{ready ? step.badge : `${o.items_done.length} dari ${o.items.length} menu jadi`}</p>
                   <Button variant="ghost" size="sm" onClick={() => auto.print(o)} aria-label={`Cetak ulang tiket ${o.queue_code}`}>
                     <Printer /> Cetak ulang
                   </Button>
                 </div>
                 <Button size="lg" variant={ready ? 'outline' : 'default'} onClick={() => advance(o)} className="h-14 w-full text-base font-semibold">
-                  {step.action}
+                  {ready ? step.action : 'Semua sudah jadi'}
                 </Button>
               </div>
             </m.article>

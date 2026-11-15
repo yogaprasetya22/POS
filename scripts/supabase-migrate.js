@@ -179,6 +179,12 @@ async function seed() {
   console.log('✅ Data dummy berhasil dimasukkan!');
 }
 
+// Data demo Inventory Stock: bahan lengkap + resep semua menu + contoh barcode (aman diulang).
+async function seedInventory() {
+  await runSeedFile('seed_inventory.sql');
+  console.log('✅ Data demo Inventory Stock berhasil dimasukkan!');
+}
+
 // Untuk database yang sudah pernah di-seed: hanya data fitur POS inti (aman diulang).
 async function seedPos() {
   await runSeedFile('seed_pos.sql');
@@ -195,6 +201,7 @@ async function main() {
     case 'fresh': return fresh();
     case 'seed': return seed();
     case 'seed-pos': return seedPos();
+    case 'seed-inventory': return seedInventory();
     default:
       console.log(`
 Penggunaan:
@@ -206,6 +213,7 @@ Penggunaan:
   bun scripts/supabase-migrate.js fresh           - Reset & jalankan ulang semua migrasi dari awal
   bun scripts/supabase-migrate.js seed            - Isi data dummy dari supabase/seed.sql + seed_pos.sql
   bun scripts/supabase-migrate.js seed-pos        - Hanya data demo fitur POS inti (supabase/seed_pos.sql)
+  bun scripts/supabase-migrate.js seed-inventory  - Data demo Inventory Stock (supabase/seed_inventory.sql)
       `);
   }
 }
