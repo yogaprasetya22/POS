@@ -2,6 +2,9 @@ import { Check, ExternalLink, ImagePlus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@shared/components/ui/button'
+import { Input } from '@shared/components/ui/input'
+import { useStaff } from '@shared/lib/auth'
+import { uploadMedia } from '@shared/lib/media'
 import { rpc } from '@shared/lib/api'
 import { BUYER_TEMPLATES, BUYER_TEMPLATE_KEYS, asTemplate, type BuyerTemplate } from '@shared/lib/buyer-look'
 import { loadLogo, prepareLogo } from '@shared/lib/receipt-logo'
@@ -179,6 +182,79 @@ export function BuyerTemplatePicker({ config, onSaved }: { config: StoreConfig |
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/** Perkecil gambar ke maks 256px (WebP) supaya logo ringan dibuka pembeli. */
+async function shrink(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file)
+  const scale = Math.min(256 / bmp.width, 256 / bmp.height, 1)
+  const cv = document.createElement('canvas')
+  cv.width = Math.round(bmp.width * scale)
+  cv.height = Math.round(bmp.height * scale)
+  cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height)
+  return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('Gambar tidak bisa diproses.'))), 'image/webp', 0.9))
+}
+
+/** Logo berwarna + slogan toko untuk halaman pembeli (berbeda dari logo struk yang hitam-putih). */
+export function StoreIdentity({ config, onSaved }: { config: StoreConfig | null; onSaved: () => void }) {
+  const { storeId } = useStaff()
+  const logo = config?.logo_url ?? ''
+  const [tagline, setTagline] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const text = tagline ?? config?.tagline ?? ''
+
+  const store = async (nextLogo: string, nextTagline: string, done: string) => {
+    setBusy(true)
+    const { error } = await rpc('save_store_identity', { p_logo_url: nextLogo, p_tagline: nextTagline })
+    setBusy(false)
+    if (error) return toast.error('Belum tersimpan', { description: `${error.message} Coba lagi.` })
+    toast.success(done)
+    setTagline(null)
+    onSaved()
+  }
+
+  const pick = async (f: File | undefined) => {
+    if (!f) return
+    if (!f.type.startsWith('image/')) return toast.error('Pilih file gambar', { description: 'Gunakan PNG atau JPG.' })
+    setBusy(true)
+    try {
+      // Sama seperti foto menu: tujuan akhir Google Drive (lihat uploadMedia)
+      const small = new File([await shrink(f)], 'logo.webp', { type: 'image/webp' })
+      const { url } = await uploadMedia(small, storeId ?? 'pos', 'logo')
+      await store(url, text, 'Logo toko tersimpan. Tampil di halaman pembeli.')
+    } catch (e) {
+      setBusy(false)
+      toast.error('Logo gagal diunggah', { description: `${e instanceof Error ? e.message : ''} Coba gambar lain.` })
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="grid size-20 place-items-center overflow-hidden rounded-2xl border-2 border-dashed bg-white">
+          {logo ? <img src={logo} alt="Logo toko" className="size-full object-cover" /> : <span className="px-1 text-center text-sm text-muted-foreground">Belum ada logo</span>}
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border-2 px-4 text-base font-medium hover:bg-muted ${busy ? 'pointer-events-none opacity-50' : ''}`}>
+            <ImagePlus className="size-5" aria-hidden /> {busy ? 'Menyimpan…' : logo ? 'Ganti logo' : 'Pilih logo'}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = '' }} />
+          </label>
+          {logo && (
+            <Button variant="ghost" className="h-11 text-base text-destructive" disabled={busy} onClick={() => void store('', text, 'Logo toko dihapus.')}>
+              <Trash2 /> Hapus logo
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="st-tagline" className="block text-base font-semibold">Slogan / deskripsi singkat toko</label>
+        <div className="flex flex-wrap gap-2">
+          <Input id="st-tagline" value={text} maxLength={120} onChange={(e) => setTagline(e.target.value)} placeholder="Contoh: Kopi & masakan rumahan sejak 2015" className="h-12 min-w-56 flex-1 text-base" />
+          <Button className="h-12 px-5 text-base font-bold" disabled={busy || text === (config?.tagline ?? '')} onClick={() => void store(logo, text, 'Slogan tersimpan.')}>Simpan slogan</Button>
+        </div>
+      </div>
     </div>
   )
 }

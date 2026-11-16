@@ -8,7 +8,7 @@ export interface GDriveUploadResult {
   url: string
 }
 
-async function post(body: Record<string, unknown>) {
+export async function post(body: Record<string, unknown>) {
   const { data: s } = await supabase.auth.getSession()
   const res = await fetch('/api/drive', {
     method: 'POST',
@@ -32,3 +32,11 @@ export async function uploadToGDrive(file: File, folderPrefix = ''): Promise<GDr
   const { url } = await post({ action: 'share', fileId: id, mimeType })
   return { fileId: id, fileName, mimeType, url }
 }
+
+/** Perantara: minta server memindahkan file dari Supabase Storage (bucket product-images) ke Google Drive. */
+export async function importFromStorage(path: string, mimeType: string): Promise<string> {
+  const { url } = await post({ action: 'import', path, mimeType })
+  return url as string
+}
+
+export const isDriveUrl = (url: string | null | undefined) => /^https:\/\/(lh3\.googleusercontent\.com\/d\/|drive\.google\.com\/)/.test(url ?? '')

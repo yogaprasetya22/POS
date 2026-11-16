@@ -1,24 +1,8 @@
+import { accessToken, folderId, publicUrl, share, uploadBytes } from '../server/drive.js'
 import { allow, supabaseFor } from '../server/supabase.js'
 
-// Kredensial Google Drive hanya ada di server (env Vercel), tidak pernah dikirim ke browser.
-async function accessToken() {
-  const { GDRIVE_CLIENT_ID, GDRIVE_CLIENT_SECRET, GDRIVE_REFRESH_TOKEN } = process.env
-  if (!GDRIVE_CLIENT_ID || !GDRIVE_CLIENT_SECRET || !GDRIVE_REFRESH_TOKEN) throw new Error('Kredensial Google Drive belum diisi di server')
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: GDRIVE_CLIENT_ID,
-      client_secret: GDRIVE_CLIENT_SECRET,
-      refresh_token: GDRIVE_REFRESH_TOKEN,
-      grant_type: 'refresh_token',
-    }),
-  })
-  if (!res.ok) throw new Error(`Otentikasi Google Drive gagal (${res.status})`)
-  return (await res.json()).access_token
-}
-
 const MAX_BYTES = 50 * 1024 * 1024
+const BUCKET = 'product-images'
 
 // POST /api/drive
 //   { action:'session', name, mimeType }  -> { uploadUrl }   (browser mengunggah langsung ke Google, tanpa batas 4,5 MB Vercel)
@@ -39,8 +23,7 @@ export default async function handler(req, res) {
       const type = String(b.mimeType || '')
       if (!/^(image|video)\//.test(type)) return res.status(400).json({ success: false, error: 'Hanya gambar atau video yang boleh diunggah' })
       if (Number(b.size) > MAX_BYTES) return res.status(413).json({ success: false, error: 'Ukuran file melebihi 50 MB' })
-      const folder = process.env.GDRIVE_FOLDER_ID
-      if (!folder) throw new Error('GDRIVE_FOLDER_ID belum diisi di server')
+      const folder = folderId()
       const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true', {
         method: 'POST',
         headers: {
@@ -63,15 +46,25 @@ export default async function handler(req, res) {
       if (!info?.parents?.includes(process.env.GDRIVE_FOLDER_ID) || !/^(image|video)\//.test(info.mimeType || '')) {
         return res.status(403).json({ success: false, error: 'File ini tidak boleh dibagikan' })
       }
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}/permissions?supportsAllDrives=true`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'reader', type: 'anyone' }),
-      })
-      if (!r.ok) throw new Error(`Gagal membuka akses file (${r.status})`)
-      const isVideo = String(b.mimeType || '').startsWith('video/')
-      const url = isVideo ? `https://drive.google.com/uc?export=download&id=${id}` : `https://lh3.googleusercontent.com/d/${id}`
+      await share(token, String(b.fileId))
+      const url = publicUrl(id, b.mimeType)
       return res.status(200).json({ success: true, url })
+    }
+    // Perantara: file yang terlanjur masuk Supabase Storage (unggah langsung gagal) dipindahkan server ke Drive.
+    if (b.action === 'import' && b.path) {
+      const { data: storeId } = await db.rpc('my_store')
+      const path = String(b.path)
+      // hanya file milik toko sendiri di bucket media
+      if (!storeId || !path.startsWith(`${storeId}/`) || path.includes('..')) return res.status(403).json({ success: false, error: 'File ini bukan milik tokomu' })
+      const file = await db.storage.from(BUCKET).download(path)
+      if (file.error || !file.data) throw new Error('File perantara tidak ditemukan di Supabase Storage')
+      const type = file.data.type || String(b.mimeType || '')
+      if (!/^(image|video)\//.test(type)) return res.status(400).json({ success: false, error: 'Hanya gambar atau video yang boleh diunggah' })
+      if (file.data.size > MAX_BYTES) return res.status(413).json({ success: false, error: 'Ukuran file melebihi 50 MB' })
+      const out = await uploadBytes(token, path.replace(/\//g, '-'), type, Buffer.from(await file.data.arrayBuffer()))
+      // sudah aman di Drive: hapus salinan perantara (gagal hapus tidak membatalkan hasil)
+      await db.storage.from(BUCKET).remove([path]).catch(() => {})
+      return res.status(200).json({ success: true, url: out.url, fileId: out.id })
     }
     return res.status(400).json({ success: false, error: 'action tidak dikenal' })
   } catch (e) {

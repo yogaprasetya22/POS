@@ -46,7 +46,7 @@ export function ProductPicker({ product, onAdd, onClose }: Props) {
     <Panel
       onClose={onClose}
       title={product.name}
-      description={rupiah(product.price)}
+      description={product.description ? `${rupiah(product.price)} · ${product.description}` : rupiah(product.price)}
       aside={<Stepper value={qty} onChange={setQty} />}
       media={
         <MediaCarousel

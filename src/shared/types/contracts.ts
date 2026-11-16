@@ -34,6 +34,9 @@ export const ProductSchema = z.object({
   image_url: z.string().nullable(),
   images: z.array(z.string()).default([]),
   video_url: z.string().nullable().default(null),
+  description: z.string().default(''),
+  /** Menu andalan: diberi tanda di halaman pembeli. */
+  is_featured: z.boolean().default(false),
   sort: z.number().int(),
 })
 
@@ -48,6 +51,8 @@ export const StoreSchema = z.object({
   // tampilan halaman pembeli; default dipakai bila kolomnya belum ada
   theme: z.string().default('biru'),
   buyer_template: z.string().default('klasik'),
+  logo_url: z.string().default(''),
+  tagline: z.string().default(''),
 })
 
 /** Pengaturan uang & struk toko (basis poin: 1100 = 11%). Dibaca staf; diubah owner lewat save_store_settings. */
@@ -67,6 +72,8 @@ export const StoreConfigSchema = z.object({
   logo: z.string().default(''),
   theme: z.string().default('biru'),
   buyer_template: z.string().default('klasik'),
+  logo_url: z.string().default(''),
+  tagline: z.string().default(''),
   plan_expires_at: z.string().nullable(),
   // Default dipakai bila migrasi 20261016000014 belum dijalankan
   use_kitchen_screen: z.boolean().default(true),

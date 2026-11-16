@@ -4,7 +4,7 @@ import { rememberMenu } from '@shared/lib/last-menu'
 import { Progressive } from '@shared/components/progressive'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { ArrowRight, Search, X } from 'lucide-react'
+import { ArrowRight, Search, Star, X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
@@ -84,9 +84,10 @@ export function MenuPage() {
     )
 
   const q = search?.trim().toLowerCase() ?? ''
-  const shown = data.products.filter(
-    (p) => (!category || p.category_id === category) && p.name.toLowerCase().includes(q)
-  )
+  const shown = data.products
+    .filter((p) => (!category || p.category_id === category) && (p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)))
+    // menu andalan di atas; urutan lain tetap seperti yang diatur pemilik
+    .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
   const count = items.reduce((n, i) => n + i.qty, 0)
   const totalPrice = cartTotal(items)
   const promo = calculatePromo(items, data.promotions, data.products)
@@ -98,9 +99,13 @@ export function MenuPage() {
     <div className="min-h-dvh w-full bg-background pb-28">
       <header className="sticky top-0 z-20 border-b bg-background">
         <div className="mx-auto max-w-6xl px-4 pt-3">
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="truncate text-lg font-bold">{data.store.name}</h1>
-            <span className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">{table ? `Meja ${table}` : 'Bawa pulang'}</span>
+          <div className="flex items-center gap-3">
+            {data.store.logo_url && <img src={data.store.logo_url} alt="" className="size-12 shrink-0 rounded-2xl border bg-white object-cover" />}
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-extrabold leading-tight">{data.store.name}</h1>
+              {data.store.tagline && <p className="line-clamp-2 text-base leading-5 text-muted-foreground">{data.store.tagline}</p>}
+            </div>
+            <span className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-base font-bold text-primary-foreground">{table ? `Meja ${table}` : 'Bawa pulang'}</span>
           </div>
           <div className="relative mt-3">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -177,16 +182,18 @@ export function MenuPage() {
                   <div className={`relative ${L.image}`}>
                     <MenuImage src={p.image_url} alt="" aspectRatio={L.aspect} />
                     {!isSellable(p) && <span className="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold text-white">Habis</span>}
+                    {p.is_featured && isSellable(p) && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-sm font-extrabold text-amber-950 shadow"><Star className="size-3.5 fill-current" aria-hidden /> Andalan</span>}
                   </div>
                   {qty > 0 && (
                     <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-8 place-items-center rounded-full bg-primary px-2 py-1 text-sm font-bold text-primary-foreground tabular-nums">{qty}</m.span>
                   )}
                   <div className={L.body}>
                     <p className={L.name}>{p.name}</p>
+                    {p.description && <p className="line-clamp-2 w-full text-sm leading-5 text-muted-foreground">{p.description}</p>}
                     <p className={`tabular-nums ${L.price}`}>{rupiah(p.price)}</p>
                     {(promoLabel || p.modifiers.length > 0 || p.video_url || p.images.length > 1) && (
                       <p className="flex w-full flex-wrap gap-x-2 text-sm text-muted-foreground">
-                        {promoLabel && <span className="font-medium text-primary">{promoLabel}</span>}
+                        {promoLabel && <span className="rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary">{promoLabel}</span>}
                         {p.modifiers.length > 0 && <span>Bisa pilih varian</span>}
                         {p.video_url ? <span>Ada video</span> : p.images.length > 1 && <span>{p.images.length} foto</span>}
                       </p>

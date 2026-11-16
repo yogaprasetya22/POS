@@ -16,7 +16,7 @@ const product: Product = {
   ],
   image_url: null,
   images: [],
-  video_url: null,
+  video_url: null, description: '', is_featured: false,
   sort: 0,
 }
 

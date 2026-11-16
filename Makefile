@@ -105,3 +105,12 @@ test-all:
 	bun scripts/db-check.mjs
 	bun scripts/sim-month.mjs $(SIM_FLAGS)
 	bunx playwright test
+
+drive-check: ## Uji Google Drive: unggah gambar uji, buka alamatnya, hapus lagi
+	bun scripts/media-to-drive.js check
+
+media-status: ## Hitung media per tempat penyimpanan
+	bun scripts/media-to-drive.js status
+
+media-to-drive: ## Pindahkan semua media yang belum di Google Drive
+	bun scripts/media-to-drive.js migrate

@@ -1,4 +1,5 @@
 import { Film, ImagePlus, Loader2, Plus, Trash2, Video, X } from 'lucide-react'
+import { Textarea } from '@shared/components/ui/textarea'
 import { CurrencyInput } from '@shared/components/currency-input'
 import { useEffect, useState, type FormEvent } from 'react'
 import { cn } from 'cn'
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@shared/components/ui/drawer'
 import { Switch } from '@shared/components/ui/switch'
 import { useStaff } from '@shared/lib/auth'
-import { uploadToGDrive } from '@shared/lib/gdrive'
+import { uploadMedia } from '@shared/lib/media'
 import { supabase } from '@shared/lib/supabase'
 import { ModifierGroupSchema, type Category, type ModifierGroup, type Product } from '@shared/types/contracts'
 import { ModifierEditor } from './modifier-editor'
@@ -31,6 +32,8 @@ export function ProductForm({ product, categories, onDone }: Props) {
     is_available: product?.is_available ?? true,
     images: product?.images && product.images.length > 0 ? product.images : product?.image_url ? [product.image_url] : [],
     video_url: product?.video_url ?? '',
+    description: product?.description ?? '',
+    is_featured: product?.is_featured ?? false,
   })
   const [modifiers, setModifiers] = useState<ModifierGroup[]>(product?.modifiers ?? [])
   const [error, setError] = useState('')
@@ -62,18 +65,10 @@ export function ProductForm({ product, categories, onDone }: Props) {
 
     for (const item of newPending) {
       try {
-        const res = await uploadToGDrive(item.file, storeId ?? 'pos')
-        setForm((f) => ({ ...f, images: [...f.images, res.url] }))
+        const { url } = await uploadMedia(item.file, storeId ?? 'pos')
+        setForm((f) => ({ ...f, images: [...f.images, url] }))
       } catch (err) {
-        // Fallback ke Supabase Storage jika GDrive terkendala
-        const path = `${storeId}/${crypto.randomUUID()}-${item.file.name.replace(/[^\w.-]/g, '_')}`
-        const { error: sErr } = await supabase.storage.from('product-images').upload(path, item.file)
-        if (sErr) {
-          setError(`Gagal upload ${item.file.name}: ${err instanceof Error ? err.message : sErr.message}`)
-        } else {
-          const publicUrl = supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl
-          setForm((f) => ({ ...f, images: [...f.images, publicUrl] }))
-        }
+        setError(`Gagal upload ${item.file.name}: ${err instanceof Error ? err.message : 'coba lagi'}`)
       } finally {
         URL.revokeObjectURL(item.blobUrl)
         setPendingImages((prev) => prev.filter((p) => p.id !== item.id))
@@ -94,16 +89,9 @@ export function ProductForm({ product, categories, onDone }: Props) {
     setError('')
 
     try {
-      const res = await uploadToGDrive(file, `${storeId ?? 'pos'}-video`)
-      set({ video_url: res.url })
+      set({ video_url: (await uploadMedia(file, storeId ?? 'pos', 'video')).url })
     } catch (err) {
-      const path = `${storeId}/video-${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-      const { error: sErr } = await supabase.storage.from('product-images').upload(path, file)
-      if (sErr) {
-        setError(`Gagal upload video: ${err instanceof Error ? err.message : sErr.message}`)
-      } else {
-        set({ video_url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl })
-      }
+      setError(`Gagal upload video: ${err instanceof Error ? err.message : 'coba lagi'}`)
     } finally {
       URL.revokeObjectURL(blobUrl)
       setPendingVideo(null)
@@ -129,6 +117,8 @@ export function ProductForm({ product, categories, onDone }: Props) {
       image_url: primaryImage,
       images: form.images,
       video_url: form.video_url.trim() || null,
+      description: form.description.trim(),
+      is_featured: form.is_featured,
     }
     setBusy(true)
     const { error } = product ? await supabase.from('products').update(row).eq('id', product.id) : await supabase.from('products').insert(row)
@@ -276,6 +266,12 @@ export function ProductForm({ product, categories, onDone }: Props) {
             <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Contoh: Nasi Goreng Spesial" />
           </Label>
 
+          <Label className="flex-col items-start gap-2">
+            <span>Deskripsi <span className="font-normal text-muted-foreground">(boleh kosong)</span></span>
+            <Textarea value={form.description} maxLength={300} rows={2} onChange={(e) => set({ description: e.target.value })} placeholder="Contoh: Nasi goreng dengan telur, ayam suwir, dan kerupuk. Bisa pilih level pedas." className="min-h-20 text-base" />
+            <span className="text-xs font-normal text-muted-foreground">Tampil di halaman pembeli, di bawah nama menu. {form.description.length}/300</span>
+          </Label>
+
           <div className="grid grid-cols-2 gap-3">
             <Label className="flex-col items-start gap-2">
               Harga (Rp)
@@ -312,6 +308,14 @@ export function ProductForm({ product, categories, onDone }: Props) {
               <span className="text-xs text-muted-foreground">Matikan jika menu sedang habis.</span>
             </span>
             <Switch checked={form.is_available} onCheckedChange={(on) => set({ is_available: on })} />
+          </Label>
+
+          <Label className="justify-between rounded-2xl border p-3 font-normal">
+            <span>
+              <span className="block font-medium">Menu andalan</span>
+              <span className="text-xs text-muted-foreground">Diberi tanda “Andalan” dan tampil paling atas di halaman pembeli.</span>
+            </span>
+            <Switch checked={form.is_featured} onCheckedChange={(on) => set({ is_featured: on })} />
           </Label>
 
           <div className="space-y-2">
