@@ -1,5 +1,5 @@
 import { Check, ExternalLink, ImagePlus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
@@ -104,44 +104,49 @@ export function ThemePicker({ config, onSaved }: { config: StoreConfig | null; o
 
 /** Gambar kecil yang meniru susunan tiap template, supaya pemilik bisa membayangkan tanpa membuka halaman. */
 function Mock({ t, color }: { t: BuyerTemplate; color: string }) {
-  const dark = t === 'gelap'
-  const bg = dark ? '#22242b' : t === 'lembut' ? `color-mix(in oklch, ${color} 14%, white)` : '#f3f4f8'
-  const card = dark ? '#33363f' : '#fff'
-  const photo = dark ? '#565a66' : '#cfd3dc'
-  const line = dark ? '#8b8f9b' : '#9aa0ad'
-  const box = (extra: React.CSSProperties) => ({ background: card, borderRadius: t === 'lembut' ? 10 : 5, overflow: 'hidden', ...extra })
-  return (
-    <div aria-hidden className="h-28 w-full rounded-lg p-2" style={{ background: bg }}>
-      {t === 'daftar' ? (
-        <div className="flex h-full flex-col gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex flex-1 items-center gap-2" style={box({})}>
-              <div className="h-full w-8" style={{ background: photo }} />
-              <div className="flex-1 space-y-1"><div className="h-1.5 w-3/4 rounded" style={{ background: line }} /><div className="h-1.5 w-1/3 rounded" style={{ background: color }} /></div>
-            </div>
-          ))}
-        </div>
-      ) : t === 'foto' ? (
-        <div className="flex h-full flex-col gap-1.5">
-          {[0, 1].map((i) => (
-            <div key={i} className="flex flex-1 flex-col" style={box({})}>
-              <div className="flex-1" style={{ background: photo }} />
-              <div className="flex items-center justify-between p-1"><div className="h-1.5 w-1/2 rounded" style={{ background: line }} /><div className="h-1.5 w-1/5 rounded" style={{ background: color }} /></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid h-full grid-cols-3 gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex flex-col" style={box(t === 'lembut' ? { padding: 3, boxShadow: '0 1px 4px #0002' } : {})}>
-              <div className="flex-1" style={{ background: photo, borderRadius: t === 'lembut' ? 8 : 0 }} />
-              <div className="space-y-1 p-1"><div className="h-1.5 w-full rounded" style={{ background: line }} /><div className="h-1.5 w-1/2 rounded" style={{ background: color }} /></div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  const dark = t === 'malam'
+  const BG: Record<BuyerTemplate, string> = {
+    segar: `color-mix(in oklch, ${color} 10%, white)`, ringkas: '#f4f5f8', galeri: '#f3f4f8', majalah: '#f6f0e4', kertas: '#f3ead7',
+    malam: '#1f2128', bento: `color-mix(in oklch, ${color} 6%, white)`, pastel: `color-mix(in oklch, ${color} 18%, white)`, label: '#f3f4f8', minimalis: '#ffffff',
+  }
+  const card = dark ? '#2e313a' : '#fff'
+  const photo = dark ? '#555a66' : '#cfd3dc'
+  const ink = dark ? '#9aa0ad' : '#9aa0ad'
+  const bar = (w: string, c = ink) => <div className="h-1.5 rounded" style={{ width: w, background: c }} />
+  const dot = <div className="size-3 rounded-full" style={{ background: color }} />
+  let body: ReactNode
+  switch (t) {
+    case 'ringkas':
+      body = <div className="flex h-full flex-col gap-1">{[0, 1, 2].map((i) => <div key={i} className="flex flex-1 items-center gap-1.5 rounded px-1" style={{ background: card }}><div className="size-5 rounded" style={{ background: photo }} /><div className="flex-1 space-y-1">{bar('70%')}{bar('35%', color)}</div>{dot}</div>)}</div>
+      break
+    case 'galeri':
+      body = <div className="grid h-full grid-cols-2 gap-1.5">{[0, 1].map((i) => <div key={i} className="relative overflow-hidden rounded-lg" style={{ background: photo }}><div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/70 to-transparent p-1.5">{bar('70%', '#fff')}{bar('40%', '#fff')}</div></div>)}</div>
+      break
+    case 'majalah':
+      body = <div className="flex h-full flex-col gap-1.5"><div className="flex flex-1 gap-1.5 rounded-lg p-1" style={{ background: card }}><div className="w-1/2 rounded" style={{ background: photo }} /><div className="flex-1 space-y-1 pt-1">{bar('40%', color)}{bar('90%', '#555')}{bar('60%')}</div></div><div className="grid flex-1 grid-cols-3 gap-1">{[0, 1, 2].map((i) => <div key={i} className="rounded" style={{ background: photo }} />)}</div></div>
+      break
+    case 'kertas':
+      body = <div className="flex h-full flex-col justify-center gap-2 px-2">{[0, 1, 2, 3].map((i) => <div key={i} className="flex items-center gap-1">{bar('35%', '#6b5a3c')}<div className="flex-1 border-b border-dotted border-[#6b5a3c]" />{bar('15%', '#6b5a3c')}</div>)}</div>
+      break
+    case 'malam':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col items-center justify-center gap-1 rounded-lg" style={{ background: card }}><div className="size-7 rounded-full" style={{ background: photo, boxShadow: `0 0 10px ${color}` }} />{bar('60%')}{bar('35%', color)}</div>)}</div>
+      break
+    case 'bento':
+      body = <div className="grid h-full grid-cols-4 grid-rows-2 gap-1">{Array.from({ length: 8 }, (_, i) => <div key={i} className="relative rounded" style={{ background: photo }}><div className="absolute bottom-0.5 left-0.5 h-1.5 w-1/2 rounded-sm bg-black/60" /></div>)}</div>
+      break
+    case 'pastel':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col items-center justify-center gap-1 rounded-2xl" style={{ background: card }}><div className="size-7 rounded-full border-2 border-white shadow" style={{ background: photo }} />{bar('60%')}<div className="h-2 w-1/2 rounded-full" style={{ background: `color-mix(in oklch, ${color} 30%, white)` }} /></div>)}</div>
+      break
+    case 'label':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="relative flex flex-col overflow-hidden rounded-lg shadow-sm" style={{ background: card }}><div className="flex-1" style={{ background: photo }} /><div className="absolute left-0 top-1.5 h-2 w-1/2 rounded-r" style={{ background: color }} /><div className="p-1">{bar('80%', '#444')}</div></div>)}</div>
+      break
+    case 'minimalis':
+      body = <div className="grid h-full grid-cols-3 gap-2">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col items-center gap-1"><div className="w-full flex-1 rounded-xl" style={{ background: photo }} />{bar('60%')}{bar('30%')}</div>)}</div>
+      break
+    default:
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-xl p-1 shadow-sm" style={{ background: card }}><div className="flex-1 rounded-lg" style={{ background: photo }} /><div className="flex items-center justify-between">{bar('45%')}{dot}</div></div>)}</div>
+  }
+  return <div aria-hidden className="h-28 w-full rounded-lg p-2" style={{ background: BG[t] }}>{body}</div>
 }
 
 /** Template halaman pembeli: ketuk satu → langsung tersimpan. "Lihat contoh" membuka halaman pembeli dengan template itu. */

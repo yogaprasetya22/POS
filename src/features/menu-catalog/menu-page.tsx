@@ -1,23 +1,25 @@
 import { liquid } from '@shared/lib/motion'
-import { LAYOUT, applyBuyerLook, asTemplate } from '@shared/lib/buyer-look'
+import { GRID, applyBuyerLook, asTemplate } from '@shared/lib/buyer-look'
 import { rememberMenu } from '@shared/lib/last-menu'
 import { Progressive } from '@shared/components/progressive'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { ArrowRight, Search, Star, X } from 'lucide-react'
+import { ArrowRight, Search, X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
-import { CheckoutPanel, MyOrders, cartTotal, useCartStore } from '@features/cart-checkout'
+import { CheckoutPanel, MyOrders, cartTotal, itemKey, unitPrice, useCartStore } from '@features/cart-checkout'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
 import { MenuSkeleton } from '@shared/components/page-skeleton'
-import { MenuImage } from '@shared/components/menu-image'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
-import { isSellable, type Product } from '@shared/types/contracts'
+import type { Product } from '@shared/types/contracts'
+import { MenuCard } from './components/menu-card'
 import { ProductPicker } from './components/product-picker'
+import { toast } from 'sonner'
+import { Toaster } from '@shared/components/ui/sonner'
 import { useCatalog } from './use-catalog'
 
 /**
@@ -51,7 +53,6 @@ export function MenuPage() {
   useEffect(() => {
     if (storeTheme) return applyBuyerLook(storeTheme, template)
   }, [storeTheme, template])
-  const L = LAYOUT[template]
 
   if (error)
     return (
@@ -95,6 +96,13 @@ export function MenuPage() {
   const qtyOf = (productId: string) =>
     items.filter((i) => i.product_id === productId).reduce((n, i) => n + i.qty, 0)
   const table = params.get('tipe') === 'bungkus' ? null : params.get('meja')
+  // tombol +: menu tanpa varian langsung masuk pesanan; menu dengan varian membuka pilihan dulu
+  const quickAdd = (p: Product) => {
+    if (p.modifiers.length > 0) return setPicking(p)
+    add({ key: itemKey(p.id, [], ''), product_id: p.id, qty: 1, choices: [], note: '', name: p.name, unit_price: unitPrice(p, []), image: p.image_url })
+    navigator.vibrate?.(30)
+    toast.success(`${p.name} ditambahkan`, { duration: 1500 })
+  }
   return (
     <div className="min-h-dvh w-full bg-background pb-28">
       <header className="sticky top-0 z-20 border-b bg-background">
@@ -149,12 +157,11 @@ export function MenuPage() {
         {shown.length === 0 ? (
           <p className="rounded-lg border border-dashed py-14 text-center text-muted-foreground">Menu tidak ditemukan.</p>
         ) : (
-          <div className={L.grid}>
+          <div className={GRID[template]}>
             <Progressive items={shown} resetKey={`${category}|${q}`}>
             {(rows) => (
             <AnimatePresence mode="popLayout" initial={false}>
             {rows.map((p, idx) => {
-              const qty = qtyOf(p.id)
               const pr = data.promotions.find(
                 (x) => (x.scope === 'PRODUCT' && x.target_id === p.id) || (x.scope === 'CATEGORY' && x.target_id === p.category_id),
               )
@@ -165,41 +172,27 @@ export function MenuPage() {
                   : pr.type === 'PERCENTAGE'
                     ? `Diskon ${pr.discount_percent}%`
                     : `Hemat ${rupiah(pr.discount_amount)}`
+              const hero = template === 'majalah' && idx === 0 && !category && !q
               return (
-                <m.button
+                <m.div
                   key={p.id}
-                  type="button"
                   layout="position"
-                  initial={{ opacity: 0, scale: 0.9, y: 12 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ ...liquid, delay: Math.min(idx, 12) * 0.025 }}
-                  whileTap={{ scale: 0.97 }}
-                  disabled={!isSellable(p)}
-                  onClick={() => setPicking(p)}
-                  className={`relative flex overflow-hidden text-left transition-colors disabled:opacity-60 ${L.card} ${qty ? 'border-primary ring-2 ring-primary' : ''}`}
+                  className={hero ? 'col-span-full' : ''}
                 >
-                  <div className={`relative ${L.image}`}>
-                    <MenuImage src={p.image_url} alt="" aspectRatio={L.aspect} />
-                    {!isSellable(p) && <span className="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold text-white">Habis</span>}
-                    {p.is_featured && isSellable(p) && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-sm font-extrabold text-amber-950 shadow"><Star className="size-3.5 fill-current" aria-hidden /> Andalan</span>}
-                  </div>
-                  {qty > 0 && (
-                    <m.span key={qty} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-2 top-2 grid min-w-8 place-items-center rounded-full bg-primary px-2 py-1 text-sm font-bold text-primary-foreground tabular-nums">{qty}</m.span>
-                  )}
-                  <div className={L.body}>
-                    <p className={L.name}>{p.name}</p>
-                    {p.description && <p className="line-clamp-2 w-full text-sm leading-5 text-muted-foreground">{p.description}</p>}
-                    <p className={`tabular-nums ${L.price}`}>{rupiah(p.price)}</p>
-                    {(promoLabel || p.modifiers.length > 0 || p.video_url || p.images.length > 1) && (
-                      <p className="flex w-full flex-wrap gap-x-2 text-sm text-muted-foreground">
-                        {promoLabel && <span className="rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary">{promoLabel}</span>}
-                        {p.modifiers.length > 0 && <span>Bisa pilih varian</span>}
-                        {p.video_url ? <span>Ada video</span> : p.images.length > 1 && <span>{p.images.length} foto</span>}
-                      </p>
-                    )}
-                  </div>
-                </m.button>
+                  <MenuCard
+                    p={p}
+                    t={template}
+                    qty={qtyOf(p.id)}
+                    promo={promoLabel}
+                    hero={hero}
+                    onOpen={() => setPicking(p)}
+                    onAdd={() => quickAdd(p)}
+                  />
+                </m.div>
               )
             })}
             </AnimatePresence>
@@ -234,6 +227,9 @@ export function MenuPage() {
         </m.div>
       )}
       </AnimatePresence>
+
+      {/* notifikasi "ditambahkan" dari tombol + */}
+      <Toaster position="top-center" />
 
       {/* Modals & Drawers */}
       {picking && (

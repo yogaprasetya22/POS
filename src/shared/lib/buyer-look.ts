@@ -1,49 +1,76 @@
 import { THEMES, swatch, type ThemeKey } from './theme'
 
-/** Template tampilan halaman pembeli. Warna utamanya mengikuti warna toko. */
+/** 10 template halaman pembeli. Warna utama selalu mengikuti warna toko (tab Warna). */
 export const BUYER_TEMPLATES = {
-  klasik: { label: 'Klasik', hint: 'Kotak-kotak dengan foto di atas. Rapi untuk semua jenis menu.' },
-  daftar: { label: 'Daftar', hint: 'Foto kecil di kiri, nama dan harga di kanan. Cepat dibaca, hemat kuota.' },
-  foto: { label: 'Foto besar', hint: 'Satu menu per baris dengan foto lebar. Cocok bila fotonya bagus.' },
-  lembut: { label: 'Lembut', hint: 'Sudut bulat, latar berwarna tipis sesuai warna toko. Terasa ramah.' },
-  gelap: { label: 'Gelap', hint: 'Latar gelap, foto makanan lebih menonjol. Cocok untuk kafe malam.' },
+  segar: { label: 'Segar', hint: 'Kartu putih bulat, latar berwarna tipis, tombol + di pojok. Gaya aplikasi pesan antar.' },
+  ringkas: { label: 'Daftar ringkas', hint: 'Satu menu per baris, foto kecil di kiri, tombol + di kanan. Paling cepat dibaca.' },
+  galeri: { label: 'Galeri foto', hint: 'Foto penuh, nama dan harga di atas bayangan gelap. Cocok bila fotonya bagus.' },
+  majalah: { label: 'Majalah', hint: 'Menu andalan tampil besar di atas, sisanya kotak 2 kolom. Latar krem.' },
+  kertas: { label: 'Menu kertas', hint: 'Tanpa foto, huruf klasik, titik-titik ke harga. Untuk warung tanpa foto menu.' },
+  malam: { label: 'Kafe malam', hint: 'Latar gelap, foto bulat, harga menyala dengan warna toko.' },
+  bento: { label: 'Bento', hint: 'Kotak kecil 3 kolom, harga di atas foto. Untuk menu yang banyak.' },
+  pastel: { label: 'Pastel', hint: 'Foto bulat di tengah kartu berwarna pastel. Gaya kedai minuman kekinian.' },
+  label: { label: 'Label harga', hint: 'Kartu foto dengan pita harga berwarna di pojok, huruf tebal.' },
+  minimalis: { label: 'Minimalis', hint: 'Tanpa garis dan bayangan, banyak ruang, teks rata tengah.' },
 } as const
 export type BuyerTemplate = keyof typeof BUYER_TEMPLATES
 export const BUYER_TEMPLATE_KEYS = Object.keys(BUYER_TEMPLATES) as BuyerTemplate[]
-export const asTemplate = (v: string | null | undefined): BuyerTemplate => (v && v in BUYER_TEMPLATES ? (v as BuyerTemplate) : 'klasik')
 
-/** Kelas susunan kartu menu per template. */
-export const LAYOUT: Record<BuyerTemplate, { grid: string; card: string; image: string; aspect: string; body: string; name: string; price: string }> = {
-  klasik: { grid: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]', card: 'flex-col rounded-lg border bg-card', image: 'w-full', aspect: 'aspect-4/3', body: 'w-full space-y-1 p-3', name: 'line-clamp-2 min-h-10 text-base font-medium leading-5', price: 'text-base font-semibold' },
-  daftar: { grid: 'grid gap-2 md:grid-cols-2', card: 'flex-row items-center rounded-xl border bg-card', image: 'w-28 shrink-0', aspect: 'aspect-square', body: 'min-w-0 flex-1 space-y-1 p-3', name: 'line-clamp-2 text-base font-semibold leading-5', price: 'text-lg font-bold' },
-  foto: { grid: 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3', card: 'flex-col rounded-2xl border bg-card', image: 'w-full', aspect: 'aspect-video', body: 'flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1 p-4', name: 'text-lg font-bold leading-6', price: 'text-lg font-extrabold text-primary' },
-  lembut: { grid: 'grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]', card: 'flex-col rounded-3xl bg-card p-2 shadow-md', image: 'w-full overflow-hidden rounded-2xl', aspect: 'aspect-square', body: 'w-full space-y-1 px-2 pb-2 pt-3', name: 'line-clamp-2 min-h-10 text-base font-semibold leading-5', price: 'text-base font-extrabold text-primary' },
-  gelap: { grid: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]', card: 'flex-col rounded-xl border bg-card', image: 'w-full', aspect: 'aspect-4/3', body: 'w-full space-y-1 p-3', name: 'line-clamp-2 min-h-10 text-base font-medium leading-5', price: 'text-base font-bold text-primary' },
+// pilihan lama (sebelum 10 template) → yang paling mirip
+const LEGACY: Record<string, BuyerTemplate> = { klasik: 'segar', daftar: 'ringkas', foto: 'galeri', lembut: 'pastel', gelap: 'malam' }
+export const asTemplate = (v: string | null | undefined): BuyerTemplate => {
+  if (v && v in BUYER_TEMPLATES) return v as BuyerTemplate
+  return (v && LEGACY[v]) || 'segar'
+}
+
+/** Susunan daftar menu per template (grid kartu). */
+export const GRID: Record<BuyerTemplate, string> = {
+  segar: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]',
+  ringkas: 'grid gap-0 overflow-hidden rounded-2xl border bg-card md:grid-cols-2 md:gap-x-6 md:border-0 md:bg-transparent',
+  galeri: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]',
+  majalah: 'grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]',
+  kertas: 'mx-auto grid max-w-3xl gap-x-10 md:grid-cols-2',
+  malam: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]',
+  bento: 'grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]',
+  pastel: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]',
+  label: 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]',
+  minimalis: 'grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]',
 }
 
 /**
- * Pasang warna toko + template ke halaman pembeli. Variabel dipasang di <html> supaya panel/drawer (portal) ikut.
+ * Pasang warna toko + latar template ke halaman pembeli. Variabel dipasang di <html> supaya panel/drawer (portal) ikut.
  * Mengembalikan fungsi pembersih: tampilan staf di browser yang sama tidak ikut berubah.
  */
 export function applyBuyerLook(theme: string | null | undefined, template: BuyerTemplate) {
   const key = (theme && theme in THEMES ? theme : 'biru') as ThemeKey
   const { h, c } = THEMES[key]
   const root = document.documentElement
-  const dark = template === 'gelap'
+  const dark = template === 'malam'
   const vars: Record<string, string> = {
-    '--primary': dark ? `oklch(0.72 ${c} ${h})` : swatch(key),
+    '--primary': dark ? `oklch(0.74 ${c} ${h})` : swatch(key),
     '--primary-foreground': dark ? 'oklch(0.16 0.02 265)' : 'oklch(0.99 0 0)',
     '--ring': swatch(key),
   }
-  if (template === 'lembut') {
-    vars['--background'] = `oklch(0.96 0.03 ${h})`
-    vars['--muted'] = `oklch(0.93 0.035 ${h})`
-    vars['--border'] = `oklch(0.9 0.035 ${h})`
+  const bg: Partial<Record<BuyerTemplate, string>> = {
+    segar: `oklch(0.965 0.02 ${h})`,
+    ringkas: 'oklch(0.975 0.004 265)',
+    galeri: 'oklch(0.97 0.005 265)',
+    majalah: 'oklch(0.965 0.02 85)',
+    kertas: 'oklch(0.955 0.03 85)',
+    bento: `oklch(0.975 0.01 ${h})`,
+    pastel: `oklch(0.955 0.035 ${h})`,
+    label: 'oklch(0.97 0.004 265)',
+    minimalis: 'oklch(1 0 0)',
+  }
+  if (bg[template]) vars['--background'] = bg[template]!
+  if (template === 'kertas') {
+    vars['--card'] = 'oklch(0.975 0.025 85)'
+    vars['--border'] = 'oklch(0.85 0.03 85)'
   }
   if (dark) {
-    vars['--background'] = 'oklch(0.17 0.01 265)'
-    vars['--card'] = 'oklch(0.23 0.012 265)'
-    vars['--popover'] = 'oklch(0.23 0.012 265)'
+    vars['--background'] = 'oklch(0.17 0.012 265)'
+    vars['--card'] = 'oklch(0.23 0.014 265)'
+    vars['--popover'] = 'oklch(0.23 0.014 265)'
   }
   const before = new Map(Object.keys(vars).map((k) => [k, root.style.getPropertyValue(k)]))
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
