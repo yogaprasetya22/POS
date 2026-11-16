@@ -5,6 +5,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Star,
   Table as TableIcon,
   Trash2,
   UtensilsCrossed,
@@ -105,6 +106,22 @@ export function MenuTab({
   })
 
   const paged = useClientPaged(shown, { pageSize: viewMode === 'grid' ? 24 : 20, resetKey: `${query}|${category}|${availabilityFilter}|${viewMode}`, append: viewMode === 'grid' })
+
+
+  // ★ andalan: tampil paling atas & diberi tanda di halaman pembeli
+  const toggleFeatured = (p: Product) => run(supabase.from('products').update({ is_featured: !p.is_featured }).eq('id', p.id))
+  const StarButton = ({ p }: { p: Product }) => (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); void toggleFeatured(p) }}
+      aria-pressed={p.is_featured}
+      aria-label={p.is_featured ? `Lepas ${p.name} dari menu andalan` : `Jadikan ${p.name} menu andalan`}
+      title={p.is_featured ? 'Menu andalan (ketuk untuk melepas)' : 'Jadikan menu andalan'}
+      className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full border px-2.5 text-sm font-semibold transition-colors ${p.is_featured ? 'border-amber-400 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200' : 'text-muted-foreground hover:bg-muted'}`}
+    >
+      <Star className={`size-4 ${p.is_featured ? 'fill-amber-400 text-amber-500' : ''}`} aria-hidden /> {p.is_featured ? 'Andalan' : 'Andalan?'}
+    </button>
+  )
 
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
   const soldOut = products.filter((p) => !isSellable(p)).length
@@ -305,6 +322,7 @@ export function MenuTab({
                           <h3 className="font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
                             {p.name}
                           </h3>
+                          <StarButton p={p} />
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           <span>{p.sku ? `SKU: ${p.sku}` : 'Tanpa SKU'}</span>
@@ -345,6 +363,9 @@ export function MenuTab({
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => setEditing(p)}>
                                 <Pencil className="size-3.5 mr-2" /> Ubah Menu
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => void toggleFeatured(p)}>
+                                <Star className="size-3.5 mr-2" /> {p.is_featured ? 'Lepas dari andalan' : 'Jadikan andalan'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
@@ -405,6 +426,7 @@ export function MenuTab({
                           <p className="truncate font-semibold text-foreground">{p.name}</p>
                           <p className="text-xs text-muted-foreground">{p.sku ?? '—'}</p>
                         </div>
+                        <span className="ml-auto pl-2"><StarButton p={p} /></span>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
@@ -457,6 +479,9 @@ export function MenuTab({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditing(p)}>
                             <Pencil className="size-3.5 mr-2" /> Ubah
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void toggleFeatured(p)}>
+                            <Star className="size-3.5 mr-2" /> {p.is_featured ? 'Lepas dari andalan' : 'Jadikan andalan'}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
