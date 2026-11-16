@@ -52,7 +52,7 @@ export function InventoryPage({ store, products, onCatalogChanged }: { store: St
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Inventory Stock</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Inventory Stock</h1>
           <p className="mt-1 text-lg text-muted-foreground">Stok bahan & resep. Stok berkurang otomatis saat pesanan dibayar.</p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -153,7 +153,7 @@ export function PurchasingPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Pembelian</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Pembelian</h1>
           <p className="mt-1 hidden text-lg text-muted-foreground sm:block">Rencanakan belanja, terima barang, dan catat utang ke pemasok.</p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">

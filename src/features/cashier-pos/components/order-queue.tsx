@@ -180,7 +180,7 @@ export function OrdersBoard({ orders, loading, act }: { orders: Order[]; loading
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Antrean pesanan</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Antrean pesanan</h1>
         <p className="mt-1 text-lg text-muted-foreground">Pesanan yang belum selesai. Tekan “Terima bayar” untuk membayar di layar Jualan.{act.useKitchen ? '' : ' Tandai “Sudah siap” saat makanan selesai dimasak.'}</p>
       </div>
 

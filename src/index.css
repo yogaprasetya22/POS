@@ -134,6 +134,13 @@
   html {
     @apply font-sans scroll-smooth;
   }
+  /* HP: semua ukuran (teks, tombol, jarak) dikecilkan 10% supaya tidak terlalu besar di layar sempit.
+     Tailwind memakai rem, jadi satu angka ini menyesuaikan semuanya secara seimbang. */
+  @media (max-width: 639px) {
+    html {
+      font-size: 90%;
+    }
+  }
 }
 @media print {
   @page { size: 58mm auto; margin: 0; }

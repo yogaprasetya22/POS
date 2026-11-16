@@ -68,7 +68,7 @@ export function MorePageView() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Lainnya</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Lainnya</h1>
         <p className="mt-1 text-lg text-muted-foreground">Fitur tambahan. Tidak perlu dipakai setiap hari. Pilih yang ingin dibuka.</p>
       </div>
 
