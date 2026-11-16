@@ -1,10 +1,9 @@
-import { Barcode as BarcodeIcon, PackageMinus, PackagePlus, Pencil, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
-import { EmptyState, Pagination } from '@shared/components/pagination'
+import { Barcode as BarcodeIcon, ChevronDown, PackageMinus, PackagePlus, Pencil, Plus, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { EmptyState } from '@shared/components/pagination'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
-import { useClientPaged } from '@shared/lib/use-client-paged'
 import { rupiah } from '@shared/lib/utils'
 import { LEVEL, fmtQty, levelOf, type Barcode, type Ingredient, type Level } from './data'
 
@@ -39,7 +38,12 @@ export function StockList({
     .filter((i) => (filter === 'all' || levelOf(i) === filter) && (!term || i.name.toLowerCase().includes(term)))
     // yang perlu perhatian di atas: habis, hampir habis, lalu aman
     .sort((a, b) => ['out', 'low', 'ok'].indexOf(levelOf(a)) - ['out', 'low', 'ok'].indexOf(levelOf(b)) || a.name.localeCompare(b.name))
-  const paged = useClientPaged(shown, { pageSize: 12, resetKey: `${filter}|${term}` })
+  // "Tampilkan lebih banyak": lebih mudah dari nomor halaman, dan daftar tetap terbuka setelah mengubah bahan
+  const STEP = 24
+  const [limit, setLimit] = useState(STEP)
+  useEffect(() => setLimit(STEP), [filter, term])
+  const rows = shown.slice(0, limit)
+  const left = shown.length - rows.length
 
   const tiles: { key: Filter; label: string; value: string; tone: string }[] = [
     { key: 'all', label: 'Semua bahan', value: String(active.length), tone: '' },
@@ -79,7 +83,7 @@ export function StockList({
       </div>
 
       <ul className="grid gap-3 lg:grid-cols-2">
-        {paged.rows.map((i) => {
+        {rows.map((i) => {
           const lv = LEVEL[levelOf(i)]
           const n = codesOf(i.id)
           return (
@@ -120,7 +124,14 @@ export function StockList({
           hint={active.length === 0 ? 'Tambahkan bahan satu per satu lewat “Bahan baru”, atau sekaligus lewat “Import Excel”.' : 'Coba kata lain atau pilih “Semua bahan”.'}
         />
       )}
-      <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+      {left > 0 && (
+        <div className="space-y-2 text-center">
+          <p className="text-base text-muted-foreground">Menampilkan {rows.length} dari {shown.length} bahan</p>
+          <Button variant="outline" className="h-14 w-full border-2 text-lg font-bold sm:w-auto sm:px-10" onClick={() => setLimit((n) => n + STEP)}>
+            <ChevronDown /> Tampilkan {Math.min(STEP, left)} bahan lagi{left > STEP ? ` (sisa ${left})` : ''}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
