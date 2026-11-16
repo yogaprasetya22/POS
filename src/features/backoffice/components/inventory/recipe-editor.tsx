@@ -91,12 +91,13 @@ export function RecipeEditor({
 
   return (
     <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <aside className="space-y-3">
-        <div className="relative">
+      {/* tablet & desktop: daftar menu menempel di samping dan setinggi layar (gulir sendiri) */}
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start">
+        <div className="relative shrink-0">
           <Search className="absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari menu…" aria-label="Cari menu" className="h-12 pl-11 text-base" />
         </div>
-        <ul className="max-h-[32rem] space-y-1 overflow-y-auto rounded-2xl border-2 bg-card p-2" aria-label="Daftar menu">
+        <ul className="max-h-72 min-h-0 space-y-1 overflow-y-auto overscroll-contain rounded-2xl border-2 bg-card p-2 lg:max-h-none lg:flex-1" aria-label="Daftar menu">
           {menu.map((p) => {
             const n = countOf(p.id)
             const on = p.id === productId
