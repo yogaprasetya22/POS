@@ -172,3 +172,24 @@ begin
 
   raise notice 'Selesai: % pesanan, % shift', (select count(*) from orders where store_id = s and business_day >= d0), (select count(*) from shifts where store_id = s and opened_at >= d0_ts);
 end $$;
+
+-- Deskripsi menu demo (hanya mengisi yang masih kosong)
+update products p set description = d.txt
+from (values
+  ('Nasi Goreng Spesial', 'Nasi goreng dengan telur, ayam suwir, dan sayuran. Bisa pilih level pedas.'),
+  ('Cafe Latte', 'Espresso dengan susu segar, bisa panas atau es.'),
+  ('Kentang Goreng', 'Kentang renyah dengan pilihan saus keju atau mayones.'),
+  ('Mie Goreng Jawa', 'Mie telur dimasak kecap manis, telur, dan sayuran.'),
+  ('Es Teh Lemon', 'Teh segar dengan perasan lemon asli, manisnya pas.'),
+  ('Donat Glaze', 'Donat lembut dengan lapisan gula manis, dibuat setiap pagi.'),
+  ('Ramen Telur Udang', 'Kuah kaldu gurih, mie ramen, udang, dan telur setengah matang.'),
+  ('Cookies Coklat', 'Kue kering renyah dengan potongan cokelat leleh.'),
+  ('Mie Kuah Ayam', 'Mie kuah hangat dengan ayam suwir dan sayuran segar.'),
+  ('Chocolate Parfait', 'Lapisan krim, cokelat, dan remahan biskuit dalam gelas.'),
+  ('Iga Bakar Madu', 'Iga sapi empuk dibakar dengan saus madu.'),
+  ('Burger Sapi Keju', 'Daging sapi panggang, keju leleh, dan sayuran segar.'),
+  ('Pizza Personal', 'Pizza ukuran pas untuk satu orang dengan mozzarella.'),
+  ('Penne Bolognese', 'Pasta penne dengan saus daging tomat khas Italia.'),
+  ('Rice Bowl Salmon', 'Nasi hangat, salmon panggang, dan sayuran segar.')
+) d(name, txt)
+where p.name = d.name and p.description = '' and p.store_id = (select id from stores where slug = 'warkop-nusantara');

@@ -85,6 +85,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           <div className="absolute inset-x-0 bottom-0 z-[2] flex items-end gap-2 p-3 text-white">
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-base font-bold leading-5 drop-shadow">{p.name}</p>
+              {p.description && <p className="line-clamp-2 text-sm leading-5 text-white/85 drop-shadow">{p.description}</p>}
               <p className="text-base font-extrabold drop-shadow">{price}</p>
             </div>
             {plus('size-11')}
@@ -119,6 +120,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           {count}
           <div className="space-y-1 p-3">
             <p className="line-clamp-2 font-serif text-lg font-bold leading-6">{p.name}</p>
+            {desc()}
             <div className="flex items-center justify-between gap-2">
               <span className="text-base font-bold">{price}</span>
               {plus('size-10')}
@@ -163,6 +165,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           </div>
           {p.is_featured && ok && <p className="mt-2 text-sm font-bold text-amber-300">★ Andalan</p>}
           <p className="mt-2 line-clamp-2 text-base font-semibold leading-5">{p.name}</p>
+          {desc('mt-1')}
           <p className="mt-1 text-lg font-extrabold text-primary drop-shadow-[0_0_10px_var(--primary)]">{price}</p>
           {promoTag}
           <div className="mt-3 flex justify-center">{plus()}</div>
@@ -176,7 +179,10 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           {photo('aspect-square', '', ok && <span className="absolute bottom-1.5 left-1.5 z-[2] rounded-lg bg-black/70 px-2 py-0.5 text-sm font-bold text-white tabular-nums">{rupiah(p.price)}</span>)}
           {p.is_featured && ok && <Star className="absolute left-1.5 top-1.5 z-[2] size-6 rounded-full bg-amber-400 p-1 text-amber-950" aria-label="Andalan" />}
           {count}
-          <p className="line-clamp-2 px-2 py-2 text-base font-semibold leading-5">{p.name}</p>
+          <div className="space-y-0.5 px-2 py-2">
+            <p className="line-clamp-2 text-base font-semibold leading-5">{p.name}</p>
+            {desc('text-[0.8125rem] leading-4')}
+          </div>
         </article>
       )
 
@@ -207,6 +213,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           <div className="flex items-center gap-2 p-3">
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-base font-extrabold uppercase leading-5 tracking-tight">{p.name}</p>
+              {desc('mt-0.5')}
               {promoTag}
             </div>
             {plus()}
@@ -222,6 +229,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
           {star()}
           {count}
           <p className="mt-3 line-clamp-2 text-base font-medium leading-5">{p.name}</p>
+          {desc('mt-1')}
           <p className="mt-1 text-base text-muted-foreground">{price}</p>
           {promoTag}
           {ok && (
