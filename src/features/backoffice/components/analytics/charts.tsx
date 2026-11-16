@@ -11,93 +11,148 @@ import { dayLabel, longDay } from './kit'
 
 const short = (n: number) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt` : Math.abs(n) >= 1e3 ? `${Math.round(n / 1e3)} rb` : String(n))
 
-export type DayPoint = { date: string; net: number; orders: number }
 type Metric = 'net' | 'orders' | 'aov'
-const METRIC: Record<Metric, { label: string; color: string; fmt: (n: number) => string; total: (s: DayPoint[]) => number }> = {
-  net: { label: 'Uang masuk', color: 'var(--chart-1)', fmt: rupiah, total: (s) => s.reduce((a, p) => a + p.net, 0) },
-  orders: { label: 'Jumlah penjualan', color: 'var(--chart-2)', fmt: (n) => `${n.toLocaleString('id-ID')} penjualan`, total: (s) => s.reduce((a, p) => a + p.orders, 0) },
-  aov: {
-    label: 'Rata-rata per penjualan',
-    color: 'var(--chart-4)',
-    fmt: rupiah,
-    total: (s) => {
-      const o = s.reduce((a, p) => a + p.orders, 0)
-      return o ? Math.round(s.reduce((a, p) => a + p.net, 0) / o) : 0
-    },
-  },
+type Row = { net: number; orders: number; prevNet: number; prevOrders: number; hour?: number; date?: string; prevDate?: string }
+const sum = (rows: Row[], k: 'net' | 'orders' | 'prevNet' | 'prevOrders') => rows.reduce((a, r) => a + r[k], 0)
+const avg = (net: number, orders: number) => (orders ? Math.round(net / orders) : 0)
+const METRIC: Record<Metric, { label: string; color: string; fmt: (n: number) => string; cur: (r: Row[]) => number; prev: (r: Row[]) => number }> = {
+  net: { label: 'Uang masuk', color: 'var(--chart-1)', fmt: rupiah, cur: (r) => sum(r, 'net'), prev: (r) => sum(r, 'prevNet') },
+  orders: { label: 'Jumlah penjualan', color: 'var(--chart-2)', fmt: (n) => `${n.toLocaleString('id-ID')} penjualan`, cur: (r) => sum(r, 'orders'), prev: (r) => sum(r, 'prevOrders') },
+  aov: { label: 'Rata-rata per penjualan', color: 'var(--chart-4)', fmt: rupiah, cur: (r) => avg(sum(r, 'net'), sum(r, 'orders')), prev: (r) => avg(sum(r, 'prevNet'), sum(r, 'prevOrders')) },
 }
+const hh = (h: number) => `${String(h).padStart(2, '0')}.00`
 
-/** Grafik area interaktif (shadcn "Area Chart - Interactive"): ketuk angka di atas untuk mengganti yang digambar. */
-export function SalesTrendChart({ series }: { series: DayPoint[] }) {
+/**
+ * Grafik area interaktif (shadcn "Area Chart - Interactive") dengan garis putus-putus periode pembanding.
+ * `mode="hour"`: per jam (Hari ini vs kemarin). `mode="day"`: per hari (vs periode sebelumnya).
+ */
+export function SalesTrendChart({ rows, mode = 'day', prevLabel = 'Periode lalu' }: { rows: Row[]; mode?: 'hour' | 'day'; prevLabel?: string }) {
   const [metric, setMetric] = useState<Metric>('net')
-  const data = series.map((p) => ({ ...p, aov: p.orders ? Math.round(p.net / p.orders) : 0 }))
-  const config = { [metric]: { label: METRIC[metric].label, color: METRIC[metric].color } } satisfies ChartConfig
-  const empty = series.every((p) => p.orders === 0)
+  const data = rows.map((r) => ({ ...r, aov: avg(r.net, r.orders), prevAov: avg(r.prevNet, r.prevOrders) }))
+  const prevKey = metric === 'net' ? 'prevNet' : metric === 'orders' ? 'prevOrders' : 'prevAov'
+  const config = {
+    [metric]: { label: mode === 'hour' ? 'Hari ini' : 'Periode ini', color: METRIC[metric].color },
+    [prevKey]: { label: prevLabel, color: 'var(--muted-foreground)' },
+  } satisfies ChartConfig
+  const empty = rows.every((r) => r.orders === 0 && r.prevOrders === 0)
+  const hasPrev = rows.some((r) => r.prevOrders > 0)
+  const fmtVal = (k: Metric, n: number) => (k === 'orders' ? n.toLocaleString('id-ID') : rupiah(n))
   return (
     <div>
       <div className="grid grid-cols-3 border-b" role="tablist" aria-label="Angka yang digambar">
-        {(Object.keys(METRIC) as Metric[]).map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={metric === k}
-            onClick={() => setMetric(k)}
-            className="relative flex flex-col gap-1 border-r px-3 py-3 text-left last:border-r-0 hover:bg-muted/40 aria-selected:bg-muted/60 sm:px-6 sm:py-4"
-          >
-            <span className="flex items-center gap-2 text-sm text-muted-foreground sm:text-base">
-              <span className="size-2.5 shrink-0 rounded-full" style={{ background: METRIC[k].color }} aria-hidden />
-              {METRIC[k].label}
-            </span>
-            <span className="text-base font-bold tabular-nums sm:text-2xl">{k === 'orders' ? METRIC.orders.total(series).toLocaleString('id-ID') : rupiah(METRIC[k].total(series))}</span>
-            {metric === k && <span className="absolute inset-x-0 bottom-0 h-0.5" style={{ background: METRIC[k].color }} aria-hidden />}
-          </button>
-        ))}
+        {(Object.keys(METRIC) as Metric[]).map((k) => {
+          const cur = METRIC[k].cur(rows)
+          const prev = METRIC[k].prev(rows)
+          const pct = prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
+          return (
+            <button key={k} type="button" role="tab" aria-selected={metric === k} onClick={() => setMetric(k)} className="relative flex flex-col gap-1 border-r px-3 py-3 text-left last:border-r-0 hover:bg-muted/40 aria-selected:bg-muted/60 sm:px-6 sm:py-4">
+              <span className="flex items-center gap-2 text-sm text-muted-foreground sm:text-base">
+                <span className="size-2.5 shrink-0 rounded-full" style={{ background: METRIC[k].color }} aria-hidden />
+                {METRIC[k].label}
+              </span>
+              <span className="text-base font-bold tabular-nums sm:text-2xl">{fmtVal(k, cur)}</span>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {prevLabel}: {fmtVal(k, prev)}
+                {pct !== null && <span className={pct >= 0 ? ' font-semibold text-emerald-700 dark:text-emerald-400' : ' font-semibold text-destructive'}> ({pct >= 0 ? '+' : ''}{pct}%)</span>}
+              </span>
+              {metric === k && <span className="absolute inset-x-0 bottom-0 h-0.5" style={{ background: METRIC[k].color }} aria-hidden />}
+            </button>
+          )
+        })}
       </div>
       <div className="px-2 pt-4 sm:px-6">
         {empty ? (
           <p className="grid h-[240px] place-items-center text-center text-base text-muted-foreground">Belum ada penjualan di rentang ini. Grafik muncul setelah ada penjualan yang dibayar.</p>
         ) : (
-          <ChartContainer config={config} className="aspect-auto h-[260px] w-full">
-            <AreaChart data={data} margin={{ left: 4, right: 12, top: 8 }}>
-              <defs>
-                <linearGradient id={`fill-${metric}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={`var(--color-${metric})`} stopOpacity={0.7} />
-                  <stop offset="95%" stopColor={`var(--color-${metric})`} stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => dayLabel(String(v))} />
-              <YAxis width={48} tickLine={false} axisLine={false} tickFormatter={(v) => (metric === 'orders' ? String(v) : short(Number(v)))} />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => longDay(String(v))} formatter={(v) => <span className="font-mono font-semibold tabular-nums">{METRIC[metric].fmt(Number(v))}</span>} />}
-              />
-              <Area dataKey={metric} type="monotone" fill={`url(#fill-${metric})`} stroke={`var(--color-${metric})`} strokeWidth={2} />
-            </AreaChart>
-          </ChartContainer>
+          <>
+            <ChartContainer config={config} className="aspect-auto h-[260px] w-full">
+              <AreaChart data={data} margin={{ left: 4, right: 12, top: 8 }}>
+                <defs>
+                  <linearGradient id={`fill-${metric}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={`var(--color-${metric})`} stopOpacity={0.6} />
+                    <stop offset="95%" stopColor={`var(--color-${metric})`} stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey={mode === 'hour' ? 'hour' : 'date'} tickLine={false} axisLine={false} tickMargin={8} minTickGap={mode === 'hour' ? 12 : 32} tickFormatter={(v) => (mode === 'hour' ? hh(Number(v)) : dayLabel(String(v)))} />
+                <YAxis width={60} tickLine={false} axisLine={false} allowDecimals={false} tickFormatter={(v) => (metric === 'orders' ? String(v) : short(Number(v)))} />
+                <ChartTooltip
+                  cursor={{ stroke: 'var(--border)' }}
+                  content={
+                    <ChartTooltipContent
+                      indicator="line"
+                      labelFormatter={(_, p) => {
+                        const r = p?.[0]?.payload as Row | undefined
+                        if (!r) return ''
+                        return mode === 'hour' ? `Pukul ${hh(r.hour ?? 0)}–${hh(((r.hour ?? 0) + 1) % 24)}` : `${longDay(r.date ?? '')}`
+                      }}
+                      formatter={(v, name, item) => {
+                        const r = item.payload as Row
+                        const isPrev = String(name).startsWith('prev')
+                        const when = isPrev ? (mode === 'hour' ? 'Kemarin' : `${prevLabel} (${dayLabel(r.prevDate ?? '')})`) : mode === 'hour' ? 'Hari ini' : 'Periode ini'
+                        return (
+                          <div className="flex w-full items-center justify-between gap-4">
+                            <span className="text-muted-foreground">{when}</span>
+                            <span className="font-mono font-semibold tabular-nums">{METRIC[metric].fmt(Number(v))}</span>
+                          </div>
+                        )
+                      }}
+                    />
+                  }
+                />
+                {hasPrev && <Area dataKey={prevKey} type="monotone" fill="none" stroke="var(--muted-foreground)" strokeDasharray="5 5" strokeWidth={1.5} dot={false} />}
+                <Area dataKey={metric} type="monotone" fill={`url(#fill-${metric})`} stroke={`var(--color-${metric})`} strokeWidth={2.5} dot={mode === 'hour' ? { r: 3 } : false} />
+              </AreaChart>
+            </ChartContainer>
+            <p className="flex flex-wrap items-center gap-x-5 gap-y-1 pb-3 pt-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2"><span className="h-1 w-5 rounded" style={{ background: METRIC[metric].color }} aria-hidden /> {mode === 'hour' ? 'Hari ini' : 'Periode ini'}</span>
+              <span className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed border-muted-foreground" aria-hidden /> {hasPrev ? prevLabel : `${prevLabel}: belum ada penjualan`}</span>
+            </p>
+          </>
         )}
       </div>
     </div>
   )
 }
 
-/** Penjualan per jam (hari ini): kapan toko paling ramai. */
-export function HourlyChart({ data }: { data: { hour: number; net: number; orders: number }[] }) {
-  const config = { net: { label: 'Uang masuk', color: 'var(--chart-1)' } } satisfies ChartConfig
+/** Jam ramai: batang hari ini (berwarna) di samping batang kemarin (abu-abu) untuk setiap jam. */
+export function HourlyChart({ data }: { data: { hour: number; net: number; orders: number; prevNet: number; prevOrders: number }[] }) {
+  const config = { orders: { label: 'Hari ini', color: 'var(--chart-1)' }, prevOrders: { label: 'Kemarin', color: 'var(--muted-foreground)' } } satisfies ChartConfig
   return (
-    <ChartContainer config={config} className="aspect-auto h-[220px] w-full">
-      <BarChart data={data} margin={{ left: 4, right: 8, top: 8 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="hour" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(h) => `${String(h).padStart(2, '0')}.00`} minTickGap={16} />
-        <YAxis width={44} tickLine={false} axisLine={false} tickFormatter={(v) => short(Number(v))} />
-        <ChartTooltip
-          cursor={false}
-          content={<ChartTooltipContent hideIndicator labelFormatter={(_, p) => { const h = Number(p?.[0]?.payload?.hour ?? 0); return `Pukul ${String(h).padStart(2, '0')}.00–${String(h + 1).padStart(2, '0')}.00` }} formatter={(v, _n, item) => <span className="font-mono font-semibold tabular-nums">{rupiah(Number(v))} · {(item.payload as { orders: number }).orders} penjualan</span>} />}
-        />
-        <Bar dataKey="net" fill="var(--color-net)" radius={6} maxBarSize={48} />
-      </BarChart>
-    </ChartContainer>
+    <div>
+      <ChartContainer config={config} className="aspect-auto h-[220px] w-full">
+        <BarChart data={data} margin={{ left: 0, right: 8, top: 8 }} barGap={2}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="hour" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(h) => hh(Number(h))} interval="preserveStartEnd" minTickGap={8} />
+          <YAxis width={28} tickLine={false} axisLine={false} allowDecimals={false} domain={[0, (m: number) => Math.max(2, m)]} />
+          <ChartTooltip
+            cursor={{ fill: 'var(--muted)' }}
+            content={
+              <ChartTooltipContent
+                labelFormatter={(_, p) => { const h = Number(p?.[0]?.payload?.hour ?? 0); return `Pukul ${hh(h)}–${hh((h + 1) % 24)}` }}
+                formatter={(v, name, item) => {
+                  const r = item.payload as { net: number; prevNet: number }
+                  const today = name === 'orders'
+                  return (
+                    <div className="flex w-full items-center justify-between gap-4">
+                      <span className="text-muted-foreground">{today ? 'Hari ini' : 'Kemarin'}</span>
+                      <span className="font-mono font-semibold tabular-nums">{Number(v)} penjualan · {rupiah(today ? r.net : r.prevNet)}</span>
+                    </div>
+                  )
+                }}
+              />
+            }
+          />
+          <Bar dataKey="prevOrders" fill="var(--color-prevOrders)" fillOpacity={0.35} radius={4} maxBarSize={18} />
+          <Bar dataKey="orders" fill="var(--color-orders)" radius={4} maxBarSize={18} />
+        </BarChart>
+      </ChartContainer>
+      <p className="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 text-sm text-muted-foreground">
+        <span className="flex items-center gap-2"><span className="size-3 rounded-sm" style={{ background: 'var(--chart-1)' }} aria-hidden /> Hari ini</span>
+        <span className="flex items-center gap-2"><span className="size-3 rounded-sm bg-muted-foreground/35" aria-hidden /> Kemarin</span>
+        <span>Tinggi batang = jumlah penjualan</span>
+      </p>
+    </div>
   )
 }
 

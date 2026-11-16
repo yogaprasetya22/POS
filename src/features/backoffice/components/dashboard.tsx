@@ -10,8 +10,9 @@ import { Switch } from '@shared/components/ui/switch'
 import { supabase } from '@shared/lib/supabase'
 import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
-import { KpiCard, KpiGrid, Panel, RangePicker, Trend, addDays, eachDay, longDay, previousRange, rangeOf, type Preset } from './analytics/kit'
+import { KpiCard, KpiGrid, Panel, RangePicker, Trend, addDays, longDay, previousRange, rangeOf, type Preset } from './analytics/kit'
 import { HourlyChart, SalesTrendChart } from './analytics/lazy'
+import { busiestHour, dailySeries, hourRange, hourlySeries } from './analytics/series'
 import { clock, dayLabel, fetchReport, type Report } from './report-page'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
@@ -23,7 +24,6 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   COMPLETED: { label: 'Selesai', tone: 'good' },
 }
 const PAID = ['IN_KITCHEN', 'READY', 'COMPLETED']
-const jakartaHour = (iso: string) => Number(new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', hour12: false })) % 24
 
 /**
  * Hari Ini: angka utama hari ini (dibanding kemarin), tren penjualan, jam ramai, penjualan terakhir,
@@ -35,7 +35,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   const [[from, to], setRange] = useState<[string, string]>(rangeOf('30d'))
   const [report, setReport] = useState<Report | null>(null)
   const [prev, setPrev] = useState<Report | null>(null)
-  const [hourly, setHourly] = useState<z.infer<typeof PaidSchema>[] | null>(null)
+  const [hourly, setHourly] = useState<{ today: z.infer<typeof PaidSchema>[]; yesterday: z.infer<typeof PaidSchema>[] } | null>(null)
   const [recent, setRecent] = useState<Order[] | null>(null)
   const [low, setLow] = useState<z.infer<typeof IngredientSchema>[] | null>(null)
   const [error, setError] = useState('')
@@ -61,8 +61,11 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
 
   // data pelengkap: penjualan hari ini per jam, 8 penjualan terakhir, bahan hampir habis
   useEffect(() => {
-    void supabase.from('orders').select('paid_at,total').eq('business_day', today).not('paid_at', 'is', null).in('status', PAID).limit(2000).then(({ data }) => {
-      setHourly(z.array(PaidSchema).safeParse(data ?? []).data ?? [])
+    // hari ini + kemarin dalam satu panggilan, dipisah per tanggal usaha
+    const yday = addDays(today, -1)
+    void supabase.from('orders').select('paid_at,total,business_day').in('business_day', [today, yday]).not('paid_at', 'is', null).in('status', PAID).limit(5000).then(({ data }) => {
+      const rows = z.array(PaidSchema.extend({ business_day: z.string() })).safeParse(data ?? []).data ?? []
+      setHourly({ today: rows.filter((r) => r.business_day === today), yesterday: rows.filter((r) => r.business_day === yday) })
     })
     void supabase.from('orders').select('*').not('paid_at', 'is', null).in('status', PAID).order('paid_at', { ascending: false }).limit(5).then(({ data }) => {
       setRecent(z.array(OrderSchema).safeParse(data ?? []).data ?? [])
@@ -73,18 +76,8 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   }, [today, tick])
 
   const byDay = useMemo(() => new Map((report?.daily ?? []).map((d) => [d.day, d])), [report])
-  const series = useMemo(() => eachDay(from, to).map((date) => ({ date, net: byDay.get(date)?.net ?? 0, orders: byDay.get(date)?.orders ?? 0 })), [byDay, from, to])
-  const hours = useMemo(() => {
-    const rows = Array.from({ length: 24 }, (_, hour) => ({ hour, net: 0, orders: 0 }))
-    for (const o of hourly ?? []) {
-      const r = rows[jakartaHour(o.paid_at)]
-      r.net += o.total
-      r.orders += 1
-    }
-    // tampilkan jam buka saja: dari jam pertama sampai jam terakhir yang ada penjualan
-    const used = rows.filter((r) => r.orders > 0)
-    return used.length ? rows.slice(used[0].hour, used[used.length - 1].hour + 1) : []
-  }, [hourly])
+  const series = useMemo(() => (report ? dailySeries(from, to, report.daily, prev?.daily ?? []) : []), [report, prev, from, to])
+  const hours = useMemo(() => (hourly ? hourlySeries(hourly.today, hourly.yesterday) : []), [hourly])
 
   const t = byDay.get(today)
   const y = byDay.get(addDays(today, -1))
@@ -92,7 +85,8 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   const orders = t?.orders ?? 0
   const aov = orders ? Math.round(net / orders) : 0
   const yAov = y?.orders ? Math.round(y.net / y.orders) : 0
-  const busiest = hours.reduce<{ hour: number; orders: number } | null>((b, h) => (!b || h.orders > b.orders ? h : b), null)
+  const busiest = busiestHour(hours)
+  const yBusiest = busiestHour(hours.map((h) => ({ ...h, net: h.prevNet, orders: h.prevOrders })))
   const soldOut = products.filter((p) => !isSellable(p))
   const attention = soldOut.length + (low?.length ?? 0)
   const retry = useCallback(() => setTick((n) => n + 1), [])
@@ -121,7 +115,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
       ) : (
         <KpiGrid>
           <KpiCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={y?.net ?? 0} />} title={`dari ${orders} penjualan`} hint={`Kemarin ${rupiah(y?.net ?? 0)}`} />
-          <KpiCard index={1} label="Jumlah penjualan" value={String(orders)} badge={<Trend cur={orders} prev={y?.orders ?? 0} />} title={busiest ? `Paling ramai pukul ${String(busiest.hour).padStart(2, '0')}.00` : 'Belum ada penjualan hari ini'} hint={`Kemarin ${y?.orders ?? 0} penjualan`} />
+          <KpiCard index={1} label="Jumlah penjualan" value={String(orders)} badge={<Trend cur={orders} prev={y?.orders ?? 0} />} title={busiest ? `Paling ramai pukul ${hourRange(busiest.hour)}` : 'Belum ada penjualan hari ini'} hint={`Kemarin ${y?.orders ?? 0} penjualan`} />
           <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={yAov} />} title="Rata-rata belanja tiap pembeli" hint={yAov ? `Kemarin ${rupiah(yAov)}` : 'Kemarin belum ada penjualan'} />
           <KpiCard
             index={3}
@@ -143,16 +137,30 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
           className="lg:col-span-2"
           flush
         >
-          {report ? <SalesTrendChart series={series} /> : <div className="p-4"><ChartSkeleton /></div>}
+          {report ? <SalesTrendChart rows={series} prevLabel="Periode lalu" /> : <div className="p-4"><ChartSkeleton /></div>}
         </Panel>
 
-        <Panel title="Jam ramai hari ini" description="Uang masuk per jam">
+        <Panel title="Jam ramai" description="Jumlah penjualan per jam, hari ini dibanding kemarin">
           {hourly === null ? (
             <ChartSkeleton />
           ) : hours.length === 0 ? (
-            <EmptyState title="Belum ada penjualan hari ini" hint="Grafik muncul setelah penjualan pertama dibayar." />
+            <EmptyState title="Belum ada penjualan hari ini maupun kemarin" hint="Grafik muncul setelah penjualan pertama dibayar." />
           ) : (
-            <HourlyChart data={hours} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-base">
+                <div className="rounded-xl bg-primary/10 px-3 py-2">
+                  <p className="text-sm text-muted-foreground">Teramai hari ini</p>
+                  <p className="font-bold">{busiest ? hourRange(busiest.hour) : 'Belum ada'}</p>
+                  {busiest && <p className="text-sm text-muted-foreground">{busiest.orders} penjualan · {rupiah(busiest.net)}</p>}
+                </div>
+                <div className="rounded-xl bg-muted px-3 py-2">
+                  <p className="text-sm text-muted-foreground">Teramai kemarin</p>
+                  <p className="font-bold">{yBusiest ? hourRange(yBusiest.hour) : 'Belum ada'}</p>
+                  {yBusiest && <p className="text-sm text-muted-foreground">{yBusiest.orders} penjualan · {rupiah(yBusiest.net)}</p>}
+                </div>
+              </div>
+              <HourlyChart data={hours} />
+            </div>
           )}
         </Panel>
       </div>

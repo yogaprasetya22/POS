@@ -128,8 +128,8 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
   )
 }
 
-/** Jumlah kolom menyesuaikan lebar layar (tiap kartu minimal 15rem), jadi tidak pernah terlalu sempit. */
-export const KpiGrid = ({ children }: { children: ReactNode }) => <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">{children}</div>
+/** HP: 1 kolom · tablet tegak: 2×2 · tablet mendatar & desktop: 4 sejajar. Tidak pernah 3+1. */
+export const KpiGrid = ({ children }: { children: ReactNode }) => <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
 
 /** Kartu bagian (grafik, daftar) dengan judul, keterangan, dan tombol tambahan di kanan atas. */
 export function Panel({ title, description, action, children, className, flush }: { title: string; description?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; flush?: boolean }) {

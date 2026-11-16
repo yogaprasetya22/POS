@@ -17,4 +17,3 @@ export const HourlyChart = (p: ComponentProps<C['HourlyChart']>) => <Suspense fa
 export const MethodsChart = (p: ComponentProps<C['MethodsChart']>) => <Suspense fallback={<ChartSkeleton />}><L.MethodsChart {...p} /></Suspense>
 export const RankBars = (p: ComponentProps<C['RankBars']>) => <Suspense fallback={<ChartSkeleton />}><L.RankBars {...p} /></Suspense>
 export const CashDiffChart = (p: ComponentProps<C['CashDiffChart']>) => <Suspense fallback={<ChartSkeleton />}><L.CashDiffChart {...p} /></Suspense>
-export type { DayPoint } from './charts'

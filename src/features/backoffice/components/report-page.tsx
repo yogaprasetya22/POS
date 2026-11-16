@@ -1,7 +1,8 @@
 import { Download, Printer, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
-import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, Trend, downloadCsv, eachDay, previousRange, rangeOf, rangeText, dayLabel, type Preset } from './analytics/kit'
+import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, Trend, downloadCsv, addDays, previousRange, rangeOf, rangeText, dayLabel, type Preset } from './analytics/kit'
 import { MethodsChart, RankBars, SalesTrendChart } from './analytics/lazy'
+import { busiestHour, dailySeries, hourRange, hourlySeries, type Paid } from './analytics/series'
 import { ProfitTab } from './profit-tab'
 import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
 import { useEffect, useMemo, useState } from 'react'
@@ -292,6 +293,22 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
   const [receipt, setReceipt] = useState<Order | null>(null)
   const [exporting, setExporting] = useState(false)
   const [tick, setTick] = useState(0)
+  // satu hari dipilih: grafik per jam, dibanding hari sebelumnya
+  const single = from === to
+  const [hourly, setHourly] = useState<{ cur: Paid[]; prev: Paid[] } | null>(null)
+  useEffect(() => {
+    if (!single) return setHourly(null)
+    let alive = true
+    const before = addDays(from, -1)
+    void supabase.from('orders').select('paid_at,total,business_day').in('business_day', [from, before]).not('paid_at', 'is', null).in('status', ['IN_KITCHEN', 'READY', 'COMPLETED']).limit(5000).then(({ data }) => {
+      if (!alive) return
+      const rows = z.array(z.object({ paid_at: z.string(), total: z.number(), business_day: z.string() })).safeParse(data ?? []).data ?? []
+      setHourly({ cur: rows.filter((r) => r.business_day === from), prev: rows.filter((r) => r.business_day === before) })
+    })
+    return () => {
+      alive = false
+    }
+  }, [single, from, tick])
 
   useEffect(() => {
     let alive = true
@@ -316,8 +333,9 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
   const prevAov = prev && prev.totals.orders > 0 ? Math.round(prev.totals.net / prev.totals.orders) : 0
   const reversed = report ? report.voids.amount + report.refunds.amount : 0
   const prevReversed = prev ? prev.voids.amount + prev.refunds.amount : 0
-  const byDay = useMemo(() => new Map((report?.daily ?? []).map((d) => [d.day, d])), [report])
-  const series = useMemo(() => eachDay(from, to).map((date) => ({ date, net: byDay.get(date)?.net ?? 0, orders: byDay.get(date)?.orders ?? 0 })), [byDay, from, to])
+  const series = useMemo(() => (report ? dailySeries(from, to, report.daily, prev?.daily ?? []) : []), [report, prev, from, to])
+  const hours = useMemo(() => (hourly ? hourlySeries(hourly.cur, hourly.prev) : []), [hourly])
+  const peak = busiestHour(hours)
   const methods = useMemo(() => (report?.by_method ?? []).map((m) => ({ key: m.method ?? 'LAIN', label: PAYMENT_LABEL[m.method as keyof typeof PAYMENT_LABEL] ?? 'Lainnya', orders: m.orders, net: m.net })).sort((a, b) => b.net - a.net), [report])
   const best = report?.daily.reduce<{ day: string; net: number } | null>((b, d) => (!b || d.net > b.net ? d : b), null)
 
@@ -363,7 +381,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
         <div className={`transition-opacity ${loading ? 'opacity-60' : ''}`}>
           <KpiGrid>
             <KpiCard index={0} label="Penjualan bersih" value={rupiah(t?.net ?? 0)} badge={<Trend cur={t?.net ?? 0} prev={prev?.totals.net ?? 0} />} title={`Harga menu ${rupiah(t?.gross ?? 0)} · diskon ${rupiah(t?.discount ?? 0)}`} hint={prev ? `Periode lalu ${rupiah(prev.totals.net)}` : 'Belum ada pembanding'} />
-            <KpiCard index={1} label="Jumlah penjualan" value={String(t?.orders ?? 0)} badge={<Trend cur={t?.orders ?? 0} prev={prev?.totals.orders ?? 0} />} title={best ? `Hari terbaik: ${dayLabel(best.day)}` : 'Belum ada penjualan'} hint={best ? rupiah(best.net) : 'Pilih rentang lain'} />
+            <KpiCard index={1} label="Jumlah penjualan" value={String(t?.orders ?? 0)} badge={<Trend cur={t?.orders ?? 0} prev={prev?.totals.orders ?? 0} />} title={single ? (peak ? `Paling ramai pukul ${hourRange(peak.hour)}` : 'Belum ada penjualan') : best ? `Hari terbaik: ${dayLabel(best.day)}` : 'Belum ada penjualan'} hint={single ? (peak ? `${peak.orders} penjualan · ${rupiah(peak.net)}` : 'Pilih tanggal lain') : best ? rupiah(best.net) : 'Pilih rentang lain'} />
             <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Rata-rata belanja tiap pembeli" hint={prevAov ? `Periode lalu ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
             <KpiCard index={3} label="Void & refund" value={rupiah(reversed)} tone={reversed > 0 ? 'bad' : undefined} badge={<Trend cur={reversed} prev={prevReversed} goodWhenUp={false} />} title={`${report.voids.count} void · ${report.refunds.count} refund`} hint="Rincian di tab Transaksi" />
           </KpiGrid>
@@ -380,8 +398,19 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
         <TabsContent value="summary" className={`transition-opacity ${loading ? 'opacity-60' : ''}`}>
           <div className="grid gap-5">
           <div className="grid gap-5 lg:grid-cols-3">
-            <Panel title="Penjualan per hari" description="Ketuk angka di atas grafik untuk mengganti yang digambar" className="lg:col-span-2" flush>
-              {report ? <SalesTrendChart series={series} /> : <div className="p-4"><ChartSkeleton /></div>}
+            <Panel
+              title={single ? 'Penjualan per jam' : 'Penjualan per hari'}
+              description={single ? 'Garis putus-putus = hari sebelumnya. Ketuk angka di atas untuk mengganti yang digambar.' : 'Garis putus-putus = periode sebelumnya dengan panjang yang sama.'}
+              className="lg:col-span-2"
+              flush
+            >
+              {single ? (
+                hourly ? <SalesTrendChart rows={hours} mode="hour" prevLabel="Hari sebelumnya" /> : <div className="p-4"><ChartSkeleton /></div>
+              ) : report ? (
+                <SalesTrendChart rows={series} prevLabel="Periode lalu" />
+              ) : (
+                <div className="p-4"><ChartSkeleton /></div>
+              )}
             </Panel>
             <Panel title="Cara bayar" description="Bagian uang masuk per cara bayar">
               {!report ? <RowsSkeleton rows={3} /> : methods.length === 0 ? <EmptyState title="Belum ada pembayaran" hint="Pilih rentang tanggal lain." /> : <MethodsChart rows={methods} />}
