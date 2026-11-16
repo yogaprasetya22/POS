@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useClientPaged } from '@shared/lib/use-client-paged'
-import { Pagination } from '@shared/components/pagination'
+import { LoadMore } from '@shared/components/pagination'
 import { m } from 'motion/react'
 import { appear } from '@shared/components/motion'
 import { CurrencyInput } from '@shared/components/currency-input'
@@ -226,7 +226,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
     return `Menu: ${prod?.name ?? 'Menu Dihapus'}`
   }
 
-  const paged = useClientPaged(promos, { pageSize: 12 })
+  const paged = useClientPaged(promos, { pageSize: 12, append: true })
 
   // Stats KPI
   const activeCount = promos.filter((p) => p.is_active).length
@@ -475,7 +475,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
           })}
         </div>
       )}
-      {!loading && promos.length > 0 && <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />}
+      {!loading && promos.length > 0 && <LoadMore shown={paged.rows.length} total={paged.total} pageSize={paged.pageSize} onMore={paged.more} noun="promo" />}
 
       {/* Drawer Samping untuk Detail & Edit/Buat Promo (Ponytail) */}
       <Drawer

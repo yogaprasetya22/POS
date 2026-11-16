@@ -1,7 +1,7 @@
 import { ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { m } from 'motion/react'
 import { appear } from '@shared/components/motion'
-import { Pagination } from '@shared/components/pagination'
+import { LoadMore } from '@shared/components/pagination'
 import { useClientPaged } from '@shared/lib/use-client-paged'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { z } from 'zod'
@@ -50,7 +50,7 @@ export function StaffList() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const paged = useClientPaged(staff, { pageSize: 10 })
+  const paged = useClientPaged(staff, { pageSize: 10, append: true })
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -186,7 +186,7 @@ export function StaffList() {
                 )}
               </div>
               <div className="border-t px-4 pb-3">
-                <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+                <LoadMore shown={paged.rows.length} total={paged.total} pageSize={paged.pageSize} onMore={paged.more} noun="karyawan" />
               </div>
             </CardContent>
           </Card>

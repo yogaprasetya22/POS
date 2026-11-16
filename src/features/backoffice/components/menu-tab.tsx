@@ -10,7 +10,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import { useClientPaged } from '@shared/lib/use-client-paged'
-import { Pagination } from '@shared/components/pagination'
+import { LoadMore, Pagination } from '@shared/components/pagination'
 import { MCard, appear } from '@shared/components/motion'
 import { useEffect, useState } from 'react'
 import {
@@ -104,7 +104,7 @@ export function MenuTab({
     return matchesCategory && matchesSearch && matchesAvailability
   })
 
-  const paged = useClientPaged(shown, { pageSize: viewMode === 'grid' ? 24 : 20, resetKey: `${query}|${category}|${availabilityFilter}|${viewMode}` })
+  const paged = useClientPaged(shown, { pageSize: viewMode === 'grid' ? 24 : 20, resetKey: `${query}|${category}|${availabilityFilter}|${viewMode}`, append: viewMode === 'grid' })
 
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
   const soldOut = products.filter((p) => !isSellable(p)).length
@@ -362,7 +362,7 @@ export function MenuTab({
               })}
             </div>
           )}
-          <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+          <LoadMore shown={paged.rows.length} total={paged.total} pageSize={paged.pageSize} onMore={paged.more} noun="menu" />
         </div>
       ) : (
         /* Table Mode */

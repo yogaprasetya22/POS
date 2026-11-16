@@ -2,7 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { useState } from 'react'
 import { z } from 'zod'
-import { EmptyState, Pagination, SearchBox } from '@shared/components/pagination'
+import { EmptyState, LoadMore, SearchBox } from '@shared/components/pagination'
 import { ToneBadge } from '@shared/components/tone-badge'
 import { Button } from '@shared/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@shared/components/ui/drawer'
@@ -36,7 +36,7 @@ export function HistoryDrawer({ open, onOpenChange, role, onReprint }: { open: b
       const r = await q
       return { ...r, data: z.array(OrderSchema).safeParse(r.data ?? []).data ?? [] }
     },
-    { pageSize: 15, deps: [open] },
+    { pageSize: 15, append: true, deps: [open] },
   )
 
   return (
@@ -83,7 +83,7 @@ export function HistoryDrawer({ open, onOpenChange, role, onReprint }: { open: b
             )}
           </ul>
           <div className="px-4">
-            <Pagination page={orders.page} pageCount={orders.pageCount} total={orders.total} pageSize={orders.pageSize} onPage={orders.setPage} loading={orders.loading} />
+            <LoadMore shown={orders.rows.length} total={orders.total} pageSize={orders.pageSize} onMore={orders.more} loading={orders.loading} noun="transaksi" />
           </div>
           <DrawerFooter className="border-t pt-3">
             <DrawerClose render={<Button variant="outline" className="h-11">Tutup</Button>} />

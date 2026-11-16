@@ -10,7 +10,7 @@ import {
   User,
 } from 'lucide-react'
 import { MCard, appear } from '@shared/components/motion'
-import { Pagination } from '@shared/components/pagination'
+import { LoadMore } from '@shared/components/pagination'
 import { useClientPaged } from '@shared/lib/use-client-paged'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { z } from 'zod'
@@ -145,7 +145,7 @@ export function SuperPage() {
     })
   }, [stores, q, statusFilter])
 
-  const paged = useClientPaged(shownStores, { pageSize: 12, resetKey: `${q}|${statusFilter}` })
+  const paged = useClientPaged(shownStores, { pageSize: 12, resetKey: `${q}|${statusFilter}`, append: true })
 
   if (loading && stores.length === 0) return <PageSkeleton />
 
@@ -359,7 +359,7 @@ export function SuperPage() {
           </div>
         )}
       </div>
-      <Pagination page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+      <LoadMore shown={paged.rows.length} total={paged.total} pageSize={paged.pageSize} onMore={paged.more} noun="toko" />
 
       {/* Store Form Drawer - Standardized Drawer with ProductForm */}
       {editing && (

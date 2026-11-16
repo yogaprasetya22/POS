@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { Panel } from '@shared/components/panel'
-import { EmptyState, Pagination, SearchBox } from '@shared/components/pagination'
+import { EmptyState, LoadMore, SearchBox } from '@shared/components/pagination'
 import { Badge } from '@shared/components/ui/badge'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
@@ -49,13 +49,13 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
     }
     const r = await q
     return { ...r, data: z.array(MemberSchema).safeParse(r.data ?? []).data ?? [] }
-  })
+  }, { pageSize: 25, append: true })
   const vouchers = usePaged<Voucher>(
     async ({ from, to }) => {
       const r = await supabase.from('vouchers').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
       return { ...r, data: z.array(VoucherSchema).safeParse(r.data ?? []).data ?? [] }
     },
-    { pageSize: 10 },
+    { pageSize: 10, append: true },
   )
   const load = () => {
     members.reload()
@@ -115,7 +115,7 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
             {members.rows.length === 0 && !members.loading && (
               <EmptyState title={members.search ? 'Member tidak ditemukan' : 'Belum ada member'} hint={members.search ? 'Coba nama atau nomor HP lain.' : 'Daftarkan lewat form di atas atau langsung dari layar kasir.'} />
             )}
-            <Pagination page={members.page} pageCount={members.pageCount} total={members.total} pageSize={members.pageSize} onPage={members.setPage} loading={members.loading} />
+            <LoadMore shown={members.rows.length} total={members.total} pageSize={members.pageSize} onMore={members.more} loading={members.loading} noun="member" />
           </CardContent>
         </Card>
 
@@ -192,7 +192,7 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
             </ul>
             {vouchers.loading && vouchers.rows.length === 0 && <RowsSkeleton rows={3} className="-mx-4" />}
             {vouchers.rows.length === 0 && !vouchers.loading && <EmptyState title="Belum ada voucher" hint="Buat voucher nominal atau persen di atas." />}
-            <Pagination page={vouchers.page} pageCount={vouchers.pageCount} total={vouchers.total} pageSize={vouchers.pageSize} onPage={vouchers.setPage} loading={vouchers.loading} />
+            <LoadMore shown={vouchers.rows.length} total={vouchers.total} pageSize={vouchers.pageSize} onMore={vouchers.more} loading={vouchers.loading} noun="voucher" />
           </CardContent>
         </Card>
       </div>

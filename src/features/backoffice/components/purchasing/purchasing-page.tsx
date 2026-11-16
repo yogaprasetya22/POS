@@ -2,7 +2,9 @@ import { ChevronRight, ClipboardList, HandCoins, History, MessageCircle, Package
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmButton } from '@shared/components/confirm-button'
+import { LoadMore } from '@shared/components/pagination'
 import { RowsSkeleton } from '@shared/components/skeletons'
+import { useClientPaged } from '@shared/lib/use-client-paged'
 import { Button } from '@shared/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
 import { rpc } from '@shared/lib/api'
@@ -40,6 +42,7 @@ export function PurchasingPage() {
   const running = data.purchases.filter((p) => p.status === 'DRAFT' || p.status === 'ORDERED')
   const debts = data.purchases.filter((p) => p.unpaid > 0)
   const history = data.purchases.filter((p) => p.status === 'RECEIVED' || p.status === 'CANCELLED')
+  const hist = useClientPaged(history, { pageSize: 10, append: true })
   const debtTotal = debts.reduce((n, p) => n + p.unpaid, 0)
   const refresh = () => {
     void data.reload()
@@ -227,7 +230,10 @@ export function PurchasingPage() {
               {history.length === 0 ? (
                 <Empty title="Belum ada riwayat pembelian" hint="Barang masuk dan belanja yang sudah diterima akan tercatat di sini." />
               ) : (
-                <ul className="space-y-3">{history.map((p) => <Card key={p.id} p={p} />)}</ul>
+                <>
+                  <ul className="space-y-3">{hist.rows.map((p) => <Card key={p.id} p={p} />)}</ul>
+                  <LoadMore shown={hist.rows.length} total={hist.total} pageSize={hist.pageSize} onMore={hist.more} noun="pembelian" />
+                </>
               )}
             </TabsContent>
 

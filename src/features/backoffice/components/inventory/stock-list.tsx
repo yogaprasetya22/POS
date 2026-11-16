@@ -1,6 +1,6 @@
-import { Barcode as BarcodeIcon, ChevronDown, PackageMinus, PackagePlus, Pencil, Plus, Search } from 'lucide-react'
+import { Barcode as BarcodeIcon, PackageMinus, PackagePlus, Pencil, Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { EmptyState } from '@shared/components/pagination'
+import { EmptyState, LoadMore } from '@shared/components/pagination'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
@@ -43,7 +43,6 @@ export function StockList({
   const [limit, setLimit] = useState(STEP)
   useEffect(() => setLimit(STEP), [filter, term])
   const rows = shown.slice(0, limit)
-  const left = shown.length - rows.length
 
   const tiles: { key: Filter; label: string; value: string; tone: string }[] = [
     { key: 'all', label: 'Semua bahan', value: String(active.length), tone: '' },
@@ -124,14 +123,7 @@ export function StockList({
           hint={active.length === 0 ? 'Tambahkan bahan satu per satu lewat “Bahan baru”, atau sekaligus lewat “Import Excel”.' : 'Coba kata lain atau pilih “Semua bahan”.'}
         />
       )}
-      {left > 0 && (
-        <div className="space-y-2 text-center">
-          <p className="text-base text-muted-foreground">Menampilkan {rows.length} dari {shown.length} bahan</p>
-          <Button variant="outline" className="h-14 w-full border-2 text-lg font-bold sm:w-auto sm:px-10" onClick={() => setLimit((n) => n + STEP)}>
-            <ChevronDown /> Tampilkan {Math.min(STEP, left)} bahan lagi{left > STEP ? ` (sisa ${left})` : ''}
-          </Button>
-        </div>
-      )}
+      <LoadMore shown={rows.length} total={shown.length} pageSize={STEP} onMore={() => setLimit((n) => n + STEP)} noun="bahan" />
     </div>
   )
 }

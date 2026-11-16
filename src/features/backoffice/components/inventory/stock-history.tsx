@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { FilterChips } from '@shared/components/page'
-import { EmptyState, Pagination } from '@shared/components/pagination'
+import { EmptyState, LoadMore } from '@shared/components/pagination'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select'
 import { supabase } from '@shared/lib/supabase'
@@ -71,7 +71,7 @@ export function StockHistory({ items }: { items: Ingredient[] }) {
       const r = await q
       return { ...r, data: z.array(MoveSchema).safeParse(r.data ?? []).data ?? [] }
     },
-    { pageSize: 20, deps: [ing, kind, range] },
+    { pageSize: 20, deps: [ing, kind, range], append: true },
   )
 
   const options = [{ value: 'all', label: 'Semua bahan' }, ...items.map((i) => ({ value: i.id, label: i.name }))]
@@ -125,7 +125,7 @@ export function StockHistory({ items }: { items: Ingredient[] }) {
       </ul>
       {moves.loading && moves.rows.length === 0 && <RowsSkeleton rows={6} />}
       {!moves.loading && moves.rows.length === 0 && <EmptyState title="Belum ada catatan" hint="Coba ganti rentang waktu atau saringan di atas." />}
-      <Pagination page={moves.page} pageCount={moves.pageCount} total={moves.total} pageSize={moves.pageSize} onPage={moves.setPage} loading={moves.loading} />
+      <LoadMore shown={moves.rows.length} total={moves.total} pageSize={moves.pageSize} onMore={moves.more} loading={moves.loading} noun="catatan" />
     </div>
   )
 }

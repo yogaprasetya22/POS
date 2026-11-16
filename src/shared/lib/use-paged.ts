@@ -8,7 +8,11 @@ export type PageFetcher<T> = (range: { from: number; to: number }, search: strin
  * Pagination di server: hanya satu halaman yang diunduh, total dari `count: 'exact'`.
  * `deps` mengembalikan ke halaman 1 saat filter dari luar berubah.
  */
-export function usePaged<T>(fetcher: PageFetcher<T>, { pageSize = 25, deps = [] }: { pageSize?: number; deps?: unknown[] } = {}) {
+/**
+ * `append: true` = mode "Tampilkan lebih banyak": baris bertambah ke bawah. Yang diambil selalu baris 1..(halaman × ukuran)
+ * dan menggantikan isi lama, jadi muat ulang (mis. setelah mengubah data) tidak menggandakan baris.
+ */
+export function usePaged<T>(fetcher: PageFetcher<T>, { pageSize = 25, deps = [], append = false }: { pageSize?: number; deps?: unknown[]; append?: boolean } = {}) {
   const [rows, setRows] = useState<T[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -35,7 +39,7 @@ export function usePaged<T>(fetcher: PageFetcher<T>, { pageSize = 25, deps = [] 
   useEffect(() => {
     const mine = ++seq.current
     setLoading(true)
-    void Promise.resolve(fetchRef.current({ from: (page - 1) * pageSize, to: page * pageSize - 1 }, query)).then(({ data, count, error: err }) => {
+    void Promise.resolve(fetchRef.current({ from: append ? 0 : (page - 1) * pageSize, to: page * pageSize - 1 }, query)).then(({ data, count, error: err }) => {
       if (mine !== seq.current) return
       setLoading(false)
       if (err) return setError(err.message)
@@ -43,7 +47,7 @@ export function usePaged<T>(fetcher: PageFetcher<T>, { pageSize = 25, deps = [] 
       setRows(data ?? [])
       setTotal(count ?? 0)
     })
-  }, [page, query, pageSize, depKey, tick])
+  }, [page, query, pageSize, depKey, tick, append])
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   // data berkurang (mis. item terakhir dihapus): mundur ke halaman terakhir yang masih ada
@@ -52,5 +56,6 @@ export function usePaged<T>(fetcher: PageFetcher<T>, { pageSize = 25, deps = [] 
   }, [page, pageCount])
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
-  return { rows, total, page, setPage, pageSize, pageCount, search, setSearch, loading, error, reload }
+  const more = useCallback(() => setPage((p) => p + 1), [])
+  return { rows, total, page, setPage, pageSize, pageCount, search, setSearch, loading, error, reload, more, hasMore: page < pageCount }
 }
