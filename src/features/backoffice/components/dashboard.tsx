@@ -1,259 +1,235 @@
-import { ArrowUpRight, TrendingDown, TrendingUp } from 'lucide-react'
-import { MCard, appear } from '@shared/components/motion'
-import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowUpRight, RotateCw } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
 import { z } from 'zod'
-import { Chip, PageHeader, SectionCard, type Tone } from '@shared/components/page'
+import { Chip, type Tone } from '@shared/components/page'
 import { EmptyState } from '@shared/components/pagination'
-import { Badge } from '@shared/components/ui/badge'
-import { buttonVariants } from '@shared/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@shared/components/ui/card'
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@shared/components/ui/chart'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select'
+import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
+import { Button, buttonVariants } from '@shared/components/ui/button'
 import { Switch } from '@shared/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table'
-import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
 import { supabase } from '@shared/lib/supabase'
 import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
-import { addDays, clock, compact, dayLabel, fetchReport, type Report } from './report-page'
-
-type Range = '7d' | '30d' | '90d'
-const RANGES: { value: Range; label: string; days: number }[] = [
-  { value: '7d', label: '7 hari', days: 7 },
-  { value: '30d', label: '30 hari', days: 30 },
-  { value: '90d', label: '90 hari', days: 90 },
-]
-const chartConfig = { net: { label: 'Penjualan', color: 'var(--chart-1)' } } satisfies ChartConfig
+import { KpiCard, KpiGrid, Panel, RangePicker, Trend, addDays, eachDay, longDay, previousRange, rangeOf, type Preset } from './analytics/kit'
+import { HourlyChart, SalesTrendChart } from './analytics/lazy'
+import { clock, dayLabel, fetchReport, type Report } from './report-page'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
+const PaidSchema = z.object({ paid_at: z.string(), total: z.number() })
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   IN_KITCHEN: { label: 'Sudah dibayar', tone: 'info' },
-  READY: { label: 'Siap', tone: 'info' },
+  READY: { label: 'Siap diambil', tone: 'info' },
   COMPLETED: { label: 'Selesai', tone: 'good' },
 }
+const PAID = ['IN_KITCHEN', 'READY', 'COMPLETED']
+const jakartaHour = (iso: string) => Number(new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', hour12: false })) % 24
 
-function Trend({ cur, prev }: { cur: number; prev: number }) {
-  if (prev <= 0) return null
-  const pct = Math.round(((cur - prev) / prev) * 100)
-  const up = pct >= 0
-  const Icon = up ? TrendingUp : TrendingDown
-  return (
-    <Badge variant="outline" className={up ? '' : 'text-destructive'}>
-      <Icon /> {up ? '+' : '−'}{Math.abs(pct) > 999 ? '>999' : Math.abs(pct)}%
-    </Badge>
-  )
-}
-
-function StatCard({ label, value, badge, title, hint, index = 0 }: { label: string; value: string; badge?: React.ReactNode; title: string; hint: string; index?: number }) {
-  return (
-    <MCard {...appear(index)} className="@container/card">
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">{value}</CardTitle>
-        {badge && <CardAction>{badge}</CardAction>}
-      </CardHeader>
-      <CardFooter className="flex-col items-start gap-1 text-sm">
-        <div className="font-medium">{title}</div>
-        <div className="text-muted-foreground">{hint}</div>
-      </CardFooter>
-    </MCard>
-  )
-}
-
-/** Ikhtisar: kartu ringkasan, grafik penjualan, transaksi terbaru, dan hal yang perlu perhatian. Susunan mengikuti shadcn dashboard-01. */
+/**
+ * Hari Ini: angka utama hari ini (dibanding kemarin), tren penjualan, jam ramai, penjualan terakhir,
+ * dan hal yang perlu dicek. Angka hari ini & kemarin diambil dari laporan rentang grafik (tanpa panggilan tambahan).
+ */
 export function Dashboard({ products, run }: { products: Product[]; run: (p: PromiseLike<{ error: { message: string } | null }>) => Promise<void> }) {
   const today = todayJakarta()
-  const [now, setNow] = useState<Report | null>(null)
-  const [before, setBefore] = useState<Report | null>(null)
-  const [range, setRange] = useState<Range>('30d')
-  const [chart, setChart] = useState<Report | null>(null)
-  const [recent, setRecent] = useState<Order[]>([])
-  const [low, setLow] = useState<z.infer<typeof IngredientSchema>[]>([])
-  const [recentLoaded, setRecentLoaded] = useState(false)
-  const [lowLoaded, setLowLoaded] = useState(false)
+  const [preset, setPreset] = useState<Preset>('30d')
+  const [[from, to], setRange] = useState<[string, string]>(rangeOf('30d'))
+  const [report, setReport] = useState<Report | null>(null)
+  const [prev, setPrev] = useState<Report | null>(null)
+  const [hourly, setHourly] = useState<z.infer<typeof PaidSchema>[] | null>(null)
+  const [recent, setRecent] = useState<Order[] | null>(null)
+  const [low, setLow] = useState<z.infer<typeof IngredientSchema>[] | null>(null)
+  const [error, setError] = useState('')
+  const [tick, setTick] = useState(0)
+  const [showAll, setShowAll] = useState(false)
 
+  // laporan rentang grafik + periode pembanding (2 panggilan untuk seluruh angka penjualan di halaman)
   useEffect(() => {
-    void Promise.all([fetchReport(today, today), fetchReport(addDays(today, -1), addDays(today, -1))]).then(([a, b]) => {
-      setNow(a)
-      setBefore(b)
+    let alive = true
+    setError('')
+    const [pf, pt] = previousRange(from, to)
+    Promise.all([fetchReport(from, to), fetchReport(pf, pt).catch(() => null)])
+      .then(([cur, old]) => {
+        if (!alive) return
+        setReport(cur)
+        setPrev(old)
+      })
+      .catch((e: Error) => alive && setError(e.message))
+    return () => {
+      alive = false
+    }
+  }, [from, to, tick])
+
+  // data pelengkap: penjualan hari ini per jam, 8 penjualan terakhir, bahan hampir habis
+  useEffect(() => {
+    void supabase.from('orders').select('paid_at,total').eq('business_day', today).not('paid_at', 'is', null).in('status', PAID).limit(2000).then(({ data }) => {
+      setHourly(z.array(PaidSchema).safeParse(data ?? []).data ?? [])
     })
-    void supabase.from('orders').select('*').not('paid_at', 'is', null).in('status', ['IN_KITCHEN', 'READY', 'COMPLETED']).order('paid_at', { ascending: false }).limit(8).then(({ data }) => {
-      const p = z.array(OrderSchema).safeParse(data ?? [])
-      if (p.success) setRecent(p.data)
-      setRecentLoaded(true)
+    void supabase.from('orders').select('*').not('paid_at', 'is', null).in('status', PAID).order('paid_at', { ascending: false }).limit(5).then(({ data }) => {
+      setRecent(z.array(OrderSchema).safeParse(data ?? []).data ?? [])
     })
     void supabase.from('ingredients').select('id,name,unit,stock,min_stock,is_active').then(({ data }) => {
-      const p = z.array(IngredientSchema).safeParse(data ?? [])
-      if (p.success) setLow(p.data.filter((i) => i.is_active && i.stock <= i.min_stock))
-      setLowLoaded(true)
+      setLow((z.array(IngredientSchema).safeParse(data ?? []).data ?? []).filter((i) => i.is_active && i.min_stock > 0 && i.stock <= i.min_stock))
     })
-  }, [today])
+  }, [today, tick])
 
-  const days = RANGES.find((r) => r.value === range)!.days
-  useEffect(() => {
-    void fetchReport(addDays(today, -(days - 1)), today).then(setChart)
-  }, [today, days])
+  const byDay = useMemo(() => new Map((report?.daily ?? []).map((d) => [d.day, d])), [report])
+  const series = useMemo(() => eachDay(from, to).map((date) => ({ date, net: byDay.get(date)?.net ?? 0, orders: byDay.get(date)?.orders ?? 0 })), [byDay, from, to])
+  const hours = useMemo(() => {
+    const rows = Array.from({ length: 24 }, (_, hour) => ({ hour, net: 0, orders: 0 }))
+    for (const o of hourly ?? []) {
+      const r = rows[jakartaHour(o.paid_at)]
+      r.net += o.total
+      r.orders += 1
+    }
+    // tampilkan jam buka saja: dari jam pertama sampai jam terakhir yang ada penjualan
+    const used = rows.filter((r) => r.orders > 0)
+    return used.length ? rows.slice(used[0].hour, used[used.length - 1].hour + 1) : []
+  }, [hourly])
 
-  const series = useMemo(() => {
-    if (!chart) return []
-    const byDay = new Map(chart.daily.map((d) => [d.day, d.net]))
-    return Array.from({ length: days }, (_, i) => {
-      const date = addDays(today, -(days - 1 - i))
-      return { date, net: byDay.get(date) ?? 0 }
-    })
-  }, [chart, days, today])
-  const rangeTotal = series.reduce((a, p) => a + p.net, 0)
-
-  const net = now?.totals.net ?? 0
-  const orders = now?.totals.orders ?? 0
+  const t = byDay.get(today)
+  const y = byDay.get(addDays(today, -1))
+  const net = t?.net ?? 0
+  const orders = t?.orders ?? 0
   const aov = orders ? Math.round(net / orders) : 0
-  const prevNet = before?.totals.net ?? 0
-  const prevAov = before && before.totals.orders ? Math.round(before.totals.net / before.totals.orders) : 0
+  const yAov = y?.orders ? Math.round(y.net / y.orders) : 0
+  const busiest = hours.reduce<{ hour: number; orders: number } | null>((b, h) => (!b || h.orders > b.orders ? h : b), null)
   const soldOut = products.filter((p) => !isSellable(p))
+  const attention = soldOut.length + (low?.length ?? 0)
+  const retry = useCallback(() => setTick((n) => n + 1), [])
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Hari Ini" description={`${new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · uang masuk dan hal yang perlu dicek.`} />
-
-      {!now || !before ? (
-        <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
-      ) : (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={prevNet} />} title={`dari ${orders} penjualan`} hint={before ? `Kemarin ${rupiah(prevNet)}` : 'Memuat…'} />
-        <StatCard index={1} label="Rata-rata belanja per pembeli" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Rata-rata uang per penjualan" hint={prevAov ? `Kemarin ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
-        <StatCard index={2} label="Menu yang bisa dijual" value={`${products.length - soldOut.length}/${products.length}`} title={soldOut.length ? `${soldOut.length} menu habis` : 'Semua menu tersedia'} hint={soldOut.length ? soldOut.slice(0, 2).map((p) => p.name).join(', ') + (soldOut.length > 2 ? '…' : '') : 'Tidak ada yang perlu dicek'} />
-        <StatCard index={3} label="Bahan hampir habis" value={String(low.length)} badge={low.length > 0 ? <Badge variant="outline" className="text-destructive">Perlu belanja</Badge> : undefined} title={low.length ? 'Segera belanja bahan ini' : 'Bahan masih cukup'} hint={low.length ? low.slice(0, 2).map((i) => i.name).join(', ') + (low.length > 2 ? '…' : '') : 'Tidak ada yang perlu dibeli'} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Hari Ini</h1>
+          <p className="mt-1 text-lg text-muted-foreground">{longDay(today)}</p>
+        </div>
+        <Link to="/admin/laporan" className={buttonVariants({ variant: 'outline', className: 'h-11 border-2 px-4 text-base' })}>
+          Laporan lengkap <ArrowUpRight />
+        </Link>
       </div>
+
+      {error && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-destructive/40 bg-destructive/5 px-4 py-3 text-base">
+          <span>Angka penjualan belum bisa dimuat. Periksa internet, lalu coba lagi.</span>
+          <Button variant="outline" className="h-11 border-2 text-base" onClick={retry}><RotateCw /> Coba lagi</Button>
+        </div>
       )}
 
-      <Card className="@container/card">
-        <CardHeader>
-          <CardTitle>Penjualan</CardTitle>
-          <CardDescription>
-            <span className="hidden @[540px]/card:block">Total {rupiah(rangeTotal)} dalam {RANGES.find((r) => r.value === range)!.label} terakhir</span>
-            <span className="@[540px]/card:hidden">{RANGES.find((r) => r.value === range)!.label} terakhir</span>
-          </CardDescription>
-          <CardAction>
-            <ToggleGroup multiple={false} value={[range]} onValueChange={(v) => v[0] && setRange(v[0] as Range)} variant="outline" className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex">
-              {RANGES.map((r) => <ToggleGroupItem key={r.value} value={r.value}>{r.label}</ToggleGroupItem>)}
-            </ToggleGroup>
-            <Select value={range} onValueChange={(v) => v && setRange(v as Range)} items={RANGES.map((r) => ({ value: r.value, label: r.label }))}>
-              <SelectTrigger className="flex w-32 @[767px]/card:hidden" size="sm" aria-label="Rentang grafik"><SelectValue /></SelectTrigger>
-              <SelectContent>{RANGES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-          {!chart ? (
-            <ChartSkeleton />
-          ) : rangeTotal === 0 ? (
-            <EmptyState title="Belum ada penjualan" hint="Grafik muncul setelah ada penjualan pertama." />
-          ) : (
-            <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-              <AreaChart data={series}>
-                <defs>
-                  <linearGradient id="fillNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-net)" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="var(--color-net)" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => dayLabel(String(v))} />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => dayLabel(String(v))} formatter={(value) => <span className="font-mono font-medium tabular-nums">{rupiah(Number(value))}</span>} />}
-                />
-                <Area dataKey="net" type="monotone" fill="url(#fillNet)" stroke="var(--color-net)" />
-              </AreaChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
+      {!report ? (
+        <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
+      ) : (
+        <KpiGrid>
+          <KpiCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={y?.net ?? 0} />} title={`dari ${orders} penjualan`} hint={`Kemarin ${rupiah(y?.net ?? 0)}`} />
+          <KpiCard index={1} label="Jumlah penjualan" value={String(orders)} badge={<Trend cur={orders} prev={y?.orders ?? 0} />} title={busiest ? `Paling ramai pukul ${String(busiest.hour).padStart(2, '0')}.00` : 'Belum ada penjualan hari ini'} hint={`Kemarin ${y?.orders ?? 0} penjualan`} />
+          <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={yAov} />} title="Rata-rata belanja tiap pembeli" hint={yAov ? `Kemarin ${rupiah(yAov)}` : 'Kemarin belum ada penjualan'} />
+          <KpiCard
+            index={3}
+            label="Perlu dicek"
+            value={low === null ? '…' : String(attention)}
+            tone={attention > 0 ? 'bad' : 'good'}
+            title={attention ? `${soldOut.length} menu habis · ${low?.length ?? 0} bahan hampir habis` : 'Semua aman'}
+            hint={attention ? 'Lihat daftar di bawah' : 'Tidak ada menu habis atau bahan menipis'}
+            onClick={attention ? () => document.getElementById('perlu-dicek')?.scrollIntoView({ behavior: 'smooth' }) : undefined}
+          />
+        </KpiGrid>
+      )}
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard title="Penjualan terakhir" hint="8 penjualan terakhir yang sudah dibayar" className="xl:col-span-2 [&>div]:p-0">
-          {!recentLoaded ? (
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel
+          title="Tren penjualan"
+          description={prev && report && prev.totals.net > 0 ? <span className="inline-flex flex-wrap items-center gap-2">Dibanding periode sebelumnya <Trend cur={report.totals.net} prev={prev.totals.net} /></span> : 'Uang masuk per hari'}
+          action={<RangePicker value={preset} presets={['7d', '30d', '90d']} from={from} to={to} label="Rentang grafik" onChange={(p, r) => { setPreset(p); setRange(r) }} />}
+          className="lg:col-span-2"
+          flush
+        >
+          {report ? <SalesTrendChart series={series} /> : <div className="p-4"><ChartSkeleton /></div>}
+        </Panel>
+
+        <Panel title="Jam ramai hari ini" description="Uang masuk per jam">
+          {hourly === null ? (
+            <ChartSkeleton />
+          ) : hours.length === 0 ? (
+            <EmptyState title="Belum ada penjualan hari ini" hint="Grafik muncul setelah penjualan pertama dibayar." />
+          ) : (
+            <HourlyChart data={hours} />
+          )}
+        </Panel>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel
+          title="Penjualan terakhir"
+          description="5 penjualan terakhir yang sudah dibayar"
+          action={<Link to="/admin/laporan" className={buttonVariants({ variant: 'ghost', className: 'h-11 text-base' })}>Semua <ArrowUpRight /></Link>}
+          className="lg:col-span-2"
+          flush
+        >
+          {recent === null ? (
             <RowsSkeleton rows={5} />
           ) : recent.length === 0 ? (
             <div className="p-4"><EmptyState title="Belum ada penjualan" hint="Penjualan yang sudah dibayar muncul di sini. Mulai dari tombol Jualan." /></div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-11 text-xs uppercase tracking-wide text-muted-foreground">Antrean</TableHead>
-                  <TableHead className="h-11 text-xs uppercase tracking-wide text-muted-foreground">Pelanggan</TableHead>
-                  <TableHead className="hidden h-11 text-xs uppercase tracking-wide text-muted-foreground md:table-cell">Metode</TableHead>
-                  <TableHead className="h-11 text-xs uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                  <TableHead className="h-11 text-right text-xs uppercase tracking-wide text-muted-foreground">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recent.map((o) => {
-                  const s = STATUS[o.status] ?? { label: o.status, tone: 'neutral' as Tone }
-                  return (
-                    <TableRow key={o.id} className="h-12">
-                      <TableCell className="font-mono font-semibold">{o.queue_code}</TableCell>
-                      <TableCell>
-                        <span className="block max-w-48 truncate">{o.customer_name}</span>
-                        <span className="text-xs text-muted-foreground">{dayLabel(o.business_day)} {o.paid_at && clock(o.paid_at)}</span>
-                      </TableCell>
-                      <TableCell className="hidden text-muted-foreground md:table-cell">{o.payment_method ? PAYMENT_LABEL[o.payment_method] : '—'}</TableCell>
-                      <TableCell><Chip tone={s.tone}>{s.label}</Chip></TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">{rupiah(o.total)}</TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-          <div className="border-t px-4 py-3">
-            <Link to="/admin/laporan" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Lihat semua penjualan <ArrowUpRight /></Link>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Perlu perhatian" hint={`${soldOut.length + low.length} item`}>
-          {!lowLoaded ? (
-            <RowsSkeleton rows={3} />
-          ) : soldOut.length === 0 && low.length === 0 ? (
-            <EmptyState title="Semua aman" hint="Tidak ada menu habis atau bahan yang hampir habis." />
-          ) : (
-            <ul className="space-y-4">
-              {soldOut.length > 0 && (
-                <li>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Menu habis</p>
-                  <ul className="divide-y">
-                    {soldOut.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                        <span className="truncate">{p.name}</span>
-                        <Switch checked={p.is_available} aria-label={`Aktifkan ${p.name}`} onCheckedChange={(v) => run(supabase.from('products').update({ is_available: v }).eq('id', p.id))} />
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              )}
-              {low.length > 0 && (
-                <li>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Bahan hampir habis</p>
-                  <ul className="divide-y">
-                    {low.map((i) => (
-                      <li key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                        <span className="truncate">{i.name}</span>
-                        <span className="tabular-nums text-destructive">{compact(i.stock)} {i.unit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              )}
+            <ul className="divide-y">
+              {recent.map((o) => {
+                const s = STATUS[o.status] ?? { label: o.status, tone: 'neutral' as Tone }
+                return (
+                  <li key={o.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="grid h-11 min-w-16 place-items-center rounded-lg bg-muted px-2 font-mono font-bold">{o.queue_code}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base font-semibold">{o.customer_name}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {dayLabel(o.business_day)} {o.paid_at && clock(o.paid_at)} · {o.payment_method ? PAYMENT_LABEL[o.payment_method] : '—'}
+                      </span>
+                    </span>
+                    <span className="hidden sm:block"><Chip tone={s.tone}>{s.label}</Chip></span>
+                    <span className="text-base font-bold tabular-nums">{rupiah(o.total)}</span>
+                  </li>
+                )
+              })}
             </ul>
           )}
-        </SectionCard>
+        </Panel>
+
+        <div id="perlu-dicek" className="scroll-mt-20">
+          <Panel title="Perlu dicek" description={attention ? `${attention} hal` : 'Menu habis & bahan menipis'}>
+            {low === null ? (
+              <RowsSkeleton rows={3} />
+            ) : attention === 0 ? (
+              <EmptyState title="Semua aman" hint="Tidak ada menu habis atau bahan yang hampir habis." />
+            ) : (
+              <div className="space-y-3">
+                {/* satu daftar ringkas: paling banyak 5 baris, sisanya lewat tombol */}
+                <ul className="divide-y">
+                  {[
+                    ...soldOut.map((p) => ({ key: `p-${p.id}`, name: p.name, tag: 'Menu habis', right: p.is_available ? <span className="text-sm font-semibold text-destructive">Bahan habis</span> : <Switch checked={false} aria-label={`Jual lagi ${p.name}`} onCheckedChange={(v) => run(supabase.from('products').update({ is_available: v }).eq('id', p.id))} /> })),
+                    ...low.map((i) => ({ key: `i-${i.id}`, name: i.name, tag: 'Bahan menipis', right: <span className="text-sm font-semibold tabular-nums text-destructive">{Math.max(i.stock, 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} {i.unit}</span> })),
+                  ]
+                    .slice(0, showAll ? undefined : 5)
+                    .map((r) => (
+                      <li key={r.key} className="flex min-h-12 items-center justify-between gap-3 py-1.5">
+                        <span className="min-w-0">
+                          <span className="block truncate text-base">{r.name}</span>
+                          <span className="block text-sm text-muted-foreground">{r.tag}</span>
+                        </span>
+                        <span className="shrink-0">{r.right}</span>
+                      </li>
+                    ))}
+                </ul>
+                {attention > 5 && (
+                  <Button variant="ghost" className="h-11 w-full text-base" onClick={() => setShowAll((v) => !v)}>
+                    {showAll ? 'Ringkas lagi' : `Tampilkan ${attention - 5} lainnya`}
+                  </Button>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <Link to="/admin/stok" className={buttonVariants({ variant: 'outline', className: 'h-11 border-2 text-base' })}>Lihat stok</Link>
+                  <Link to="/admin/pembelian" className={buttonVariants({ variant: 'outline', className: 'h-11 border-2 text-base' })}>Belanja</Link>
+                </div>
+              </div>
+            )}
+          </Panel>
+        </div>
       </div>
     </div>
   )
 }
-
-

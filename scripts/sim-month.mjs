@@ -181,9 +181,14 @@ async function main() {
     tracker.push(rec)
   }
 
+  const shiftRows = await sql(`select id, name from shift_names where store_id = '${SID}' and is_active order by sort_order`)
+  const shiftPagi = shiftRows.find((s) => s.name.toLowerCase().includes('pagi'))?.id ?? shiftRows[0]?.id ?? null
+  const shiftSore = shiftRows.find((s) => s.name.toLowerCase().includes('sore'))?.id ?? shiftRows[1]?.id ?? shiftPagi
+
   async function runShift(staff, label, n, plan) {
     const extra = [] // id pesanan batal
-    const sh = await rpc(staff, 'open_shift', { p_opening_cash: carry, p_note: '' })
+    const sName = label === 'pagi' ? shiftPagi : shiftSore
+    const sh = await rpc(staff, 'open_shift', { p_opening_cash: carry, p_note: '', p_shift_name: sName })
     simShiftIds.push(sh.id)
     const mine = []
     for (let i = 0; i < n; i += 3) await Promise.all(Array.from({ length: Math.min(3, n - i) }, () => sellOne(staff, label, mine, extra).catch(note)))

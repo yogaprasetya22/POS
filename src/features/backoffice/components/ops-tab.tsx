@@ -1,9 +1,10 @@
-import { Info } from 'lucide-react'
+import { Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
-import { Chip, FilterChips, ListCard, PageHeader, StatTile, type Tone } from '@shared/components/page'
+import { Chip, FilterChips, ListCard, type Tone } from '@shared/components/page'
 import { EmptyState, Pagination } from '@shared/components/pagination'
-import { RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
+import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
 import { Avatar, AvatarFallback } from '@shared/components/ui/avatar'
 import { Button } from '@shared/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table'
@@ -12,10 +13,11 @@ import { useStaff } from '@shared/lib/auth'
 import { rpc } from '@shared/lib/api'
 import { supabase } from '@shared/lib/supabase'
 import { usePaged } from '@shared/lib/use-paged'
-import { rupiah, todayJakarta } from '@shared/lib/utils'
+import { rupiah } from '@shared/lib/utils'
 import { ShiftStatsSchema, can, type ShiftStats } from '@shared/types/contracts'
 import { ShiftDetailDrawer } from './shift-detail'
-import { addDays } from './report-page'
+import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, addDays, downloadCsv, eachDay, rangeOf, rangeText, type Preset } from './analytics/kit'
+import { CashDiffChart } from './analytics/lazy'
 
 const ShiftRowSchema = z.object({
   id: z.uuid(),
@@ -71,17 +73,6 @@ const AUDIT_GROUPS = {
 type AuditGroup = keyof typeof AUDIT_GROUPS
 
 type ShiftFilter = 'all' | 'review' | 'diff' | 'open'
-type Period = '7d' | '30d' | 'month'
-const PERIODS: { value: Period; label: string }[] = [
-  { value: '7d', label: '7 hari' },
-  { value: '30d', label: '30 hari' },
-  { value: 'month', label: 'Bulan ini' },
-]
-function rangeOf(p: Period): [string, string] {
-  const t = todayJakarta()
-  return p === '7d' ? [addDays(t, -6), t] : p === '30d' ? [addDays(t, -29), t] : [t.slice(0, 8) + '01', t]
-}
-
 const tz = 'Asia/Jakarta'
 const day = (iso: string) => new Date(iso).toLocaleDateString('id-ID', { timeZone: tz, day: 'numeric', month: 'short' })
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('id-ID', { timeZone: tz, hour: '2-digit', minute: '2-digit' })
@@ -140,8 +131,10 @@ export function OpsTab() {
   const { role } = useStaff()
   const [who, setWho] = useState<Map<string, string>>(new Map())
   const [tab, setTab] = useState('shift')
-  const [period, setPeriod] = useState<Period>('30d')
+  const [period, setPeriod] = useState<Preset>('30d')
   const [[from, to], setRange] = useState<[string, string]>(rangeOf('30d'))
+  const [daily, setDaily] = useState<{ date: string; short: number; over: number }[] | null>(null)
+  const [exporting, setExporting] = useState(false)
   const [shiftFilter, setShiftFilter] = useState<ShiftFilter>('all')
   const [auditGroup, setAuditGroup] = useState<AuditGroup>('all')
   const [stats, setStats] = useState<ShiftStats | null>(null)
@@ -185,6 +178,50 @@ export function OpsTab() {
     setStats(null)
     void loadStats()
   }, [loadStats])
+
+  // selisih kas per hari untuk grafik (shift yang sudah ditutup di rentang ini)
+  const loadDaily = useCallback(async () => {
+    setDaily(null)
+    const { data } = await supabase
+      .from('shifts')
+      .select('opened_at,difference')
+      .not('closed_at', 'is', null)
+      .gte('opened_at', `${from}T00:00:00+07:00`)
+      .lt('opened_at', `${addDays(to, 1)}T00:00:00+07:00`)
+      .limit(2000)
+    const rows = z.array(z.object({ opened_at: z.string(), difference: z.number().nullable() })).safeParse(data ?? []).data ?? []
+    const by = new Map(eachDay(from, to).map((d) => [d, { date: d, short: 0, over: 0 }]))
+    for (const r of rows) {
+      const d = new Date(r.opened_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+      const x = by.get(d)
+      if (!x || !r.difference) continue
+      if (r.difference < 0) x.short += r.difference
+      else x.over += r.difference
+    }
+    setDaily([...by.values()])
+  }, [from, to])
+  useEffect(() => {
+    void loadDaily()
+  }, [loadDaily])
+
+  const exportShifts = async () => {
+    setExporting(true)
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*')
+      .gte('opened_at', `${from}T00:00:00+07:00`)
+      .lt('opened_at', `${addDays(to, 1)}T00:00:00+07:00`)
+      .order('opened_at')
+      .limit(5000)
+    setExporting(false)
+    if (error) return toast.error('Catatan shift gagal diunduh', { description: 'Periksa internet, lalu coba lagi.' })
+    const rows = z.array(ShiftRowSchema).safeParse(data ?? []).data ?? []
+    downloadCsv(`shift-${from}_${to}.csv`, [
+      ['Tanggal', 'Buka', 'Tutup', 'Shift', 'Kasir', 'Modal awal', 'Seharusnya', 'Dihitung', 'Selisih', 'Ditutup paksa', 'Ditinjau', 'Catatan'],
+      ...rows.map((r) => [day(r.opened_at), clock(r.opened_at), r.closed_at ? clock(r.closed_at) : 'berjalan', r.shift_name, name(r.opened_by), r.opening_cash, r.expected_cash ?? '', r.counted_cash ?? '', r.difference ?? '', r.forced ? 'ya' : '', r.reviewed_at ? 'ya' : '', r.note]),
+    ])
+    toast.success(`${rows.length} shift diunduh`, { description: 'Buka file CSV-nya dengan Excel atau Google Sheets.' })
+  }
   useEffect(() => {
     void supabase.from('profiles').select('user_id,email').then(({ data }) => {
       const pp = z.array(ProfileSchema).safeParse(data ?? [])
@@ -197,50 +234,83 @@ export function OpsTab() {
   const refreshAll = () => {
     shifts.reload()
     void loadStats()
+    void loadDaily()
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Shift & audit" description="Pantau selisih kas tiap shift, siapa yang memegang laci, dan jejak tindakan sensitif. Buka Rincian untuk melihat dari mana selisih berasal." />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Catatan laci kasir</h1>
+          <p className="mt-1 text-lg text-muted-foreground">{rangeText(from, to)} · uang laci tiap shift, selisihnya, dan siapa yang memegang laci.</p>
+        </div>
+        <Button variant="outline" className="h-11 border-2 text-base" disabled={exporting} onClick={() => void exportShifts()}>
+          <Download /> {exporting ? 'Menyiapkan…' : 'Unduh catatan shift'}
+        </Button>
+      </div>
 
-      <FilterChips id="ops-period" label="Periode" value={period} onChange={(p) => { setPeriod(p); setRange(rangeOf(p)) }} options={PERIODS} />
+      <RangePicker value={period} presets={['7d', '30d', 'month', 'custom']} from={from} to={to} label="Periode" onChange={(p, r) => { setPeriod(p); setRange(r) }} />
 
       {stats ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile
+        <KpiGrid>
+          <KpiCard
+            index={0}
             label="Total selisih kas"
             value={stats.diff_total === 0 ? 'Rp0' : signed(stats.diff_total)}
-            tone={stats.diff_total < 0 ? 'bad' : stats.diff_total > 0 ? undefined : 'good'}
-            hint={stats.with_diff === 0 ? `${stats.closed} shift, semuanya pas` : `kurang ${rupiah(-stats.short_total)} · lebih ${rupiah(stats.over_total)}`}
+            tone={stats.diff_total < 0 ? 'bad' : stats.diff_total === 0 ? 'good' : undefined}
+            title={stats.with_diff === 0 ? 'Semua shift pas' : `Kurang ${rupiah(-stats.short_total)} · lebih ${rupiah(stats.over_total)}`}
+            hint={`${stats.closed} shift ditutup`}
           />
-          <StatTile index={0} label="Shift dengan selisih" value={`${stats.with_diff} / ${stats.closed}`} hint="shift ditutup di periode ini" tone={stats.with_diff > 0 ? 'bad' : undefined} />
-          <button type="button" className="rounded-xl text-left" onClick={() => { setTab('shift'); setShiftFilter('review') }} aria-label="Lihat shift yang perlu ditinjau">
-            <StatTile index={1} label="Perlu ditinjau" value={String(stats.unreviewed)} hint={stats.unreviewed ? 'ketuk untuk melihat daftarnya' : 'semua selisih sudah ditinjau'} tone={stats.unreviewed > 0 ? 'bad' : 'good'} />
-          </button>
-          <StatTile
+          <KpiCard index={1} label="Shift dengan selisih" value={`${stats.with_diff} dari ${stats.closed}`} tone={stats.with_diff > 0 ? 'bad' : undefined} title={stats.closed ? `${Math.round((stats.with_diff / stats.closed) * 100)}% shift tidak pas` : 'Belum ada shift ditutup'} hint="Ketuk “Rincian” di daftar untuk melihat sebabnya" />
+          <KpiCard
+            index={2}
+            label="Perlu ditinjau"
+            value={String(stats.unreviewed)}
+            tone={stats.unreviewed > 0 ? 'bad' : 'good'}
+            title={stats.unreviewed ? 'Selisih belum dicek manager' : 'Semua selisih sudah ditinjau'}
+            hint={stats.unreviewed ? 'Ketuk untuk melihat daftarnya' : 'Tidak ada yang perlu dicek'}
+            onClick={stats.unreviewed ? () => { setTab('shift'); setShiftFilter('review') } : undefined}
+          />
+          <KpiCard
+            index={3}
             label="Serah terima bermasalah"
             value={String(stats.handover_mismatch + stats.forced)}
-            hint={`${stats.handover_mismatch} modal awal beda · ${stats.forced} tutup paksa`}
             tone={stats.handover_mismatch + stats.forced > 0 ? 'bad' : undefined}
+            title={`${stats.handover_mismatch} modal awal beda`}
+            hint={`${stats.forced} shift ditutup paksa`}
           />
-        </div>
+        </KpiGrid>
       ) : (
-        <StatTilesSkeleton />
+        <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
       )}
 
-      <p className="flex gap-2 rounded-lg bg-muted px-3 py-2.5 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          <span className="font-medium text-foreground">Cara membaca:</span> uang yang seharusnya ada = modal awal + penjualan tunai + kas masuk − kas keluar − refund tunai. Selisih = uang yang dihitung kasir − seharusnya.
-          Minus berarti uang kurang. Modal awal shift berikutnya harus sama dengan uang yang diserahkan shift sebelumnya.
-        </span>
-      </p>
+      <Panel title="Selisih kas per hari" description="Batang merah = uang kurang, hijau = uang lebih. Kosong berarti pas atau tidak ada shift.">
+        {daily === null ? <ChartSkeleton /> : daily.every((d) => d.short === 0 && d.over === 0) ? (
+          <EmptyState title="Tidak ada selisih" hint="Semua shift di periode ini pas, atau belum ada shift yang ditutup." />
+        ) : (
+          <CashDiffChart data={daily} />
+        )}
+      </Panel>
+
+      <StatusLegend
+        title="Arti setiap status & cara membaca selisih"
+        items={[
+          { label: 'Berjalan', tone: TONE.info, text: 'Laci sedang dipegang kasir. Selisih baru diketahui saat shift ditutup.' },
+          { label: 'Pas', tone: TONE.good, text: 'Uang yang dihitung kasir sama persis dengan yang seharusnya ada.' },
+          { label: 'Kurang', tone: TONE.bad, text: 'Uang di laci lebih sedikit dari seharusnya. Perlu dicari sebabnya.' },
+          { label: 'Lebih', tone: TONE.warn, text: 'Uang di laci lebih banyak, mis. kembalian kurang diberikan.' },
+          { label: 'Perlu ditinjau', tone: TONE.warn, text: 'Ada selisih yang belum dicek manager. Buka “Rincian” lalu tandai sudah ditinjau.' },
+          { label: 'Ditinjau', tone: TONE.good, text: 'Manager sudah mengecek selisihnya.' },
+          { label: 'Seharusnya', tone: TONE.neutral, text: 'Modal awal + penjualan tunai + kas masuk − kas keluar − refund tunai.' },
+          { label: 'Serah terima', tone: TONE.neutral, text: 'Modal awal shift berikutnya harus sama dengan uang yang diserahkan shift sebelumnya.' },
+        ]}
+      />
 
       <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <TabsList variant="line" className="w-full justify-start border-b">
-          <TabsTrigger value="shift" className="h-11 flex-none px-4">Riwayat shift {!shifts.loading && <span className="ml-1.5 text-muted-foreground tabular-nums">{shifts.total}</span>}</TabsTrigger>
-          <TabsTrigger value="cashier" className="h-11 flex-none px-4">Per kasir</TabsTrigger>
-          <TabsTrigger value="audit" className="h-11 flex-none px-4">Log audit {!logs.loading && <span className="ml-1.5 text-muted-foreground tabular-nums">{logs.total}</span>}</TabsTrigger>
+        <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b scrollbar-none">
+          <TabsTrigger value="shift" className="h-12 flex-none px-4 text-base">Riwayat shift {!shifts.loading && <span className="ml-1.5 text-muted-foreground tabular-nums">{shifts.total}</span>}</TabsTrigger>
+          <TabsTrigger value="cashier" className="h-12 flex-none px-4 text-base">Per kasir</TabsTrigger>
+          <TabsTrigger value="audit" className="h-12 flex-none px-4 text-base">Catatan tindakan {!logs.loading && <span className="ml-1.5 text-muted-foreground tabular-nums">{logs.total}</span>}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="shift" className="space-y-3">
@@ -357,13 +427,13 @@ export function OpsTab() {
               </Table>
             )}
           </ListCard>
-          <p className="text-xs text-muted-foreground">Dihitung dari shift yang dibuka di periode terpilih. Selisih bersih = lebih dikurangi kurang.</p>
+          <p className="text-base text-muted-foreground">Dihitung dari shift yang dibuka di periode terpilih. Selisih bersih = lebih dikurangi kurang.</p>
         </TabsContent>
 
         <TabsContent value="audit" className="space-y-3">
           <FilterChips
             id="audit-filter"
-            label="Filter log audit"
+            label="Saring catatan tindakan"
             value={auditGroup}
             onChange={setAuditGroup}
             options={[
