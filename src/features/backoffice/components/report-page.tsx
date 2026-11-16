@@ -2,7 +2,7 @@ import { Download, Printer, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, Trend, downloadCsv, addDays, previousRange, rangeOf, rangeText, dayLabel, type Preset } from './analytics/kit'
 import { MethodsChart, RankBars, SalesTrendChart } from './analytics/lazy'
-import { busiestHour, dailySeries, hourRange, hourlySeries, type Paid } from './analytics/series'
+import { busiestHour, dailySeries, hourRange, hourlySeries, jakartaHour, type Paid } from './analytics/series'
 import { ProfitTab } from './profit-tab'
 import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
 import { useEffect, useMemo, useState } from 'react'
@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/
 import { rpc } from '@shared/lib/api'
 import { supabase } from '@shared/lib/supabase'
 import { usePaged } from '@shared/lib/use-paged'
-import { rupiah } from '@shared/lib/utils'
+import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, type Order, type StoreConfig } from '@shared/types/contracts'
 
 const ReportSchema = z.object({
@@ -334,7 +334,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
   const reversed = report ? report.voids.amount + report.refunds.amount : 0
   const prevReversed = prev ? prev.voids.amount + prev.refunds.amount : 0
   const series = useMemo(() => (report ? dailySeries(from, to, report.daily, prev?.daily ?? []) : []), [report, prev, from, to])
-  const hours = useMemo(() => (hourly ? hourlySeries(hourly.cur, hourly.prev) : []), [hourly])
+  const hours = useMemo(() => (hourly ? hourlySeries(hourly.cur, hourly.prev, from === todayJakarta() ? jakartaHour(new Date().toISOString()) : undefined) : []), [hourly, from])
   const peak = busiestHour(hours)
   const methods = useMemo(() => (report?.by_method ?? []).map((m) => ({ key: m.method ?? 'LAIN', label: PAYMENT_LABEL[m.method as keyof typeof PAYMENT_LABEL] ?? 'Lainnya', orders: m.orders, net: m.net })).sort((a, b) => b.net - a.net), [report])
   const best = report?.daily.reduce<{ day: string; net: number } | null>((b, d) => (!b || d.net > b.net ? d : b), null)

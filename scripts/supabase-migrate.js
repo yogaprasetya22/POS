@@ -185,6 +185,12 @@ async function seedInventory() {
   console.log('✅ Data demo Inventory Stock berhasil dimasukkan!');
 }
 
+// Data contoh 90 hari terakhir: pesanan per jam, shift Pagi/Sore, kas, riwayat bahan (aman diulang).
+async function seedHistory() {
+  await runSeedFile('seed_history.sql');
+  console.log('✅ Data 90 hari terakhir berhasil dibuat!');
+}
+
 // Data contoh Pembelian: pemasok + pembelian di setiap keadaan (aman diulang; stok tidak diubah).
 async function seedPurchasing() {
   await runSeedFile('seed_purchasing.sql');
@@ -209,6 +215,7 @@ async function main() {
     case 'seed-pos': return seedPos();
     case 'seed-inventory': return seedInventory();
     case 'seed-purchasing': return seedPurchasing();
+    case 'seed-history': return seedHistory();
     default:
       console.log(`
 Penggunaan:
@@ -222,6 +229,7 @@ Penggunaan:
   bun scripts/supabase-migrate.js seed-pos        - Hanya data demo fitur POS inti (supabase/seed_pos.sql)
   bun scripts/supabase-migrate.js seed-inventory  - Data demo Inventory Stock (supabase/seed_inventory.sql)
   bun scripts/supabase-migrate.js seed-purchasing - Data contoh Pembelian (supabase/seed_purchasing.sql)
+  bun scripts/supabase-migrate.js seed-history    - Data 90 hari terakhir (supabase/seed_history.sql)
       `);
   }
 }

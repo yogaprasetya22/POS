@@ -12,7 +12,7 @@ import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
 import { KpiCard, KpiGrid, Panel, RangePicker, Trend, addDays, longDay, previousRange, rangeOf, type Preset } from './analytics/kit'
 import { HourlyChart, SalesTrendChart } from './analytics/lazy'
-import { busiestHour, dailySeries, hourRange, hourlySeries } from './analytics/series'
+import { busiestHour, dailySeries, hourRange, hourTotals, hourlySeries, jakartaHour } from './analytics/series'
 import { clock, dayLabel, fetchReport, type Report } from './report-page'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
@@ -77,14 +77,20 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
 
   const byDay = useMemo(() => new Map((report?.daily ?? []).map((d) => [d.day, d])), [report])
   const series = useMemo(() => (report ? dailySeries(from, to, report.daily, prev?.daily ?? []) : []), [report, prev, from, to])
-  const hours = useMemo(() => (hourly ? hourlySeries(hourly.today, hourly.yesterday) : []), [hourly])
+  const hours = useMemo(() => (hourly ? hourlySeries(hourly.today, hourly.yesterday, jakartaHour(new Date().toISOString())) : []), [hourly])
+  // kemarin sampai jam yang sama dengan sekarang: perbandingan yang adil di tengah hari
+  const sameTime = useMemo(() => hourTotals(hours), [hours])
 
   const t = byDay.get(today)
   const y = byDay.get(addDays(today, -1))
   const net = t?.net ?? 0
   const orders = t?.orders ?? 0
   const aov = orders ? Math.round(net / orders) : 0
-  const yAov = y?.orders ? Math.round(y.net / y.orders) : 0
+  // kemarin sampai jam yang sama (dari data per jam); sebelum data per jam termuat, pakai kemarin seharian
+  const yNet = hourly ? sameTime.prevNet : (y?.net ?? 0)
+  const yOrders = hourly ? sameTime.prevOrders : (y?.orders ?? 0)
+  const yAov = yOrders ? Math.round(yNet / yOrders) : 0
+  const yLabel = hourly ? 'Kemarin s/d jam ini' : 'Kemarin'
   const busiest = busiestHour(hours)
   const yBusiest = busiestHour(hours.map((h) => ({ ...h, net: h.prevNet, orders: h.prevOrders })))
   const soldOut = products.filter((p) => !isSellable(p))
@@ -114,9 +120,9 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
         <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
       ) : (
         <KpiGrid>
-          <KpiCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={y?.net ?? 0} />} title={`dari ${orders} penjualan`} hint={`Kemarin ${rupiah(y?.net ?? 0)}`} />
-          <KpiCard index={1} label="Jumlah penjualan" value={String(orders)} badge={<Trend cur={orders} prev={y?.orders ?? 0} />} title={busiest ? `Paling ramai pukul ${hourRange(busiest.hour)}` : 'Belum ada penjualan hari ini'} hint={`Kemarin ${y?.orders ?? 0} penjualan`} />
-          <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={yAov} />} title="Rata-rata belanja tiap pembeli" hint={yAov ? `Kemarin ${rupiah(yAov)}` : 'Kemarin belum ada penjualan'} />
+          <KpiCard index={0} label="Uang masuk hari ini" value={rupiah(net)} badge={<Trend cur={net} prev={yNet} />} title={`dari ${orders} penjualan`} hint={`${yLabel} ${rupiah(yNet)} · seharian ${rupiah(y?.net ?? 0)}`} />
+          <KpiCard index={1} label="Jumlah penjualan" value={String(orders)} badge={<Trend cur={orders} prev={yOrders} />} title={busiest ? `Paling ramai pukul ${hourRange(busiest.hour)}` : 'Belum ada penjualan hari ini'} hint={`${yLabel} ${yOrders} penjualan`} />
+          <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={yAov} />} title="Rata-rata belanja tiap pembeli" hint={yAov ? `${yLabel} ${rupiah(yAov)}` : 'Kemarin belum ada penjualan'} />
           <KpiCard
             index={3}
             label="Perlu dicek"

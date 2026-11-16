@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { busiestHour, dailySeries, hourRange, hourlySeries, jakartaDate, jakartaHour } from './series'
+import { busiestHour, dailySeries, hourRange, hourTotals, hourlySeries, jakartaDate, jakartaHour } from './series'
 
 // Waktu ditulis dalam WIB (+07:00) supaya skenario mudah dibaca.
 const at = (hhmm: string, total = 10_000, day = '2026-11-16') => ({ paid_at: `${day}T${hhmm}:00+07:00`, total })
@@ -50,6 +50,25 @@ describe('Skenario: penjualan per jam (Hari ini)', () => {
     expect(busiestHour(rows)?.hour).toBe(13)
     expect(busiestHour(hourlySeries([], [at('10:00')]))).toBeNull()
     expect(hourRange(23)).toBe('23.00–00.00')
+  })
+})
+
+describe('Skenario: hari ini belum selesai (sekarang pukul 15.xx)', () => {
+  const today = [at('09:10', 20_000), at('15:05', 30_000)]
+  const yesterday = [at('09:00', 10_000, '2026-11-15'), at('15:30', 15_000, '2026-11-15'), at('19:00', 90_000, '2026-11-15')]
+
+  it('jam setelah 15 ditandai belum terjadi', () => {
+    const rows = hourlySeries(today, yesterday, 15)
+    expect(rows.find((r) => r.hour === 15)!.future).toBe(false)
+    expect(rows.find((r) => r.hour === 19)!.future).toBe(true)
+  })
+
+  it('kemarin dibandingkan hanya sampai jam yang sama (penjualan kemarin pukul 19 tidak dihitung)', () => {
+    expect(hourTotals(hourlySeries(today, yesterday, 15))).toEqual({ net: 50_000, orders: 2, prevNet: 25_000, prevOrders: 2 })
+  })
+
+  it('tanpa jam sekarang (hari yang sudah lewat): semua jam dibandingkan penuh', () => {
+    expect(hourTotals(hourlySeries(today, yesterday))).toMatchObject({ prevNet: 115_000, prevOrders: 3 })
   })
 })
 

@@ -4,7 +4,8 @@
  */
 
 export type Paid = { paid_at: string; total: number }
-export type HourRow = { hour: number; net: number; orders: number; prevNet: number; prevOrders: number }
+/** `future`: jam yang belum terjadi (hanya untuk hari ini) — tidak digambar dan tidak ikut dibandingkan. */
+export type HourRow = { hour: number; net: number; orders: number; prevNet: number; prevOrders: number; future?: boolean }
 export type DayRow = { date: string; net: number; orders: number; prevDate: string; prevNet: number; prevOrders: number }
 
 /** Jam (0–23) di Jakarta dari waktu ISO. */
@@ -23,7 +24,7 @@ const MIN_SPAN = 8
  * (jam pertama–terakhir yang ada penjualan di salah satu hari), minimal 8 jam supaya grafik tetap terbaca.
  * Kosong bila kedua hari tanpa penjualan.
  */
-export function hourlySeries(cur: Paid[], prev: Paid[] = []): HourRow[] {
+export function hourlySeries(cur: Paid[], prev: Paid[] = [], nowHour?: number): HourRow[] {
   const rows: HourRow[] = Array.from({ length: 24 }, (_, hour) => ({ hour, net: 0, orders: 0, prevNet: 0, prevOrders: 0 }))
   for (const o of cur) {
     const r = rows[jakartaHour(o.paid_at)]
@@ -44,7 +45,19 @@ export function hourlySeries(cur: Paid[], prev: Paid[] = []): HourRow[] {
     if (start > 0) start--
     if (end - start + 1 < MIN_SPAN && end < 23) end++
   }
-  return rows.slice(start, end + 1)
+  const out = rows.slice(start, end + 1)
+  return nowHour === undefined ? out : out.map((r) => ({ ...r, future: r.hour > nowHour }))
+}
+
+/** Jumlah hari ini dan pembanding yang adil: pembanding hanya sampai jam yang sama (jam yang belum terjadi dilewati). */
+export function hourTotals(rows: HourRow[]) {
+  const past = rows.filter((r) => !r.future)
+  return {
+    net: past.reduce((a, r) => a + r.net, 0),
+    orders: past.reduce((a, r) => a + r.orders, 0),
+    prevNet: past.reduce((a, r) => a + r.prevNet, 0),
+    prevOrders: past.reduce((a, r) => a + r.prevOrders, 0),
+  }
 }
 
 /** Jam teramai (paling banyak penjualan; seri → uang terbanyak). Null bila tidak ada penjualan. */

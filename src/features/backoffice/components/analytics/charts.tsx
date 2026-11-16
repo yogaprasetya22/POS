@@ -12,8 +12,9 @@ import { dayLabel, longDay } from './kit'
 const short = (n: number) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt` : Math.abs(n) >= 1e3 ? `${Math.round(n / 1e3)} rb` : String(n))
 
 type Metric = 'net' | 'orders' | 'aov'
-type Row = { net: number; orders: number; prevNet: number; prevOrders: number; hour?: number; date?: string; prevDate?: string }
-const sum = (rows: Row[], k: 'net' | 'orders' | 'prevNet' | 'prevOrders') => rows.reduce((a, r) => a + r[k], 0)
+type Row = { net: number; orders: number; prevNet: number; prevOrders: number; hour?: number; date?: string; prevDate?: string; future?: boolean }
+// jam yang belum terjadi (hari ini) tidak ikut dijumlah, supaya pembanding adil: kemarin sampai jam yang sama
+const sum = (rows: Row[], k: 'net' | 'orders' | 'prevNet' | 'prevOrders') => rows.reduce((a, r) => a + (r.future ? 0 : r[k]), 0)
 const avg = (net: number, orders: number) => (orders ? Math.round(net / orders) : 0)
 const METRIC: Record<Metric, { label: string; color: string; fmt: (n: number) => string; cur: (r: Row[]) => number; prev: (r: Row[]) => number }> = {
   net: { label: 'Uang masuk', color: 'var(--chart-1)', fmt: rupiah, cur: (r) => sum(r, 'net'), prev: (r) => sum(r, 'prevNet') },
@@ -28,7 +29,9 @@ const hh = (h: number) => `${String(h).padStart(2, '0')}.00`
  */
 export function SalesTrendChart({ rows, mode = 'day', prevLabel = 'Periode lalu' }: { rows: Row[]; mode?: 'hour' | 'day'; prevLabel?: string }) {
   const [metric, setMetric] = useState<Metric>('net')
-  const data = rows.map((r) => ({ ...r, aov: avg(r.net, r.orders), prevAov: avg(r.prevNet, r.prevOrders) }))
+  // jam yang belum terjadi: garis hari ini berhenti di jam sekarang (null = tidak digambar)
+  const data = rows.map((r) => ({ ...r, aov: avg(r.net, r.orders), prevAov: avg(r.prevNet, r.prevOrders), ...(r.future ? { net: null, orders: null, aov: null } : {}) }))
+  const partial = rows.some((r) => r.future)
   const prevKey = metric === 'net' ? 'prevNet' : metric === 'orders' ? 'prevOrders' : 'prevAov'
   const config = {
     [metric]: { label: mode === 'hour' ? 'Hari ini' : 'Periode ini', color: METRIC[metric].color },
@@ -52,7 +55,7 @@ export function SalesTrendChart({ rows, mode = 'day', prevLabel = 'Periode lalu'
               </span>
               <span className="text-base font-bold tabular-nums sm:text-2xl">{fmtVal(k, cur)}</span>
               <span className="text-sm text-muted-foreground tabular-nums">
-                {prevLabel}: {fmtVal(k, prev)}
+                {prevLabel}{partial ? ' s/d jam ini' : ''}: {fmtVal(k, prev)}
                 {pct !== null && <span className={pct >= 0 ? ' font-semibold text-emerald-700 dark:text-emerald-400' : ' font-semibold text-destructive'}> ({pct >= 0 ? '+' : ''}{pct}%)</span>}
               </span>
               {metric === k && <span className="absolute inset-x-0 bottom-0 h-0.5" style={{ background: METRIC[k].color }} aria-hidden />}
@@ -101,7 +104,7 @@ export function SalesTrendChart({ rows, mode = 'day', prevLabel = 'Periode lalu'
                   }
                 />
                 {hasPrev && <Area dataKey={prevKey} type="monotone" fill="none" stroke="var(--muted-foreground)" strokeDasharray="5 5" strokeWidth={1.5} dot={false} />}
-                <Area dataKey={metric} type="monotone" fill={`url(#fill-${metric})`} stroke={`var(--color-${metric})`} strokeWidth={2.5} dot={mode === 'hour' ? { r: 3 } : false} />
+                <Area dataKey={metric} type="monotone" connectNulls={false} fill={`url(#fill-${metric})`} stroke={`var(--color-${metric})`} strokeWidth={2.5} dot={mode === 'hour' ? { r: 3 } : false} />
               </AreaChart>
             </ChartContainer>
             <p className="flex flex-wrap items-center gap-x-5 gap-y-1 pb-3 pt-1 text-sm text-muted-foreground">

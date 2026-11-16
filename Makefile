@@ -114,3 +114,6 @@ media-status: ## Hitung media per tempat penyimpanan
 
 media-to-drive: ## Pindahkan semua media yang belum di Google Drive
 	bun scripts/media-to-drive.js migrate
+
+seed-history: ## Data contoh 90 hari terakhir (pesanan per jam, shift, kas) untuk toko demo
+	bun scripts/supabase-migrate.js seed-history
