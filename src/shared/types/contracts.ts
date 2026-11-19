@@ -303,8 +303,9 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
 
 // ---------- shift: serah terima, rincian selisih, statistik ----------
 export const ShiftStatusSchema = z.object({
+  cash_float: z.number().optional(),
   open: z.object({ id: z.string(), who: z.string().nullable(), opened_at: z.string(), mine: z.boolean() }).nullable(),
-  last_closed: z.object({ counted_cash: z.number().nullable(), closed_at: z.string().nullable(), who: z.string().nullable(), difference: z.number().nullable() }).nullable(),
+  last_closed: z.object({ counted_cash: z.number().nullable(), deposit: z.number().nullable().optional(), closed_at: z.string().nullable(), who: z.string().nullable(), difference: z.number().nullable() }).nullable(),
 })
 export type ShiftStatus = z.infer<typeof ShiftStatusSchema>
 

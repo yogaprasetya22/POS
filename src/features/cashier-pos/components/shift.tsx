@@ -165,6 +165,15 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [closedInfo, setClosedInfo] = useState<{ expected: number; counted: number; difference: number } | null>(null)
+  // modal laci tetap toko: sisanya disetor ke owner saat tutup
+  const [float, setFloat] = useState(100_000)
+  useEffect(() => {
+    void rpc('shift_status').then(({ data }) => {
+      const f = (data as { cash_float?: number } | null)?.cash_float
+      if (typeof f === 'number') setFloat(f)
+    })
+  }, [])
+  const keepOf = (c: number) => Math.min(c, float)
 
   const expected = shift.expected_cash ?? 0
   const diff = (Number(counted) || 0) - expected
@@ -197,8 +206,12 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
       <Panel onClose={done} title="Shift ditutup" description={t('shift.ui.closed_hint')} footer={<Button size="lg" className="h-12 w-full" onClick={done}>Selesai</Button>}>
         <div className="space-y-2 text-sm">
           <Line label="Kas diharapkan" value={closedInfo.expected} />
-          <Line label="Uang dihitung (diserahkan)" value={closedInfo.counted} strong />
+          <Line label="Uang dihitung di laci" value={closedInfo.counted} />
           <DiffNote diff={closedInfo.difference} />
+          <div className="mt-3 space-y-2 rounded-xl border-2 border-primary/30 bg-primary/5 p-3 text-base">
+            <Line label="Setor ke owner" value={closedInfo.counted - keepOf(closedInfo.counted)} strong />
+            <Line label="Tinggalkan di laci (modal berikutnya)" value={keepOf(closedInfo.counted)} />
+          </div>
         </div>
       </Panel>
     )
@@ -256,8 +269,14 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
           <CurrencyInput id="counted" value={counted} onValueChange={setCounted} className="h-12 text-lg" placeholder="0" />
         </div>
         {counted !== '' && <DiffNote diff={diff} />}
+        {counted !== '' && (
+          <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-sm">
+            <Line label="Setor ke owner" value={(Number(counted) || 0) - keepOf(Number(counted) || 0)} strong />
+            <Line label="Tinggalkan di laci" value={keepOf(Number(counted) || 0)} />
+          </div>
+        )}
         <Input aria-label="Catatan" placeholder={needsNote ? 'Penyebab selisih (wajib)' : 'Catatan (opsional)'} value={note} onChange={(e) => setNote(e.target.value)} className="h-11" maxLength={200} />
-        <p className="text-xs text-muted-foreground">Uang ini yang diserahkan ke kasir berikutnya sebagai modal awalnya.</p>
+        <p className="text-xs text-muted-foreground">Hitung semua uang di laci. Ambil uang setoran untuk owner, tinggalkan {rupiah(float)} sebagai modal shift berikutnya.</p>
       </div>
       <ErrorAlert message={error} />
     </Panel>

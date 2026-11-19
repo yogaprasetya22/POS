@@ -446,7 +446,7 @@ export function CashierPage() {
 
       {/* Ringkasan pesanan */}
       <aside id="ringkasan" className="transition-[top] duration-200 md:sticky md:top-[calc(var(--header-h,4rem)+0.5rem)] md:self-start">
-        <Card className="gap-0 py-0 transition-[max-height] duration-200 md:max-h-[calc(100dvh-var(--header-h,4rem)-1.5rem)]">
+        <Card className="gap-0 py-0 transition-[height] duration-200 md:h-[calc(100dvh-var(--header-h,4rem)-1.5rem)]">
           <CardHeader className="flex flex-row items-center justify-between gap-2 border-b py-3">
             <div className="min-w-0">
               <CardTitle><SwapText value={selected ? `Pesanan #${selected.queue_code}` : 'Pesanan baru'} /></CardTitle>

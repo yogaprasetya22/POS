@@ -13,6 +13,7 @@ import { rpc } from '@shared/lib/api'
 import { useStaff } from '@shared/lib/auth'
 import { PermissionSettings, ShiftNamesSettings } from './access-settings'
 import { BuyerTemplatePicker, LogoPicker, StoreIdentity, ThemePicker } from './branding'
+import { CashFloatSettings } from './cash-float-settings'
 import { KitchenSettings } from './kitchen-settings'
 import { PrinterCalibration } from './printer-calibration'
 import { getPaperChars, previewReceipt, setPaperChars } from '@shared/lib/print'
@@ -352,6 +353,7 @@ export function StoreTab({ store, run, fail }: Props) {
         </TabsContent>
 
         <TabsContent value="shift" className="max-w-3xl space-y-5">
+          <CashFloatSettings />
           <ShiftNamesSettings />
         </TabsContent>
         <TabsContent value="akses" className="max-w-3xl space-y-5">

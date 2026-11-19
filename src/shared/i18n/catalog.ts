@@ -78,9 +78,9 @@ export const MESSAGES = {
     group: 'Shift & kas',
     desc: 'Petunjuk di bar buka shift saat ada uang serah terima dari shift sebelumnya.',
     params: { who: 'kasir@pos.test', amount: 170000 },
-    id: 'Uang serah terima dari {who}: {amount}. Hitung uang di laci, pastikan sama.',
-    jaksel: 'Uang serah terima dari {who}: {amount}. Itung dulu isi lacinya, pastiin sama ya.',
-    en: 'Handover from {who}: {amount}. Count the drawer and make sure it matches.',
+    id: 'Modal di laci dari {who}: {amount}. Hitung uang di laci, pastikan sama.',
+    jaksel: 'Modal di laci dari {who}: {amount}. Itung dulu isi lacinya, pastiin sama ya.',
+    en: 'Drawer float from {who}: {amount}. Count the drawer and make sure it matches.',
   },
   'shift.ui.opening_why': {
     group: 'Shift & kas',
