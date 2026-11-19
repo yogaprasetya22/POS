@@ -106,8 +106,8 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
   const body = (
     <>
       {/* label satu baris (min-h tetap) supaya angka besar di semua kartu sejajar */}
-      <div className="flex min-h-7 items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-base font-medium text-muted-foreground" title={label}>{label}</p>
+      <div className="flex min-h-12 items-start justify-between gap-2">
+        <p className="line-clamp-2 min-w-0 text-base leading-6 font-medium text-muted-foreground" title={label}>{label}</p>
         <span className="shrink-0">{badge}</span>
       </div>
       <p className={cn('mt-1 whitespace-nowrap font-extrabold leading-tight tabular-nums tracking-tight', 'text-[clamp(1.2rem,13cqw,1.85rem)]', tone === 'bad' && 'text-destructive', tone === 'good' && 'text-emerald-700 dark:text-emerald-400')}>{value}</p>
