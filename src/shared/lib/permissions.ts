@@ -9,7 +9,7 @@ type Role = Exclude<StaffRole, 'owner'>
 export const PERMISSIONS: { key: Permission; label: string; hint: string; defaults: Role[] }[] = [
   { key: 'purchase', label: 'Belanja & barang masuk', hint: 'Mencatat barang masuk, daftar belanja, dan bayar pemasok', defaults: ['manager'] },
   { key: 'waste', label: 'Catat bahan terbuang', hint: 'Bahan basi, tumpah, atau rusak', defaults: ['manager', 'kitchen'] },
-  { key: 'stock_count', label: 'Stock Opname', hint: 'Menghitung ulang stok di rak', defaults: ['manager'] },
+  { key: 'stock_count', label: 'Hitung stok', hint: 'Menghitung ulang stok di rak', defaults: ['manager'] },
   { key: 'advance', label: 'Tandai pesanan siap / sudah diambil', hint: 'Termasuk centang per menu', defaults: ['manager', 'cashier', 'waiter', 'kitchen'] },
   { key: 'manage_shifts', label: 'Atur daftar shift', hint: 'Menambah atau mengubah nama shift', defaults: ['manager'] },
 ]

@@ -170,6 +170,7 @@ export const ChoiceSchema = z.object({ group: z.string(), option: z.string() })
 export const StaffProfileSchema = z.object({
   user_id: z.uuid(),
   email: z.string().nullable(),
+  display_name: z.string().nullable().optional(),
   role: StaffRoleSchema.nullable(),
 })
 
@@ -297,7 +298,7 @@ export type PromotionInput = z.infer<typeof PromotionInputSchema>
 export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CASH: 'Tunai',
   QRIS_STATIC: 'QRIS',
-  EDC_CARD: 'Kartu (EDC)',
+  EDC_CARD: 'Kartu debit/kredit',
 }
 
 // ---------- shift: serah terima, rincian selisih, statistik ----------

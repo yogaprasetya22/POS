@@ -2,7 +2,7 @@ import type { Product } from '@shared/types/contracts'
 import type { Barcode, Ingredient, Recipe } from './data'
 
 /*
- * Template & import Excel untuk Inventory Stock. exceljs (besar) hanya dimuat saat tombol Excel dipakai.
+ * Template & import Excel untuk Stok bahan. exceljs (besar) hanya dimuat saat tombol Excel dipakai.
  * Baris yang kolom pertamanya diawali "Contoh" dilewati saat import.
  */
 
@@ -30,12 +30,12 @@ export async function downloadTemplate(storeName: string, items: Ingredient[], r
     '   - Harga per satuan: harga beli per satuan pakai (mis. per gram). Dipakai untuk menghitung modal per porsi.',
     '   - Satuan beli & Isi per satuan beli (opsional): mis. "kg" dan 1000 bila dibeli per kg tapi dipakai dalam gram.',
     '   - Barcode (opsional): boleh lebih dari satu, pisahkan dengan koma.',
-    '   - Stok awal: HANYA dipakai untuk bahan baru. Stok bahan yang sudah ada diubah lewat Barang masuk atau Stock Opname.',
+    '   - Stok awal: HANYA dipakai untuk bahan baru. Stok bahan yang sudah ada diubah lewat Barang masuk atau Hitung stok.',
     '2. Sheet "Resep": satu baris = satu bahan dalam satu menu. Nama menu harus sama persis dengan menu di aplikasi.',
     '   - Takaran per porsi memakai satuan bahan tersebut.',
     '3. Baris yang diawali "Contoh" (abu-abu) akan dilewati. Boleh dihapus.',
     '4. Bahan atau resep yang tidak ada di file ini TIDAK dihapus dari aplikasi.',
-    '5. Simpan file, lalu buka Inventory Stock → Import Excel. Periksa pratinjau sebelum menekan Simpan.',
+    '5. Simpan file, lalu buka Stok bahan → Import Excel. Periksa pratinjau sebelum menekan Simpan.',
   ].forEach((t, i) => {
     const row = help.addRow([t])
     if (i === 0) row.font = { bold: true, size: 14 }

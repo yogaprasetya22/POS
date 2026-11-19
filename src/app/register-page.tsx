@@ -45,8 +45,8 @@ export function RegisterPage() {
           <p className="mt-1 text-sm text-muted-foreground">Setelah mendaftar, kamu bisa membuat toko dengan uji coba gratis 14 hari, atau minta owner menambahkan emailmu sebagai staf.</p>
         </div>
         <Input name="email" type="email" required placeholder="Email" aria-label="Email" autoComplete="email" />
-        <Input name="password" type="password" required placeholder="Password (min. 8 karakter)" aria-label="Password" autoComplete="new-password" />
-        <Input name="confirm" type="password" required placeholder="Ulangi password" aria-label="Ulangi password" autoComplete="new-password" />
+        <Input name="password" type="password" required placeholder="Kata sandi (min. 8 karakter)" aria-label="Kata sandi" autoComplete="new-password" />
+        <Input name="confirm" type="password" required placeholder="Ulangi kata sandi" aria-label="Ulangi kata sandi" autoComplete="new-password" />
         <ErrorAlert message={error} />
         <Button size="lg" disabled={busy} className="w-full">{busy ? 'Memproses…' : 'Daftar'}</Button>
         <p className="text-center text-sm text-muted-foreground">

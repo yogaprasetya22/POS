@@ -120,14 +120,14 @@ export function ReversePanel({ order, role, onClose, onDone }: { order: Order; r
       description={`${order.queue_code} · ${rupiah(order.total)}`}
       footer={
         <Button size="lg" variant="destructive" className="h-12 w-full text-base" disabled={busy || reason.trim().length < 3 || (needsPin && pin.length < 4)} onClick={submit}>
-          {kind === 'VOID' ? 'Void pesanan' : 'Refund pesanan'}
+          {kind === 'VOID' ? 'Batalkan pesanan' : 'Kembalikan uang pesanan'}
         </Button>
       }
     >
       <div className="grid grid-cols-2 gap-2">
         {(['VOID', 'REFUND'] as const).map((k) => (
           <Button key={k} type="button" variant={kind === k ? 'default' : 'outline'} className="h-11" onClick={() => setKind(k)}>
-            {k === 'VOID' ? 'Void (salah input)' : 'Refund (dikembalikan)'}
+            {k === 'VOID' ? 'Batalkan (salah input)' : 'Kembalikan uang ke pembeli'}
           </Button>
         ))}
       </div>

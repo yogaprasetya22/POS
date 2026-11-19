@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { StaffRoleSchema, type StaffRole } from '@shared/types/contracts'
+import { refreshAccountInfo } from './device-accounts'
 import { supabase } from './supabase'
 
-export type Staff = { userId: string; email: string; role: StaffRole | null; storeId: string | null; storeName: string | null; isSuper: boolean }
+export type Staff = { userId: string; email: string; /** nama tampilan; kosong = pakai email */ name: string; role: StaffRole | null; storeId: string | null; storeName: string | null; isSuper: boolean }
 type StaffState = { loading: boolean } & ({ userId: null } | Staff)
 
 // relasi many-to-one dari PostgREST: objek (atau array berisi satu objek pada tipe yang diturunkan klien)
@@ -62,16 +63,18 @@ export function useStaffRole(): StaffState {
         clearPosSessionCaches()
         return setState({ loading: false, userId: null })
       }
-      const { data } = await supabase.from('profiles').select('role, store_id, is_super_admin, stores(name)').eq('user_id', session.user.id).maybeSingle()
+      const { data } = await supabase.from('profiles').select('role, store_id, is_super_admin, display_name, stores(name)').eq('user_id', session.user.id).maybeSingle()
       const staff: Staff = {
         userId: session.user.id,
         email: session.user.email ?? '',
+        name: (data?.display_name ?? '').trim(),
         role: data?.role ? StaffRoleSchema.parse(data.role) : null,
         storeId: data?.store_id ?? null,
         storeName: storeNameOf(data?.stores),
         isSuper: data?.is_super_admin === true,
       }
       setCachedStaff(staff)
+      if (staff.role) refreshAccountInfo(staff.userId, { name: staff.name, role: staff.role, email: staff.email })
       setState({
         loading: false,
         ...staff,
@@ -101,3 +104,6 @@ export function useStaff() {
   if (!staff) throw new Error('useStaff dipakai di luar Guard')
   return staff
 }
+
+/** Nama yang ditampilkan untuk staf: nama bila diisi, kalau tidak email. */
+export const displayName = (s: { name?: string; email: string }) => s.name?.trim() || s.email

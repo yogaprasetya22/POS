@@ -1,11 +1,12 @@
-import { liquid } from '@shared/lib/motion'
+import { liquid, liquidSoft } from '@shared/lib/motion'
 import { Progressive } from '@shared/components/progressive'
 import { CurrencyInput } from '@shared/components/currency-input'
 import { BarSkeleton } from '@shared/components/skeletons'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { ChevronDown, History, ListOrdered, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
+import { Bookmark, ChevronDown, History, ListOrdered, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
+import { Collapse, SwapText, pop } from '@shared/components/motion'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { addItem, cartTotal, itemKey, setItemQty, toLines, type CartItem } from '@features/cart-checkout'
@@ -97,6 +98,8 @@ export function CashierPage() {
   const [mergeOpen, setMergeOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notice, setNotice] = useState('')
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
   const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
@@ -289,8 +292,18 @@ export function CashierPage() {
     <div className="grid gap-4 p-3 pb-24 md:grid-cols-[1fr_20rem] md:pb-3 lg:grid-cols-[1fr_24rem] lg:gap-5 lg:p-5">
       <div className="min-w-0 space-y-5">
         {payer && shiftLoading && <BarSkeleton />}
-        {payer && !shiftLoading && (shift ? <ShiftBar shift={shift} onChange={reloadShift} /> : <OpenShiftCard status={shiftStatus} role={role} onOpened={reloadShift} />)}
-        {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">{notice}</p>}
+        <AnimatePresence mode="wait" initial={false}>
+          {payer && !shiftLoading && (
+            <m.div key={shift ? 'bar' : 'open'} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }} transition={liquid}>
+              {shift ? <ShiftBar shift={shift} onChange={reloadShift} /> : <div id="shift-card" className="scroll-mt-4"><OpenShiftCard status={shiftStatus} role={role} onOpened={reloadShift} /></div>}
+            </m.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence initial={false}>
+          {notice && (
+            <m.p key={notice} role="status" {...pop} className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">{notice}</m.p>
+          )}
+        </AnimatePresence>
 
         {/* Antrean lengkap ada di halaman Antrean; di sini cukup cari cepat (ketik kode lalu Enter) + jumlah yang menunggu bayar */}
         <section className="flex flex-wrap items-center gap-3 rounded-2xl border-2 bg-card p-3">
@@ -432,15 +445,46 @@ export function CashierPage() {
       </div>
 
       {/* Ringkasan pesanan */}
-      <aside id="ringkasan" className="md:sticky md:top-18 md:self-start">
-        <Card className="gap-0 py-0 md:max-h-[calc(100dvh-5.5rem)]">
-          <CardHeader className="border-b py-3">
-            <CardTitle>Ringkasan Pesanan</CardTitle>
-            <CardDescription>
-              {selected
-                ? `#${selected.queue_code} · ${selected.customer_name} · ${selected.order_type === 'DINE_IN' ? `Meja ${selected.table_no}` : 'Bawa pulang'}`
-                : 'Pesanan baru'}
-            </CardDescription>
+      <aside id="ringkasan" className="transition-[top] duration-200 md:sticky md:top-[calc(var(--header-h,4rem)+0.5rem)] md:self-start">
+        <Card className="gap-0 py-0 transition-[max-height] duration-200 md:max-h-[calc(100dvh-var(--header-h,4rem)-1.5rem)]">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 border-b py-3">
+            <div className="min-w-0">
+              <CardTitle><SwapText value={selected ? `Pesanan #${selected.queue_code}` : 'Pesanan baru'} /></CardTitle>
+              <CardDescription className="truncate">
+                {selected
+                  ? `${selected.customer_name} · ${selected.order_type === 'DINE_IN' ? `Meja ${selected.table_no}` : 'Bawa pulang'}`
+                  : <SwapText value={items.reduce((n, i) => n + i.qty, 0)} className="tabular-nums" />}{!selected && ' barang'}
+              </CardDescription>
+            </div>
+            {/* Aksi sekunder kecil di pojok (pola Square/Moka), supaya tombol bayar di bawah bisa satu & lebar */}
+            <div className="flex shrink-0 items-center gap-1">
+              <AnimatePresence initial={false} mode="popLayout">
+              {payer && !selected && items.length > 0 && (
+                <m.div key="later" {...pop}>
+                <Button variant="outline" size="sm" disabled={busy} onClick={saveOpenBill} className="h-10 px-3" title="Simpan pesanan dulu, bayar nanti">
+                  <Bookmark /> Bayar nanti
+                </Button>
+                </m.div>
+              )}
+              {(selected || items.length > 0) && (
+                <m.div key="trash" {...pop}>
+                <ConfirmButton
+                  variant="ghost"
+                  size="icon"
+                  disabled={busy}
+                  className="size-10 text-destructive hover:text-destructive"
+                  title={selected ? `Batalkan pesanan ${selected.queue_code}?` : 'Hapus pesanan ini?'}
+                  description={selected ? 'Pesanan ini ditandai batal dan hilang dari antrean.' : 'Semua barang yang sudah dipilih akan dihapus dari pesanan.'}
+                  confirmLabel={selected ? 'Batalkan pesanan' : 'Ya, hapus pesanan'}
+                  onConfirm={selected ? cancel : reset}
+                  aria-label={selected ? 'Batalkan pesanan' : 'Hapus semua pesanan'}
+                >
+                  <Trash2 />
+                </ConfirmButton>
+                </m.div>
+              )}
+              </AnimatePresence>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4 py-4 scrollbar-none md:flex-1 md:overflow-y-auto">
@@ -462,22 +506,26 @@ export function CashierPage() {
                 </ToggleGroup>
                 <div className="flex gap-2">
                   <Input value={customer} onChange={(e) => setCustomer(e.target.value)} maxLength={40} placeholder="Nama pelanggan" aria-label="Nama pelanggan" />
-                  {orderType === 'DINE_IN' && (
-                    <Input value={table} onChange={(e) => setTable(e.target.value)} maxLength={10} placeholder="Meja" aria-label="Nomor meja" className="w-24" />
-                  )}
+                  <AnimatePresence initial={false}>
+                    {orderType === 'DINE_IN' && (
+                      <m.div key="meja" initial={{ width: 0, opacity: 0 }} animate={{ width: '6rem', opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={liquidSoft} className="shrink-0 overflow-hidden">
+                        <Input value={table} onChange={(e) => setTable(e.target.value)} maxLength={10} placeholder="Meja" aria-label="Nomor meja" className="w-24" />
+                      </m.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </>
             )}
 
-            <p className="font-semibold">
-              Barang dipesan <span className="text-muted-foreground">({items.reduce((n, i) => n + i.qty, 0)})</span>
-            </p>
-            {items.length === 0 ? (
-              <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
-                Ketuk menu untuk menambah, atau pilih pesanan di antrean.
-              </p>
-            ) : (
-              <ul className="space-y-3">
+            <AnimatePresence initial={false}>
+              {items.length === 0 && (
+                <m.p key="empty" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.1 } }} transition={liquidSoft} className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
+                  Ketuk menu untuk menambah, atau pilih pesanan di antrean.
+                </m.p>
+              )}
+            </AnimatePresence>
+            {items.length > 0 && (
+              <ul className="space-y-2.5">
                 <AnimatePresence initial={false}>
                 {items.map((i) => {
                   const img = imageOf(i.product_id)
@@ -487,27 +535,20 @@ export function CashierPage() {
                       layout="position"
                       initial={{ opacity: 0, x: 16 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
-                      className="flex items-start gap-3 border-b pb-3 last:border-0 last:pb-0"
+                      exit={{ opacity: 0, x: -24, transition: { duration: 0.15 } }}
+                      transition={liquid}
+                      className="flex items-center gap-3 border-b pb-2.5 last:border-0 last:pb-0"
                     >
-                      <div className="size-12 shrink-0 overflow-hidden rounded-md bg-muted">{img && <img src={img} alt="" className="size-full object-cover" />}</div>
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{i.name}</div>
-                            {(i.choices.length > 0 || i.note) && (
-                              <div className="truncate text-xs text-muted-foreground">{[...i.choices.map((c) => c.option), i.note].filter(Boolean).join(' · ')}</div>
-                            )}
-                          </div>
-                          <Button variant="ghost" className="-mt-1 -mr-1 h-11 shrink-0 px-2 text-destructive hover:text-destructive" aria-label={`Hapus ${i.name}`} onClick={() => edit(setItemQty(items, i.key, 0))}>
-                            <Trash2 /> Hapus
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold tabular-nums">{rupiah(i.unit_price * i.qty)}</span>
-                          <Stepper value={i.qty} min={0} onChange={(v) => edit(setItemQty(items, i.key, v))} />
-                        </div>
+                      <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted">{img && <img src={img} alt="" className="size-full object-cover" />}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">{i.name}</div>
+                        {(i.choices.length > 0 || i.note) && (
+                          <div className="truncate text-xs text-muted-foreground">{[...i.choices.map((c) => c.option), i.note].filter(Boolean).join(' · ')}</div>
+                        )}
+                        <SwapText value={i.unit_price * i.qty} className="text-sm font-bold tabular-nums">{rupiah(i.unit_price * i.qty)}</SwapText>
                       </div>
+                      {/* kurangi sampai 0 = hapus barang */}
+                      <Stepper value={i.qty} min={0} onChange={(v) => edit(setItemQty(items, i.key, v))} />
                     </m.li>
                   )
                 })}
@@ -546,8 +587,8 @@ export function CashierPage() {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              {method === 'CASH' && (
-                <div className="space-y-2">
+              <Collapse open={method === 'CASH'}>
+                <div className="space-y-2 pt-0.5">
                   <CurrencyInput value={cash} onValueChange={setCash} placeholder="Uang diterima" aria-label="Uang diterima" />
                   <div className="flex flex-wrap gap-2">
                     {[total, 50_000, 100_000].map((v, n) => (
@@ -557,125 +598,98 @@ export function CashierPage() {
                     ))}
                   </div>
                 </div>
-              )}
+              </Collapse>
             </div>
             )}
           </CardContent>
 
-          <div className="space-y-3 border-t bg-card p-4">
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span className="tabular-nums">{rupiah(view.subtotal)}</span>
-              </div>
-              {view.promo > 0 && (
-                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                  <span>Promo ({view.promoName ?? 'Diskon'})</span>
-                  <span className="tabular-nums">-{rupiah(view.promo)}</span>
-                </div>
-              )}
-              {view.voucher > 0 && (
-                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                  <span>Voucher</span>
-                  <span className="tabular-nums">-{rupiah(view.voucher)}</span>
-                </div>
-              )}
-              {view.points > 0 && (
-                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                  <span>Poin</span>
-                  <span className="tabular-nums">-{rupiah(view.points)}</span>
-                </div>
-              )}
-              {view.service > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Service</span>
-                  <span className="tabular-nums">{rupiah(view.service)}</span>
-                </div>
-              )}
-              {view.tax > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Pajak</span>
-                  <span className="tabular-nums">{rupiah(view.tax)}</span>
-                </div>
-              )}
-              {view.rounding !== 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Pembulatan</span>
-                  <span className="tabular-nums">{view.rounding < 0 ? '-' : ''}{rupiah(Math.abs(view.rounding))}</span>
-                </div>
-              )}
-              {payer && method === 'CASH' && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Kembalian</span>
-                  <span>{cashN >= total ? rupiah(cashN - total) : '—'}</span>
-                </div>
-              )}
-              <div className="flex justify-between pt-1 text-base font-bold">
-                <span>Total</span>
-                <span className="tabular-nums"><AnimatedRupiah value={total} /></span>
-              </div>
+          <div className="space-y-2.5 border-t bg-card p-3 lg:p-4">
+            {/* Rincian dilipat; yang selalu terlihat cukup Total (pola Moka/Majoo) */}
+            <div>
+              <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen((o) => !o)} className="flex min-h-9 w-full items-center justify-between text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  Rincian harga
+                  <m.span animate={{ rotate: detailOpen ? 180 : 0 }} transition={liquid} className="inline-flex"><ChevronDown className="size-4" aria-hidden /></m.span>
+                </span>
+                <AnimatePresence initial={false}>
+                  {payer && method === 'CASH' && cashN >= total && total > 0 && (
+                    <m.span key="kembali" {...pop} className="font-semibold text-foreground">Kembalian <SwapText value={cashN - total}>{rupiah(cashN - total)}</SwapText></m.span>
+                  )}
+                </AnimatePresence>
+              </button>
+              <Collapse open={detailOpen}>
+              <dl className="mt-1 space-y-0.5 text-sm">
+                {([
+                  ['Subtotal', rupiah(view.subtotal), ''],
+                  view.promo > 0 && [`Promo (${view.promoName ?? 'Diskon'})`, `-${rupiah(view.promo)}`, 'good'],
+                  view.voucher > 0 && ['Voucher', `-${rupiah(view.voucher)}`, 'good'],
+                  view.points > 0 && ['Poin', `-${rupiah(view.points)}`, 'good'],
+                  view.service > 0 && ['Service', rupiah(view.service), ''],
+                  view.tax > 0 && ['Pajak', rupiah(view.tax), ''],
+                  view.rounding !== 0 && ['Pembulatan', `${view.rounding < 0 ? '-' : ''}${rupiah(Math.abs(view.rounding))}`, ''],
+                ].filter(Boolean) as [string, string, string][]).map(([label, value, tone]) => (
+                  <div key={label} className={`flex justify-between gap-2 ${tone === 'good' ? 'text-emerald-700' : 'text-muted-foreground'}`}>
+                    <dt className="truncate">{label}</dt>
+                    <dd className="shrink-0 tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              </Collapse>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-base font-bold">Total</span>
+              <span className="text-2xl font-extrabold tabular-nums"><AnimatedRupiah value={total} /></span>
             </div>
 
             <ErrorAlert message={error} />
 
-            {payer && !hasShift && <p className="text-sm text-muted-foreground">{t('shift.required')}</p>}
-            {payer || needsSave ? (
-              <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="h-16 w-full text-xl font-bold">
-                {busy ? 'Memproses…' : needsSave ? 'Simpan Perubahan' : selected ? 'Terima Pembayaran' : 'Buat & Bayar'}
+            {/* Satu tombol utama, lebar penuh, nominal tertulis di tombol */}
+            {payer && !hasShift && !needsSave ? (
+              <div className="space-y-1">
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    const card = document.getElementById('shift-card')
+                    card?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    card?.querySelector<HTMLInputElement>('#open-cash')?.focus({ preventScroll: true })
+                  }}
+                  className="h-14 w-full text-lg font-bold transition-transform active:scale-[0.98]"
+                >
+                  <SwapText value={shiftStatus?.open && !shiftStatus.open.mine ? 'Laci dipegang orang lain' : 'Buka Kasir dulu'} />
+                </Button>
+                {shiftStatus?.open && !shiftStatus.open.mine && (
+                  <p className="text-center text-xs text-muted-foreground">Minta {shiftStatus.open.who ?? 'kasir sebelumnya'} menutup kasirnya dulu.</p>
+                )}
+              </div>
+            ) : payer || needsSave ? (
+              <Button size="lg" disabled={busy || !canSubmit} onClick={submit} className="h-14 w-full text-lg font-bold transition-transform active:scale-[0.98]">
+                <SwapText value={busy ? 'Memproses…' : needsSave ? 'Simpan Perubahan' : selected ? 'Terima' : 'Bayar'} />
+                {!busy && !needsSave && <AnimatedRupiah value={total} />}
               </Button>
             ) : (
               !selected && (
-                <Button size="lg" disabled={busy || items.length === 0} onClick={saveOpenBill} className="h-16 w-full text-xl font-bold">
-                  {busy ? 'Menyimpan…' : 'Simpan pesanan'}
+                <Button size="lg" disabled={busy || items.length === 0} onClick={saveOpenBill} className="h-14 w-full text-lg font-bold transition-transform active:scale-[0.98]">
+                  <SwapText value={busy ? 'Menyimpan…' : 'Simpan pesanan'} />
                 </Button>
               )
             )}
-            {payer && !selected && items.length > 0 && (
-              <Button variant="outline" disabled={busy} onClick={saveOpenBill} className="h-12 w-full text-base">
-                Simpan dulu, bayar nanti
-              </Button>
-            )}
             {selected && !dirty && can.floor(role) && (
-              <details className="group rounded-lg border">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-3 text-base font-semibold [&::-webkit-details-marker]:hidden">
-                  Pilihan lain <ChevronDown className="size-5 transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <div className="grid grid-cols-2 gap-2 border-t p-2">
-                  <Button variant="outline" className="h-12" onClick={() => setSplitOpen(true)} disabled={selected.items.length < 2}>
-                    <Split /> Pisah tagihan
-                  </Button>
-                  <Button variant="outline" className="h-12" onClick={() => setMergeOpen(true)}>
-                    <Merge /> Gabung tagihan
-                  </Button>
-                </div>
-              </details>
-            )}
-            {selected ? (
-              <ConfirmButton
-                variant="ghost"
-                disabled={busy}
-                className="w-full text-destructive hover:text-destructive"
-                title={`Batalkan pesanan ${selected.queue_code}?`}
-                description="Pesanan ini ditandai batal dan hilang dari antrean."
-                confirmLabel="Batalkan pesanan"
-                onConfirm={cancel}
-              >
-                Batalkan pesanan
-              </ConfirmButton>
-            ) : (
-              items.length > 0 && (
-                <ConfirmButton
-                  variant="ghost"
-                  disabled={busy}
-                  className="h-12 w-full text-base text-destructive hover:text-destructive"
-                  title="Hapus pesanan ini?"
-                  description="Semua barang yang sudah dipilih akan dihapus dari pesanan. Ini tidak bisa dibatalkan."
-                  confirmLabel="Ya, hapus pesanan"
-                  onConfirm={reset}
-                >
-                  Hapus pesanan
-                </ConfirmButton>
-              )
+              <div className="rounded-lg border">
+                <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)} className="flex min-h-11 w-full items-center justify-between px-3 text-base font-semibold">
+                  Pilihan lain
+                  <m.span animate={{ rotate: moreOpen ? 180 : 0 }} transition={liquid} className="inline-flex"><ChevronDown className="size-5" aria-hidden /></m.span>
+                </button>
+                <Collapse open={moreOpen}>
+                  <div className="grid grid-cols-2 gap-2 border-t p-2">
+                    <Button variant="outline" className="h-12" onClick={() => setSplitOpen(true)} disabled={selected.items.length < 2}>
+                      <Split /> Pisah tagihan
+                    </Button>
+                    <Button variant="outline" className="h-12" onClick={() => setMergeOpen(true)}>
+                      <Merge /> Gabung tagihan
+                    </Button>
+                  </div>
+                </Collapse>
+              </div>
             )}
           </div>
         </Card>

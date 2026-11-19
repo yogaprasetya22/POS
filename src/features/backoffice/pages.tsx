@@ -8,6 +8,8 @@ import { LanguageTab } from './components/language-tab'
 import { MembersTab } from './components/members-tab'
 import { MenuTab } from './components/menu-tab'
 import { MorePageView } from './components/more-page'
+import { SetupChecklist } from './components/setup-checklist'
+import { StarterMenuPicker } from './components/starter-menu-picker'
 import { OpsTab } from './components/ops-tab'
 import { Dashboard } from './components/dashboard'
 import { PromoTab } from './components/promo-tab'
@@ -31,17 +33,30 @@ const LEGACY_TAB: Record<string, string> = {
 }
 
 export function OverviewPage() {
-  const { data, run } = useAdmin()
+  const { data, run, reload } = useAdmin()
   const [params] = useSearchParams()
   const legacy = LEGACY_TAB[params.get('tab') ?? '']
   if (legacy) return <Navigate to={legacy} replace />
-  return <Dashboard products={data.products} run={run} />
+  return (
+    <>
+      <SetupChecklist store={data.store} products={data.products} onSeeded={reload} />
+      <Dashboard products={data.products} run={run} />
+    </>
+  )
 }
 
 export function MenuAdminPage() {
   const { data, run, reload } = useAdmin()
   const [params, setParams] = useSearchParams()
   return (
+    <>
+    {data.products.length === 0 && (
+      <section className="rounded-3xl border-2 border-primary/30 bg-primary/5 p-4 sm:p-6">
+        <h2 className="mb-1 text-xl font-extrabold">Belum ada menu</h2>
+        <p className="mb-3 text-base text-foreground/80">Mulai cepat pakai menu contoh, atau klik "Tambah menu" untuk mengetik sendiri.</p>
+        <StarterMenuPicker onDone={reload} />
+      </section>
+    )}
     <MenuTab
       products={data.products}
       categories={data.categories}
@@ -50,6 +65,7 @@ export function MenuAdminPage() {
       isAddingNew={params.get('baru') === '1'}
       onAddFinished={() => setParams({}, { replace: true })}
     />
+    </>
   )
 }
 

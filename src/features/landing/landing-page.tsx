@@ -20,7 +20,7 @@ const SHOWCASE: { id: string; tag: string; title: string; text: string; points: 
     tag: 'Stok & resep',
     title: 'Stok bahan terhubung langsung dengan menu',
     text: 'Catat resep tiap menu sekali. Setelahnya stok bahan berkurang otomatis setiap pesanan dibayar, dan kembali saat pesanan di-void.',
-    points: ['Menu otomatis "Habis" saat bahan tidak cukup', 'Sisa porsi terlihat di layar kasir', 'HPP dan margin tiap menu dihitung otomatis', 'Peringatan saat stok bahan menipis'],
+    points: ['Menu otomatis "Habis" saat bahan tidak cukup', 'Sisa porsi terlihat di layar kasir', 'Modal dan untung tiap menu dihitung otomatis', 'Peringatan saat stok bahan menipis'],
     img: '/landing/stok.webp',
     alt: 'Halaman Stok & Resep dengan daftar bahan baku dan HPP menu',
   },
@@ -46,18 +46,18 @@ const SHOWCASE: { id: string; tag: string; title: string; text: string; points: 
 ]
 
 const FEATURES = [
-  { icon: Receipt, title: 'Kasir cepat', text: 'Pilih menu, varian, dan catatan. Dine in atau take away, open bill, pisah dan gabung bill.' },
+  { icon: Receipt, title: 'Kasir cepat', text: 'Pilih menu, varian, dan catatan. Makan di sini atau bawa pulang, bayar nanti, pisah dan gabung tagihan.' },
   { icon: ChefHat, title: 'Layar dapur', text: 'Pesanan yang sudah dibayar langsung muncul di dapur, lengkap dengan status dan tiket cetak.' },
   { icon: Wallet, title: 'Shift & laci kas', text: 'Buka-tutup shift, hitung selisih kas, catat kas masuk dan keluar.' },
   { icon: Gift, title: 'Promo, voucher & member', text: 'Diskon, voucher sekali pakai, dan poin member agar pelanggan kembali.' },
-  { icon: QrCode, title: 'Pembayaran fleksibel', text: 'Tunai, QRIS, dan kartu (EDC) dicatat per metode. Uang non-tunai tidak masuk hitungan laci.' },
+  { icon: QrCode, title: 'Pembayaran fleksibel', text: 'Tunai, QRIS, dan kartu debit/kredit dicatat per metode. Uang non-tunai tidak masuk hitungan laci.' },
   { icon: ClipboardList, title: 'Pajak & service', text: 'Atur pajak, service charge, dan pembulatan. Total dihitung di server, sama di kasir dan struk.' },
   { icon: UserCog, title: 'Tim & peran', text: 'Owner, manager, kasir, pelayan, dan dapur punya akses berbeda sesuai tugasnya.' },
   { icon: Boxes, title: 'Multi-toko', text: 'Kelola beberapa cabang dengan satu akun. Data tiap toko terpisah.' },
 ]
 
 const ROLES = [
-  { role: 'Owner & manager', text: 'Atur menu, promo, stok, tim, dan lihat laporan lengkap termasuk HPP serta log audit.' },
+  { role: 'Owner & manager', text: 'Atur menu, promo, stok, tim, dan lihat laporan lengkap termasuk modal per menu dan catatan aktivitas.' },
   { role: 'Kasir', text: 'Buka shift, terima pesanan dan pembayaran, cetak struk, void dengan PIN supervisor.' },
   { role: 'Pelayan', text: 'Ambil pesanan di meja dan kelola bill tanpa akses ke uang laci.' },
   { role: 'Dapur', text: 'Melihat antrean yang perlu dimasak dan menandai menu habis dengan cepat.' },
@@ -66,7 +66,7 @@ const ROLES = [
 const TRUST = [
   { icon: Lock, title: 'Data toko terisolasi', text: 'Setiap toko hanya bisa mengakses datanya sendiri, dijaga langsung di level database.' },
   { icon: ShieldCheck, title: 'Hitungan dijaga server', text: 'Harga, promo, pajak, dan poin dihitung di database, bukan di perangkat, sehingga sulit dimanipulasi.' },
-  { icon: ClipboardList, title: 'Jejak audit', text: 'Void, refund, perubahan stok, dan pengaturan penting tercatat lengkap dengan siapa pelakunya.' },
+  { icon: ClipboardList, title: 'Jejak audit', text: 'Pembatalan, uang kembali, perubahan stok, dan pengaturan penting tercatat lengkap dengan siapa pelakunya.' },
   { icon: UserCog, title: 'Akses sesuai peran', text: 'Tindakan sensitif seperti void dan refund butuh PIN supervisor.' },
 ]
 
@@ -78,7 +78,7 @@ const STEPS = [
 
 const FAQ = [
   { q: 'Apakah perlu instal aplikasi atau beli alat khusus?', a: 'Tidak. Aplikasi berjalan di browser pada laptop, tablet, atau HP, dan bisa dipasang ke layar utama. Printer struk bersifat opsional.' },
-  { q: 'Bagaimana dengan pembayaran QRIS dan kartu?', a: 'Pembayaran QRIS dan kartu (EDC) dicatat per metode oleh kasir. Aplikasi belum terhubung langsung ke payment gateway.' },
+  { q: 'Bagaimana dengan pembayaran QRIS dan kartu?', a: 'Pembayaran QRIS dan kartu debit/kredit dicatat per metode oleh kasir. Aplikasi belum terhubung langsung ke payment gateway.' },
   { q: 'Apakah data toko saya aman dan terpisah dari toko lain?', a: 'Ya. Data setiap toko diisolasi di level database, dan tindakan sensitif tercatat di log audit.' },
   { q: 'Bisa untuk lebih dari satu cabang?', a: 'Bisa. Satu akun dapat mengelola beberapa toko, masing-masing dengan menu, stok, dan tim sendiri.' },
   { q: 'Bagaimana dengan biaya dan masa uji coba?', a: 'Setiap toko baru mendapat uji coba 14 hari. Setelah itu toko dapat dilanjutkan dengan paket langganan.' },

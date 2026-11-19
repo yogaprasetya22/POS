@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight, ExternalLink, LogOut } from 'lucide-react'
+import { Disclosure, SwapText } from '@shared/components/motion'
+import { ChevronRight, ExternalLink, LogOut } from 'lucide-react'
 import { Link } from 'react-router'
 import { ADVANCED_NAV, MORE_NAV, type NavItem } from '@shared/components/layout/nav'
 import { useStaff } from '@shared/lib/auth'
@@ -90,19 +91,22 @@ export function MorePageView() {
       ))}
 
       {advanced.length > 0 && (
-        <details className="group overflow-hidden rounded-2xl border-2 bg-card">
-          <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 text-lg font-bold [&::-webkit-details-marker]:hidden">
-            <span className="flex-1">Fitur lanjutan</span>
-            <span className="text-base font-semibold text-muted-foreground group-open:hidden">Tampilkan</span>
-            <span className="hidden text-base font-semibold text-muted-foreground group-open:inline">Sembunyikan</span>
-            <ChevronDown className="size-6 transition-transform group-open:rotate-180" aria-hidden />
-          </summary>
+        <Disclosure
+          className="overflow-hidden rounded-2xl border-2 bg-card"
+          summaryClassName="min-h-16 gap-3 px-4 text-lg font-bold"
+          summary={(open) => (
+            <>
+              <span className="flex-1">Fitur lanjutan</span>
+              <SwapText value={open ? 'Sembunyikan' : 'Tampilkan'} className="text-base font-semibold text-muted-foreground" />
+            </>
+          )}
+        >
           <div className="divide-y border-t md:grid md:grid-cols-2 md:divide-y-0 md:gap-px md:bg-border">
             {advanced.map((item) => (
               <div key={item.to} className="bg-card"><Row item={item} /></div>
             ))}
           </div>
-        </details>
+        </Disclosure>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">

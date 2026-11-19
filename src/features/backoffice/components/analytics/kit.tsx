@@ -1,3 +1,4 @@
+import { Disclosure, SwapText } from '@shared/components/motion'
 import { CalendarDays, TrendingDown, TrendingUp } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { MCard, appear } from '@shared/components/motion'
@@ -148,12 +149,17 @@ export function Panel({ title, description, action, children, className, flush }
 /** Penjelasan arti tiap status, bisa dibuka-tutup. Dipasang di atas daftar yang memakai label status. */
 export function StatusLegend({ items, title = 'Arti setiap status' }: { items: { label: string; tone: string; text: string }[]; title?: string }) {
   return (
-    <details className="group rounded-2xl border bg-card">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 text-base font-semibold [&::-webkit-details-marker]:hidden">
-        <span className="grid size-6 place-items-center rounded-full bg-muted text-sm" aria-hidden>?</span> {title}
-        <span className="ml-auto text-sm font-normal text-muted-foreground group-open:hidden">Tampilkan</span>
-        <span className="ml-auto hidden text-sm font-normal text-muted-foreground group-open:inline">Sembunyikan</span>
-      </summary>
+    <Disclosure
+      className="rounded-2xl border bg-card"
+      summaryClassName="min-h-12 gap-2 px-4 text-base font-semibold"
+      chevron={false}
+      summary={(open) => (
+        <>
+          <span className="grid size-6 place-items-center rounded-full bg-muted text-sm" aria-hidden>?</span> {title}
+          <SwapText value={open ? 'Sembunyikan' : 'Tampilkan'} className="ml-auto text-sm font-normal text-muted-foreground" />
+        </>
+      )}
+    >
       <dl className="grid gap-3 border-t px-4 py-3 sm:grid-cols-2">
         {items.map((i) => (
           <div key={i.label} className="flex items-start gap-3">
@@ -162,7 +168,7 @@ export function StatusLegend({ items, title = 'Arti setiap status' }: { items: {
           </div>
         ))}
       </dl>
-    </details>
+    </Disclosure>
   )
 }
 

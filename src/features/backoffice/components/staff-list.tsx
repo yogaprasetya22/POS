@@ -33,7 +33,7 @@ const ROLE_ITEMS = [
 const ROLE_NOTE: Record<string, string> = {
   owner: 'Pemilik Toko (akses penuh, pengaturan, tim)',
   manager: 'Manager (laporan, menu, promo, stok; tanpa tim & pengaturan)',
-  cashier: 'Kasir (pembayaran, shift, open bill; void dengan PIN)',
+  cashier: 'Kasir (pembayaran, shift, bayar nanti; batalkan pakai PIN)',
   waiter: 'Pelayan (buat & ubah pesanan, tanpa pembayaran)',
   kitchen: 'Dapur (layar dapur & stok bahan)',
 }
@@ -55,7 +55,7 @@ export function StaffList() {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('user_id, email, role')
+      .select('user_id, email, display_name, role')
       .eq('store_id', storeId)
       .order('email')
     if (error) return setError(error.message)
@@ -81,6 +81,8 @@ export function StaffList() {
         p_role: !value || value === REMOVE ? null : StaffRoleSchema.parse(value),
       })
     )
+
+  const rename = (id: string, name: string) => run(rpc('set_staff_name', { p_user_id: id, p_name: name }))
 
   const add = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -131,21 +133,29 @@ export function StaffList() {
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="size-10 border">
                           <AvatarFallback className={isOwner ? 'bg-primary/10 text-primary font-bold' : 'bg-muted text-muted-foreground font-semibold'}>
-                            {(s.email?.[0] ?? '?').toUpperCase()}
+                            {((s.display_name || s.email)?.[0] ?? '?').toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm truncate text-foreground">
-                              {s.email}
-                            </span>
+                            <input
+                              defaultValue={s.display_name ?? ''}
+                              placeholder="Isi nama panggilan"
+                              aria-label={`Nama ${s.email}`}
+                              maxLength={40}
+                              disabled={loading}
+                              onBlur={(e) => { if (e.target.value.trim() !== (s.display_name ?? '')) void rename(s.user_id, e.target.value) }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                              className="h-9 w-44 min-w-0 rounded-lg border border-transparent bg-transparent px-2 text-base font-semibold hover:border-border focus:border-primary focus:outline-none"
+                            />
                             {isCurrentUser && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
                                 Anda
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="truncate px-2 text-xs text-muted-foreground">{s.email}</p>
+                          <p className="px-2 text-xs text-muted-foreground">
                             {ROLE_NOTE[s.role ?? ''] ?? 'Belum punya peran'}
                           </p>
                         </div>

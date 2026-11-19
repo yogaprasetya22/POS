@@ -16,8 +16,8 @@ const LABEL: Record<string, { tone: 'green' | 'blue' | 'amber' | 'red'; text: st
   IN_KITCHEN: { tone: 'blue', text: 'Sudah dibayar' },
   READY: { tone: 'green', text: 'Siap' },
   COMPLETED: { tone: 'green', text: 'Selesai' },
-  VOID: { tone: 'red', text: 'Void' },
-  REFUNDED: { tone: 'red', text: 'Refund' },
+  VOID: { tone: 'red', text: 'Dibatalkan' },
+  REFUNDED: { tone: 'red', text: 'Uang kembali' },
 }
 
 /** Riwayat transaksi hari ini: lihat ulang struk, void/refund (PIN supervisor untuk kasir). */
@@ -45,7 +45,7 @@ export function HistoryDrawer({ open, onOpenChange, role, onReprint }: { open: b
         <DrawerContent size="sm">
           <DrawerHeader className="border-b text-left">
             <DrawerTitle>Riwayat hari ini</DrawerTitle>
-            <DrawerDescription>Transaksi yang sudah dibayar. Void/refund tercatat di log audit.</DrawerDescription>
+            <DrawerDescription>Transaksi yang sudah dibayar. Pembatalan tercatat di log audit.</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pt-3">
             <SearchBox value={orders.search} onChange={orders.setSearch} placeholder="Cari kode atau nama" />
@@ -69,7 +69,7 @@ export function HistoryDrawer({ open, onOpenChange, role, onReprint }: { open: b
                   </button>
                   <span className={`tabular-nums ${o.status === 'VOID' || o.status === 'REFUNDED' ? 'text-muted-foreground line-through' : 'font-semibold'}`}>{rupiah(o.total)}</span>
                   {reversible && (
-                    <Button variant="outline" size="icon" aria-label={`Void atau refund ${o.queue_code}`} className="size-11" onClick={() => setTarget(o)}>
+                    <Button variant="outline" size="icon" aria-label={`Batalkan ${o.queue_code}`} className="size-11" onClick={() => setTarget(o)}>
                       <RotateCcw />
                     </Button>
                   )}

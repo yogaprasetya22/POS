@@ -9,6 +9,7 @@ const ALLOWED = new Set([
   'save_store_settings', 'set_supervisor_pin', 'register_store', 'set_store_plan', 'sales_report',
   'set_product_availability', 'list_stores_with_sales', 'save_store', 'assign_owner', 'add_staff', 'set_staff_role',
   'save_kitchen_settings', 'public_order_status', 'receive_purchase', 'record_waste', 'stock_count', 'import_inventory', 'save_store_branding', 'set_item_done', 'save_permission', 'save_shift_names', 'shift_stock', 'profit_report', 'save_supplier', 'save_purchase_order', 'receive_purchase_order', 'pay_purchase', 'cancel_purchase', 'save_buyer_template', 'save_store_identity',
+  'set_staff_name', 'set_my_pin', 'has_my_pin', 'verify_my_pin',
 ])
 
 // Pembatas laju sederhana untuk pesanan publik (tanpa login). Disimpan di memori instance serverless,

@@ -49,7 +49,7 @@ export function ProfitTab({ from, to }: { from: string; to: string }) {
       </div>
       <p className="text-base text-muted-foreground">
         Modal dihitung dari resep tiap menu dikali harga beli bahan saat ini. Belum termasuk diskon, pajak, gaji, dan sewa.
-        {noRecipe > 0 && ` ${noRecipe} menu belum punya resep, jadi modalnya terhitung Rp0. Isi resepnya di Inventory Stock.`}
+        {noRecipe > 0 && ` ${noRecipe} menu belum punya resep, jadi modalnya terhitung Rp0. Isi resepnya di Stok bahan.`}
       </p>
       {data.items.length === 0 ? (
         <p className="rounded-2xl border-2 border-dashed p-6 text-center text-base text-muted-foreground">Belum ada penjualan di rentang tanggal ini. Coba pilih rentang yang lebih panjang.</p>

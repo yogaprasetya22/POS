@@ -37,12 +37,12 @@ const ShiftRowSchema = z.object({
 type ShiftRow = z.infer<typeof ShiftRowSchema>
 const AuditSchema = z.object({ id: z.number(), user_id: z.string().nullable(), action: z.string(), detail: z.record(z.string(), z.unknown()), created_at: z.string() })
 type AuditRow = z.infer<typeof AuditSchema>
-const ProfileSchema = z.object({ user_id: z.string(), email: z.string().nullable() })
+const ProfileSchema = z.object({ user_id: z.string(), display_name: z.string().nullable().optional(), email: z.string().nullable() })
 
 const ACTION: Record<string, { label: string; tone: Tone }> = {
   'order.pay': { label: 'Pembayaran', tone: 'good' },
-  'order.void': { label: 'Void', tone: 'bad' },
-  'order.refund': { label: 'Refund', tone: 'bad' },
+  'order.void': { label: 'Dibatalkan', tone: 'bad' },
+  'order.refund': { label: 'Uang kembali', tone: 'bad' },
   'order.cancel': { label: 'Batal pesanan', tone: 'warn' },
   'order.split': { label: 'Pisah bill', tone: 'info' },
   'order.merge': { label: 'Gabung bill', tone: 'info' },
@@ -223,9 +223,9 @@ export function OpsTab() {
     toast.success(`${rows.length} shift diunduh`, { description: 'Buka file CSV-nya dengan Excel atau Google Sheets.' })
   }
   useEffect(() => {
-    void supabase.from('profiles').select('user_id,email').then(({ data }) => {
+    void supabase.from('profiles').select('user_id,email,display_name').then(({ data }) => {
       const pp = z.array(ProfileSchema).safeParse(data ?? [])
-      if (pp.success) setWho(new Map(pp.data.map((x) => [x.user_id, x.email ?? ''])))
+      if (pp.success) setWho(new Map(pp.data.map((x) => [x.user_id, x.display_name?.trim() || x.email || ''])))
     })
   }, [])
 
@@ -439,7 +439,7 @@ export function OpsTab() {
             options={[
               { value: 'all', label: 'Semua' },
               { value: 'order', label: 'Pesanan' },
-              { value: 'reverse', label: 'Void & refund' },
+              { value: 'reverse', label: 'Dibatalkan & uang kembali' },
               { value: 'shift', label: 'Shift & kas' },
               { value: 'settings', label: 'Pengaturan' },
               { value: 'team', label: 'Tim & toko' },

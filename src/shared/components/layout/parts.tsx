@@ -1,4 +1,6 @@
-import { LogOut } from 'lucide-react'
+import { KeyRound, LogOut, Users } from 'lucide-react'
+import { MyProfileDialog, SwitchUserDialog } from '@shared/components/switch-user'
+import { forgetAccount } from '@shared/lib/device-accounts'
 import { LanguageMenu } from './language-menu'
 import { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback } from '@shared/components/ui/avatar'
@@ -12,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@shared/components/ui/dropdown-menu'
-import type { Staff } from '@shared/lib/auth'
+import { displayName, type Staff } from '@shared/lib/auth'
 import { planDaysLeft } from '@shared/lib/store-config'
 import { supabase } from '@shared/lib/supabase'
 import { ROLE_LABEL, type StoreConfig } from '@shared/types/contracts'
@@ -70,30 +72,54 @@ export function StatusBanners({ staff, config }: { staff: Staff; config: StoreCo
 }
 
 export function AccountMenu({ staff }: { staff: Staff }) {
+  const [dialog, setDialog] = useState<'switch' | 'me' | null>(null)
+  const who = displayName(staff)
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" className="h-auto gap-2 rounded-full py-1 pr-3 pl-1" aria-label="Menu akun" />}>
         <Avatar className="size-8">
-          <AvatarFallback className="bg-accent text-sm font-semibold text-accent-foreground">{(staff.email[0] ?? '?').toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="bg-accent text-sm font-semibold text-accent-foreground">{(who[0] ?? '?').toUpperCase()}</AvatarFallback>
         </Avatar>
         <span className="hidden text-left leading-tight sm:block">
-          <span className="block max-w-36 truncate text-sm font-medium">{staff.email}</span>
+          <span className="block max-w-36 truncate text-sm font-medium">{who}</span>
           <span className="block text-xs font-normal text-muted-foreground">{roleLabel(staff)}</span>
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
-            <span className="block truncate text-sm font-medium text-foreground">{staff.email}</span>
+            <span className="block truncate text-sm font-medium text-foreground">{who}</span>
+            {staff.name && <span className="block truncate">{staff.email}</span>}
             <span className="block">{staff.storeName ?? 'Super Admin'} · {roleLabel(staff)}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {staff.role && (
+          <>
+            <DropdownMenuItem className="min-h-11 text-base" onClick={() => setDialog('switch')}>
+              <Users /> Ganti orang
+            </DropdownMenuItem>
+            <DropdownMenuItem className="min-h-11 text-base" onClick={() => setDialog('me')}>
+              <KeyRound /> Nama & PIN saya
+            </DropdownMenuItem>
+          </>
+        )}
         <LanguageMenu />
-        <DropdownMenuItem className="min-h-11 text-destructive focus:text-destructive" onClick={() => supabase.auth.signOut()}>
+        <DropdownMenuItem
+          className="min-h-11 text-destructive focus:text-destructive"
+          onClick={() => {
+            // keluar penuh: akun ini juga dilupakan dari daftar "Ganti orang" di perangkat ini
+            forgetAccount(staff.userId)
+            void supabase.auth.signOut()
+          }}
+        >
           <LogOut /> Keluar
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <SwitchUserDialog open={dialog === 'switch'} onOpenChange={(v) => setDialog(v ? 'switch' : null)} staff={staff} />
+    <MyProfileDialog open={dialog === 'me'} onOpenChange={(v) => setDialog(v ? 'me' : null)} staff={staff} />
+    </>
   )
 }

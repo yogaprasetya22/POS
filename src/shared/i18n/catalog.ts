@@ -8,7 +8,7 @@ export const LOCALES: { value: Locale; label: string; hint: string }[] = [
 export type Msg = {
   /** Penjelasan untuk admin: kapan kalimat ini muncul. */
   desc: string
-  group: 'Shift & kas' | 'Pembayaran' | 'Void & PIN' | 'Toko & pesanan' | 'Umum'
+  group: 'Shift & kas' | 'Pembayaran' | 'Pembatalan & PIN' | 'Toko & pesanan' | 'Umum'
   /** Nama parameter yang boleh dipakai di kalimat, ditulis {nama}. */
   params?: Record<string, string | number>
   id: string
@@ -129,10 +129,10 @@ export const MESSAGES = {
   'pay.voucher_used': { group: 'Pembayaran', desc: 'Voucher sudah dipakai pesanan lain.', id: 'Voucher sudah dipakai.', jaksel: 'Vouchernya udah kepake, nih.', en: 'This voucher has already been used.' },
   'pay.points_short': { group: 'Pembayaran', desc: 'Poin member tidak cukup.', id: 'Poin member tidak cukup.', jaksel: 'Poin membernya nggak cukup.', en: 'Not enough member points.' },
 
-  'pin.wrong': { group: 'Void & PIN', desc: 'PIN supervisor salah.', id: 'PIN salah.', jaksel: 'PIN-nya salah, coba lagi ya.', en: 'Wrong PIN.' },
-  'pin.locked': { group: 'Void & PIN', desc: 'PIN terkunci setelah 5 kali salah.', id: 'PIN terkunci sementara, coba lagi nanti.', jaksel: 'PIN-nya dikunci dulu sebentar, coba lagi nanti ya.', en: 'PIN is temporarily locked. Try again later.' },
-  'pin.not_set': { group: 'Void & PIN', desc: 'Owner belum mengatur PIN supervisor.', id: 'PIN supervisor belum diatur owner.', jaksel: 'Owner belum atur PIN supervisor nih.', en: 'The owner has not set a supervisor PIN yet.' },
-  'reverse.reason_required': { group: 'Void & PIN', desc: 'Void/refund tanpa alasan.', id: 'Alasan wajib diisi.', jaksel: 'Alasannya wajib diisi ya.', en: 'A reason is required.' },
+  'pin.wrong': { group: 'Pembatalan & PIN', desc: 'PIN supervisor salah.', id: 'PIN salah.', jaksel: 'PIN-nya salah, coba lagi ya.', en: 'Wrong PIN.' },
+  'pin.locked': { group: 'Pembatalan & PIN', desc: 'PIN terkunci setelah 5 kali salah.', id: 'PIN terkunci sementara, coba lagi nanti.', jaksel: 'PIN-nya dikunci dulu sebentar, coba lagi nanti ya.', en: 'PIN is temporarily locked. Try again later.' },
+  'pin.not_set': { group: 'Pembatalan & PIN', desc: 'Owner belum mengatur PIN supervisor.', id: 'PIN supervisor belum diatur owner.', jaksel: 'Owner belum atur PIN supervisor nih.', en: 'The owner has not set a supervisor PIN yet.' },
+  'reverse.reason_required': { group: 'Pembatalan & PIN', desc: 'Void/refund tanpa alasan.', id: 'Alasan wajib diisi.', jaksel: 'Alasannya wajib diisi ya.', en: 'A reason is required.' },
 
   'plan.expired': { group: 'Toko & pesanan', desc: 'Langganan toko berakhir.', id: 'Langganan toko sudah berakhir.', jaksel: 'Langganan tokonya udah habis nih.', en: 'The store subscription has expired.' },
   'store.closed': { group: 'Toko & pesanan', desc: 'Pelanggan memesan saat toko nonaktif.', id: 'Toko sedang tutup.', jaksel: 'Tokonya lagi tutup, yaa.', en: 'The store is closed.' },

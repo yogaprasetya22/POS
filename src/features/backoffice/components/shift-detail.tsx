@@ -147,7 +147,7 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                     <Step sign="+" label="Penjualan tunai" hint={`${cashOrders.filter((o) => o.counted).length} pesanan tunai`} value={t.cash_sales} />
                     <Step sign="+" label="Kas masuk" hint={`${detail.movements.filter((m) => m.kind === 'IN').length} catatan`} value={t.cash_in} />
                     <Step sign="−" label="Kas keluar" hint={`${detail.movements.filter((m) => m.kind === 'OUT').length} catatan`} value={t.cash_out} />
-                    <Step sign="−" label="Refund / void tunai dari shift lain" hint={`${detail.reversals.length} pesanan`} value={t.cash_reversals} />
+                    <Step sign="−" label="Uang dikembalikan / dibatalkan (tunai) dari shift lain" hint={`${detail.reversals.length} pesanan`} value={t.cash_reversals} />
                     <Step sign="=" label="Uang yang seharusnya ada" value={t.expected} strong />
                     {closed && <Step label="Uang yang dihitung di laci" value={sh.counted_cash ?? 0} />}
                   </div>
@@ -180,7 +180,7 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                           </p>
                           {(o.status === 'VOID' || o.status === 'REFUNDED') && (
                             <p className="text-xs text-destructive">
-                              {o.status === 'VOID' ? 'Void' : 'Refund'} oleh {o.voided_by ?? '—'}{o.voided_at ? ` · ${clock(o.voided_at)}` : ''}{o.void_reason ? ` · “${o.void_reason}”` : ''}
+                              {o.status === 'VOID' ? 'Dibatalkan' : 'Uang kembali'} oleh {o.voided_by ?? '—'}{o.voided_at ? ` · ${clock(o.voided_at)}` : ''}{o.void_reason ? ` · “${o.void_reason}”` : ''}
                               {o.counted === false ? ' · dibatalkan di shift yang sama, tidak dihitung' : ' · uangnya dikembalikan di shift lain'}
                             </p>
                           )}
@@ -216,13 +216,13 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
 
                 {detail.reversals.length > 0 && (
                   <section>
-                    <H note="Uang dikembalikan dari laci shift ini untuk pesanan yang dibayar di shift lain.">Refund / void tunai ({detail.reversals.length})</H>
+                    <H note="Uang dikembalikan dari laci shift ini untuk pesanan yang dibayar di shift lain.">Uang dikembalikan / dibatalkan (tunai) ({detail.reversals.length})</H>
                     <ul className="divide-y rounded-lg border">
                       {detail.reversals.map((o) => (
                         <li key={o.id} className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm">
                           <span>
                             <span className="font-mono font-semibold">{o.queue_code}</span> {o.customer_name}
-                            <span className="block text-xs text-muted-foreground">{o.status === 'VOID' ? 'Void' : 'Refund'} oleh {o.voided_by ?? '—'}{o.void_reason ? ` · “${o.void_reason}”` : ''}</span>
+                            <span className="block text-xs text-muted-foreground">{o.status === 'VOID' ? 'Dibatalkan' : 'Uang kembali'} oleh {o.voided_by ?? '—'}{o.void_reason ? ` · “${o.void_reason}”` : ''}</span>
                           </span>
                           <span className="shrink-0 tabular-nums text-destructive">−{rupiah(o.total)}</span>
                         </li>

@@ -42,6 +42,7 @@ export function StaffShell() {
         value={{
           userId: '',
           email: '',
+          name: '',
           role: 'owner',
           storeId: null,
           storeName: null,
@@ -79,7 +80,7 @@ export function StaffShell() {
   }
 
   return (
-    <StaffContext.Provider value={{ userId: staff.userId, email: staff.email, role: staff.role, storeId: staff.storeId, storeName: staff.storeName, isSuper: staff.isSuper }}>
+    <StaffContext.Provider value={{ userId: staff.userId, email: staff.email, name: staff.name ?? '', role: staff.role, storeId: staff.storeId, storeName: staff.storeName, isSuper: staff.isSuper }}>
       <I18nBoot />
       <Layout>
         <Suspense fallback={fallbackSkeleton}>

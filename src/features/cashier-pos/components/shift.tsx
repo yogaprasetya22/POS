@@ -220,7 +220,7 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
         <Line label="Penjualan tunai" value={shift.cash_sales} hint="pesanan tunai yang dibayar di shift ini" />
         <Line label="Kas masuk" value={shift.cash_in} />
         <Line label="Kas keluar" value={-shift.cash_out} />
-        {shift.cash_reversals > 0 && <Line label="Refund tunai (shift lain)" value={-shift.cash_reversals} />}
+        {shift.cash_reversals > 0 && <Line label="Uang dikembalikan (shift lain)" value={-shift.cash_reversals} />}
         <Line label="Kas diharapkan di laci" value={expected} strong />
         {Object.entries(shift.by_method).length > 0 && (
           <p className="pt-2 text-xs text-muted-foreground">

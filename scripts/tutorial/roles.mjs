@@ -123,7 +123,7 @@ export const ROLES = {
         await p.getByText(`#${code} · ${name} · Meja T1`).waitFor()
       }
       const pay = async (p) => {
-        await p.getByRole('button', { name: 'Terima Pembayaran' }).click()
+        await p.getByRole('button', { name: /^Terima Rp/ }).click()
         await p.getByRole('dialog').getByText('Pembayaran Berhasil').waitFor()
       }
       return [

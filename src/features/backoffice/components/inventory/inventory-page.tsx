@@ -15,13 +15,13 @@ import { StockOpname } from './stock-opname'
 
 type Tab = 'stok' | 'resep' | 'opname' | 'riwayat'
 const TABS: { value: Tab; label: string; hint: string; icon: typeof History }[] = [
-  { value: 'stok', label: 'Inventory Stock', hint: 'Stok bahan', icon: FileSpreadsheet },
+  { value: 'stok', label: 'Stok bahan', hint: 'Stok bahan', icon: FileSpreadsheet },
   { value: 'resep', label: 'Resep menu', hint: 'Bahan per porsi', icon: UtensilsCrossed },
-  { value: 'opname', label: 'Stock Opname', hint: 'Hitung stok di rak', icon: ClipboardList },
+  { value: 'opname', label: 'Hitung stok', hint: 'Hitung stok di rak', icon: ClipboardList },
   { value: 'riwayat', label: 'Riwayat', hint: 'Keluar-masuk stok', icon: History },
 ]
 
-/** Halaman Inventory Stock: 4 tab dengan satu tujuan masing-masing. */
+/** Halaman Stok bahan: 4 tab dengan satu tujuan masing-masing. */
 export function InventoryPage({ store, products, onCatalogChanged }: { store: Store; products: Product[]; onCatalogChanged: () => void }) {
   const inv = useInventory()
   const [tab, setTab] = useState<Tab>('stok')
@@ -52,7 +52,7 @@ export function InventoryPage({ store, products, onCatalogChanged }: { store: St
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Inventory Stock</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Stok bahan</h1>
           <p className="mt-1 text-lg text-muted-foreground">Stok bahan & resep. Stok berkurang otomatis saat pesanan dibayar.</p>
         </div>
         <div className="flex flex-wrap gap-2">

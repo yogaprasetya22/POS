@@ -43,7 +43,7 @@ async function payAtCashier(page: Page, code: string, name: string, method: 'cas
   await expect(page.getByText(`#${code} · ${name} · Meja T1`)).toBeVisible()
   if (method === 'cash') await page.getByRole('button', { name: 'Rp100.000' }).click()
   else await page.getByRole('radio', { name: 'QRIS' }).or(page.getByRole('button', { name: 'QRIS', exact: true })).first().click()
-  await page.getByRole('button', { name: 'Terima Pembayaran' }).click()
+  await page.getByRole('button', { name: /^Terima Rp/ }).click()
   const receipt = page.getByRole('dialog')
   await expect(receipt.getByText('Pembayaran Berhasil')).toBeVisible()
   if (method === 'cash') await expect(receipt.getByText('Kembalian')).toBeVisible()

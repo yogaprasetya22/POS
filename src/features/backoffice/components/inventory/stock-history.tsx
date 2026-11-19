@@ -58,8 +58,8 @@ export function StockHistory({ items }: { items: Ingredient[] }) {
   const byId = new Map(items.map((i) => [i.id, i]))
 
   useEffect(() => {
-    void supabase.from('profiles').select('user_id,email').then(({ data }) => {
-      setWho(new Map(((data ?? []) as { user_id: string; email: string | null }[]).map((p) => [p.user_id, p.email ?? ''])))
+    void supabase.from('profiles').select('user_id,email,display_name').then(({ data }) => {
+      setWho(new Map(((data ?? []) as { user_id: string; email: string | null; display_name: string | null }[]).map((p) => [p.user_id, p.display_name?.trim() || p.email || ''])))
     })
   }, [])
 

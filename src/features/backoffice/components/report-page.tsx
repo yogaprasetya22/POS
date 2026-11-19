@@ -51,7 +51,7 @@ function exportCsv(r: Report, from: string, to: string) {
     ['Laporan penjualan', `${from} s/d ${to}`], [],
     ['Ringkasan'], ['Transaksi', r.totals.orders], ['Penjualan kotor', r.totals.gross], ['Diskon', r.totals.discount], ['Service', r.totals.service],
     ['Pajak', r.totals.tax], ['Pembulatan', r.totals.rounding], ['Penjualan bersih', r.totals.net],
-    ['Void (jumlah)', r.voids.count], ['Void (nilai)', r.voids.amount], ['Refund (jumlah)', r.refunds.count], ['Refund (nilai)', r.refunds.amount], [],
+    ['Dibatalkan (jumlah)', r.voids.count], ['Dibatalkan (nilai)', r.voids.amount], ['Uang kembali (jumlah)', r.refunds.count], ['Uang kembali (nilai)', r.refunds.amount], [],
     ['Per hari'], ['Tanggal', 'Transaksi', 'Penjualan bersih'], ...r.daily.map((d) => [d.day, d.orders, d.net]), [],
     ['Per metode bayar'], ['Metode', 'Transaksi', 'Penjualan bersih'], ...r.by_method.map((m) => [method(m.method), m.orders, m.net]), [],
     ['Per kasir'], ['Kasir', 'Transaksi', 'Penjualan bersih'], ...r.by_cashier.map((c) => [c.cashier, c.orders, c.net]), [],
@@ -91,8 +91,8 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   IN_KITCHEN: { label: 'Sudah dibayar', tone: 'info' },
   READY: { label: 'Siap', tone: 'info' },
   COMPLETED: { label: 'Selesai', tone: 'good' },
-  VOID: { label: 'Void', tone: 'bad' },
-  REFUNDED: { label: 'Refund', tone: 'bad' },
+  VOID: { label: 'Dibatalkan', tone: 'bad' },
+  REFUNDED: { label: 'Uang kembali', tone: 'bad' },
   CANCELLED: { label: 'Dibatalkan', tone: 'neutral' },
   EXPIRED: { label: 'Kedaluwarsa', tone: 'neutral' },
 }
@@ -195,7 +195,7 @@ function Transactions({ from, to, onOpen }: { from: string; to: string; onOpen: 
           label="Status transaksi"
           value={status}
           onChange={setStatus}
-          options={[{ value: 'paid', label: 'Terbayar' }, { value: 'reversed', label: 'Void & refund' }, { value: 'other', label: 'Batal & belum bayar' }, { value: 'all', label: 'Semua' }]}
+          options={[{ value: 'paid', label: 'Terbayar' }, { value: 'reversed', label: 'Dibatalkan & uang kembali' }, { value: 'other', label: 'Batal & belum bayar' }, { value: 'all', label: 'Semua' }]}
         />
         <SearchBox value={orders.search} onChange={orders.setSearch} placeholder="Cari kode, nama, atau meja" className="w-full sm:w-72" />
       </div>
@@ -205,8 +205,8 @@ function Transactions({ from, to, onOpen }: { from: string; to: string; onOpen: 
           { label: 'Sudah dibayar', tone: TONE.info, text: 'Sudah dibayar dan sedang dimasak. Sudah masuk laporan.' },
           { label: 'Siap', tone: TONE.info, text: 'Makanan sudah jadi, menunggu diambil pembeli.' },
           { label: 'Selesai', tone: TONE.good, text: 'Sudah diambil atau diantar ke pembeli.' },
-          { label: 'Void', tone: TONE.bad, text: 'Dibatalkan setelah dibayar, sebelum uang berpindah. Tidak dihitung di penjualan.' },
-          { label: 'Refund', tone: TONE.bad, text: 'Uang dikembalikan ke pembeli. Tidak dihitung di penjualan.' },
+          { label: 'Dibatalkan', tone: TONE.bad, text: 'Dibatalkan setelah dibayar, sebelum uang berpindah. Tidak dihitung di penjualan.' },
+          { label: 'Uang kembali', tone: TONE.bad, text: 'Uang dikembalikan ke pembeli. Tidak dihitung di penjualan.' },
           { label: 'Dibatalkan', tone: TONE.neutral, text: 'Dibatalkan sebelum dibayar.' },
           { label: 'Kedaluwarsa', tone: TONE.neutral, text: 'Tidak dibayar lebih dari 45 menit, otomatis dibatalkan.' },
         ]}
@@ -355,7 +355,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Laporan penjualan</h1>
-          <p className="mt-1 text-lg text-muted-foreground">{rangeText(from, to)} · hanya penjualan yang sudah dibayar. Void dan refund dihitung terpisah.</p>
+          <p className="mt-1 text-lg text-muted-foreground">{rangeText(from, to)} · hanya penjualan yang sudah dibayar. Pesanan batal dan uang kembali dihitung terpisah.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-11 border-2 text-base" disabled={!report} onClick={() => report && exportCsv(report, from, to)}>
@@ -383,7 +383,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
             <KpiCard index={0} label="Penjualan bersih" value={rupiah(t?.net ?? 0)} badge={<Trend cur={t?.net ?? 0} prev={prev?.totals.net ?? 0} />} title={`Harga menu ${rupiah(t?.gross ?? 0)} · diskon ${rupiah(t?.discount ?? 0)}`} hint={prev ? `Periode lalu ${rupiah(prev.totals.net)}` : 'Belum ada pembanding'} />
             <KpiCard index={1} label="Jumlah penjualan" value={String(t?.orders ?? 0)} badge={<Trend cur={t?.orders ?? 0} prev={prev?.totals.orders ?? 0} />} title={single ? (peak ? `Paling ramai pukul ${hourRange(peak.hour)}` : 'Belum ada penjualan') : best ? `Hari terbaik: ${dayLabel(best.day)}` : 'Belum ada penjualan'} hint={single ? (peak ? `${peak.orders} penjualan · ${rupiah(peak.net)}` : 'Pilih tanggal lain') : best ? rupiah(best.net) : 'Pilih rentang lain'} />
             <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Rata-rata belanja tiap pembeli" hint={prevAov ? `Periode lalu ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
-            <KpiCard index={3} label="Void & refund" value={rupiah(reversed)} tone={reversed > 0 ? 'bad' : undefined} badge={<Trend cur={reversed} prev={prevReversed} goodWhenUp={false} />} title={`${report.voids.count} void · ${report.refunds.count} refund`} hint="Rincian di tab Transaksi" />
+            <KpiCard index={3} label="Dibatalkan & uang kembali" value={rupiah(reversed)} tone={reversed > 0 ? 'bad' : undefined} badge={<Trend cur={reversed} prev={prevReversed} goodWhenUp={false} />} title={`${report.voids.count} void · ${report.refunds.count} refund`} hint="Rincian di tab Transaksi" />
           </KpiGrid>
         </div>
       )}

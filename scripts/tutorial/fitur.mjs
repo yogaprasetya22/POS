@@ -85,7 +85,7 @@ export const VIDEOS = {
         ['Kasir cukup mencari kode antrean lalu membuka pesanannya. Kasir juga bisa membuat pesanan langsung dari daftar menu untuk pelanggan yang datang ke kasir.', (p) => find(p, c.a, c.names[0]), 'Cari kode antrean'],
         ['Pembayaran bisa tunai, QRIS, atau kartu. Untuk tunai ada tombol uang pas dan pecahan cepat, dan sistem menghitung kembalian. QRIS dan kartu dicatat oleh kasir setelah pembayarannya dipastikan masuk.', (p) => p.getByRole('button', { name: 'Rp100.000' }).click(), 'Pilih tunai, uang diterima'],
         ['Setelah dibayar, struk tampil dan pesanan otomatis terkirim ke dapur. Struk bisa dicetak biasa, atau dilihat dulu lewat pratinjau printer thermal.', async (p) => {
-          await p.getByRole('button', { name: 'Terima Pembayaran' }).click()
+          await p.getByRole('button', { name: /^Terima Rp/ }).click()
           await p.getByRole('dialog').getByText('Pembayaran Berhasil').waitFor()
           await p.getByRole('button', { name: 'Pratinjau printer' }).click()
           await p.waitForTimeout(2500)

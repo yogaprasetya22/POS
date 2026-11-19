@@ -7,6 +7,7 @@ import { getMotionPref } from '@shared/lib/motion-pref'
 import { LandingPage } from '@features/landing'
 import { NotFoundPage, RouteErrorPage } from './app/error-pages'
 import { applySavedTheme } from '@shared/lib/theme'
+import { startDeviceAccountSync } from '@shared/lib/device-accounts'
 import './index.css'
 
 applySavedTheme()
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
   },
 ])
 
+startDeviceAccountSync()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {/* Fitur animasi dimuat lazy setelah render pertama (bundel awal kecil); reducedMotion ikut setelan perangkat */}

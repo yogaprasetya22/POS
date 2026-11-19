@@ -1,5 +1,9 @@
 import { ChevronLeft, Store } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { AnimatePresence, m } from 'motion/react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { LiquidPill } from '@shared/components/liquid-pill'
+import { SwapText, pop } from '@shared/components/motion'
+import { liquid } from '@shared/lib/motion'
 import { Link, useLocation } from 'react-router'
 import { Toaster } from '@shared/components/ui/sonner'
 import { useStaff } from '@shared/lib/auth'
@@ -28,6 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     void loadLogo(config.logo)
   }, [config])
   const { pathname } = useLocation()
+  const headerHidden = useHideOnScroll()
   // Layar dapur dimatikan pemilik: menu Dapur disembunyikan (kecuali untuk staf dapur, satu-satunya layarnya)
   const kitchenOff = config?.use_kitchen_screen === false
   const items = MAIN_NAV.filter((i) => i.show(staff) && !(kitchenOff && i.to === '/kitchen' && staff.role !== 'kitchen'))
@@ -56,25 +61,30 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-base transition-colors md:flex-none md:py-3 ${
-                  active ? 'font-extrabold text-primary md:bg-primary/10' : 'font-semibold text-foreground/75 hover:bg-muted hover:text-foreground'
+                className={`relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-base transition-colors md:flex-none md:py-3 ${
+                  active ? 'font-extrabold text-primary' : 'font-semibold text-foreground/75 hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <span className="relative">
+                {/* penanda menu aktif yang meluncur antar tombol */}
+                {active && <LiquidPill id="main-nav" className="rounded-xl bg-primary/10" />}
+                <m.span className="relative" whileTap={{ scale: 0.88 }} transition={liquid}>
                   <Icon className="size-7" aria-hidden />
                   {(() => {
-                    // tanda angka: pesanan lewat waktu di Antrean, bahan hampir habis di Lainnya (tempat Inventory Stock)
+                    // tanda angka: pesanan lewat waktu di Antrean, bahan hampir habis di Lainnya (tempat Stok bahan)
                     const n = item.to === '/antrean' ? overdue : item.to === '/admin/lainnya' && can.manage(staff.role) ? lowStock : 0
-                    if (n <= 0) return null
                     return (
-                      <span className="absolute -right-3.5 -top-2 grid h-6 min-w-6 place-items-center rounded-full bg-red-600 px-1.5 text-sm font-extrabold text-white tabular-nums">
-                        {n}
-                        <span className="sr-only">{item.to === '/antrean' ? ' pesanan belum diantar, lewat waktu' : ' bahan hampir habis'}</span>
-                      </span>
+                      <AnimatePresence initial={false}>
+                        {n > 0 && (
+                          <m.span key="badge" {...pop} className="absolute -right-3.5 -top-2 grid h-6 min-w-6 place-items-center rounded-full bg-red-600 px-1.5 text-sm font-extrabold text-white tabular-nums">
+                            <SwapText value={n} />
+                            <span className="sr-only">{item.to === '/antrean' ? ' pesanan belum diantar, lewat waktu' : ' bahan hampir habis'}</span>
+                          </m.span>
+                        )}
+                      </AnimatePresence>
                     )
                   })()}
-                </span>
-                <span>{item.label}</span>
+                </m.span>
+                <span className="relative">{item.label}</span>
               </Link>
             )
           })}
@@ -82,7 +92,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       <div className="min-w-0 flex-1 pb-(--bottom-nav)">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background px-3 print:hidden md:px-5">
+        <header className={`sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background px-3 transition-transform duration-200 print:hidden md:px-5 ${headerHidden ? '-translate-y-full' : ''}`}>
           {inMore ? (
             <Link to="/admin/lainnya" className="-ml-1 inline-flex min-h-12 items-center gap-1 rounded-lg px-2 text-base font-bold hover:bg-muted">
               <ChevronLeft className="size-6" aria-hidden /> Kembali ke Lainnya
@@ -106,4 +116,27 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
     </div>
   )
+}
+
+/**
+ * Header menyembunyikan diri saat layar digulir ke bawah (ruang kerja lebih luas) dan muncul lagi saat digulir ke atas.
+ * Tinggi header yang sedang terlihat dibagikan lewat `--header-h` di <html>, dipakai panel yang menempel (mis. ringkasan kasir).
+ */
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    let last = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      if (Math.abs(y - last) < 8) return
+      setHidden(y > last && y > 64)
+      last = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  useEffect(() => {
+    document.documentElement.style.setProperty('--header-h', hidden ? '0px' : '4rem')
+  }, [hidden])
+  return hidden
 }
