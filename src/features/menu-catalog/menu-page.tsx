@@ -189,6 +189,7 @@ export function MenuPage() {
                     qty={qtyOf(p.id)}
                     promo={promoLabel}
                     hero={hero}
+                    priority={idx < 4}
                     onOpen={() => setPicking(p)}
                     onAdd={() => quickAdd(p)}
                   />

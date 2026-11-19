@@ -1,3 +1,4 @@
+import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { saveMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
@@ -168,8 +169,8 @@ export function CheckoutPanel({
                 exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0, transition: { duration: 0.2 } }}
                 className="flex gap-3 overflow-hidden py-3 first:pt-0"
               >
-                <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                  {i.image && <img src={i.image} alt="" className="size-full object-cover" />}
+                <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                  {i.image && <SmartImage src={i.image} alt="" width={56} priority />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium leading-5">{i.name}</p>
@@ -201,8 +202,8 @@ export function CheckoutPanel({
           </AnimatePresence>
           {promo.bonusItem && (
             <li className="flex gap-3 py-3">
-              <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                {promo.bonusItem.image && <img src={promo.bonusItem.image} alt="" className="size-full object-cover" />}
+              <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                {promo.bonusItem.image && <SmartImage src={promo.bonusItem.image} alt="" width={56} priority />}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium leading-5">

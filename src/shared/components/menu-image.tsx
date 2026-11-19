@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { SkeletonContainer } from '@shared/components/ui/skeleton-container'
 import { cn } from 'cn'
 import { UtensilsCrossed } from 'lucide-react'
+import { SmartImage } from './smart-image'
 
 interface MenuImageProps {
   src?: string | null
@@ -9,26 +9,19 @@ interface MenuImageProps {
   className?: string
   aspectRatio?: string
   fallbackIconSize?: string
+  /** Lebar tampil kira-kira (px CSS). Kartu menu ±200px. */
+  width?: number
+  /** Gambar di layar pertama: dimuat segera. */
+  priority?: boolean
 }
 
-/**
- * MenuImage: Gambar menu dengan skeleton pulse halus selama memuat (load)
- * dan transisi fade-in lembut saat gambar selesai diunduh.
- * // ponytail: murni React state + CSS transitions, tanpa library berat.
- */
-export function MenuImage({
-  src,
-  alt,
-  className = '',
-  aspectRatio = 'aspect-4/3',
-  fallbackIconSize = 'size-8 sm:size-10',
-}: MenuImageProps) {
-  const [isLoaded, setIsLoaded] = useState(false)
+/** Gambar menu: ukuran pas, versi buram dulu saat memuat, lalu memudar halus ke gambar asli. */
+export function MenuImage({ src, alt, className = '', aspectRatio = 'aspect-4/3', fallbackIconSize = 'size-8 sm:size-10', width = 320, priority = false }: MenuImageProps) {
   const [hasError, setHasError] = useState(false)
 
   if (!src || hasError) {
     return (
-      <div className={cn('relative w-full overflow-hidden bg-muted/60 grid place-items-center text-primary/40', aspectRatio)}>
+      <div className={cn('relative grid w-full place-items-center overflow-hidden bg-muted/60 text-primary/40', aspectRatio)}>
         <UtensilsCrossed className={fallbackIconSize} aria-hidden />
       </div>
     )
@@ -36,26 +29,7 @@ export function MenuImage({
 
   return (
     <div className={cn('relative w-full overflow-hidden bg-muted', aspectRatio)}>
-      {/* Skeleton Pulse saat gambar sedang dimuat dari jaringan */}
-      {!isLoaded && (
-        <SkeletonContainer isLoading className="absolute inset-0 z-10">
-          <span className="block size-full rounded-none">gambar</span>
-        </SkeletonContainer>
-      )}
-
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onLoad={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
-        className={cn(
-          'size-full object-cover transition-opacity duration-200',
-          isLoaded ? 'opacity-100' : 'opacity-0',
-          className
-        )}
-      />
+      <SmartImage src={src} alt={alt} width={width} priority={priority} onError={() => setHasError(true)} className={className} />
     </div>
   )
 }

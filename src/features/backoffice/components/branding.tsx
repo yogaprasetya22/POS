@@ -40,8 +40,8 @@ export function LogoPicker({ config, onSaved }: { config: StoreConfig | null; on
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="grid h-20 w-36 place-items-center rounded-xl border-2 border-dashed bg-white p-2">
-        {logo ? <img src={logo} alt="Logo struk" className="max-h-full max-w-full [image-rendering:pixelated]" /> : <span className="text-sm text-muted-foreground">Belum ada logo</span>}
+      <div className="flex h-20 w-36 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-white p-2">
+        {logo ? <img src={logo} alt="Logo struk" className="max-h-full max-w-full object-contain [image-rendering:pixelated]" /> : <span className="text-sm text-muted-foreground">Belum ada logo</span>}
       </div>
       <div className="flex flex-col gap-2">
         <label className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border-2 px-4 text-base font-medium hover:bg-muted ${busy ? 'pointer-events-none opacity-50' : ''}`}>

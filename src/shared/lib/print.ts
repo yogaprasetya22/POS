@@ -1,7 +1,7 @@
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { PAYMENT_LABEL, type Order } from '@shared/types/contracts'
 import { toPreview } from './print-preview'
-import { logoPixels } from './receipt-logo'
+import { logoAt } from './receipt-logo'
 import { rupiah, timeJakarta } from './utils'
 
 /** Info toko untuk kepala/kaki struk. */
@@ -36,6 +36,10 @@ export const getPaperChars = () => {
   return (CHAR_WIDTHS as readonly number[]).includes(n) ? n : 32
 }
 export const setPaperChars = (n: number) => save('pos_paper_chars', n)
+/** Ukuran logo struk dalam persen dari ukuran unggahan (40–150). */
+export const LOGO_SIZES = [{ pct: 60, label: 'Kecil' }, { pct: 100, label: 'Sedang' }, { pct: 150, label: 'Besar' }] as const
+export const getLogoPct = () => num('pos_logo_pct', 100, 40, 150)
+export const setLogoPct = (n: number) => save('pos_logo_pct', n)
 export const getBaudRate = () => num('pos_printer_baud', 9600, ...PRINTER_LIMITS.baud)
 export const setBaudRate = (n: number) => save('pos_printer_baud', n)
 /** Baris kosong sebelum pisau memotong; naikkan jika potongan mengenai teks terakhir. */
@@ -59,7 +63,7 @@ const dash = (e: ReceiptPrinterEncoder, columns: number) => e.line('-'.repeat(co
 
 function buildReceipt(order: Order, store: ReceiptStore, columns: number) {
   const e = encoder(columns).initialize()
-  const logo = logoPixels(store.logo)
+  const logo = logoAt(store.logo, getLogoPct(), columns)
   if (logo) e.align('center').image(logo, logo.width, logo.height, 'threshold')
   e.align('center').bold(true).line(store.name).bold(false)
   if (store.address) e.line(store.address)

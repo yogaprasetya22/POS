@@ -46,6 +46,7 @@ import {
 import { supabase } from '@shared/lib/supabase'
 import { rupiah } from '@shared/lib/utils'
 import { MenuImage } from '@shared/components/menu-image'
+import { SmartImage } from '@shared/components/smart-image'
 import { isSellable, type Category, type Product } from '@shared/types/contracts'
 import { CategoriesDialog } from './categories-dialog'
 import { ProductForm } from './product-form'
@@ -287,7 +288,8 @@ export function MenuTab({
                     {/* Food Photo Container */}
                     <div className="relative aspect-4/3 w-full overflow-hidden bg-muted">
                       <MenuImage
-                        src={p.image_url ? p.image_url.replace('w=600', 'w=300') : null}
+                        src={p.image_url}
+                        width={300}
                         alt={p.name}
                         className={`transition-transform duration-300 group-hover:scale-105 ${
                           p.is_available ? '' : 'grayscale opacity-60'
@@ -410,14 +412,9 @@ export function MenuTab({
                   >
                     <TableCell className="pl-4">
                       <div className="flex items-center gap-3">
-                        <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-accent">
+                        <div className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-accent">
                           {p.image_url ? (
-                            <img
-                              src={p.image_url.replace('w=600', 'w=96')}
-                              alt=""
-                              loading="lazy"
-                              className={`size-full object-cover ${p.is_available ? '' : 'grayscale'}`}
-                            />
+                            <SmartImage src={p.image_url} alt="" width={44} className={p.is_available ? '' : 'grayscale'} />
                           ) : (
                             <UtensilsCrossed className="m-auto mt-3 size-5 text-primary/40" aria-hidden />
                           )}

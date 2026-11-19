@@ -17,6 +17,7 @@ import { Stepper } from '@shared/components/stepper'
 import { StockDialog } from '@shared/components/stock-dialog'
 import { CashierSkeleton } from '@shared/components/page-skeleton'
 import { MenuImage } from '@shared/components/menu-image'
+import { SmartImage } from '@shared/components/smart-image'
 import { Button, buttonVariants } from '@shared/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
 import { Input } from '@shared/components/ui/input'
@@ -424,7 +425,7 @@ export function CashierPage() {
                   onClick={() => addProduct(p)}
                   className={`relative flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors disabled:opacity-50 disabled:grayscale ${qty ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/50'}`}
                 >
-                  <MenuImage src={p.image_url} alt="" aspectRatio="aspect-[3/2]" fallbackIconSize="size-6" />
+                  <MenuImage src={p.image_url} alt="" aspectRatio="aspect-[3/2]" fallbackIconSize="size-6" width={220} priority={idx < 8} />
                   <div className="w-full p-2.5">
                     <p className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{p.name}</p>
                     <p className="mt-1 text-sm font-semibold tabular-nums">{isSellable(p) ? rupiah(p.price) : 'Habis'}{isSellable(p) && p.portions !== null && p.portions <= 5 && <span className="ml-1 text-xs font-normal text-amber-600">· sisa {p.portions}</span>}</p>
@@ -539,7 +540,7 @@ export function CashierPage() {
                       transition={liquid}
                       className="flex items-center gap-3 border-b pb-2.5 last:border-0 last:pb-0"
                     >
-                      <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted">{img && <img src={img} alt="" className="size-full object-cover" />}</div>
+                      <div className="relative size-11 shrink-0 overflow-hidden rounded-lg bg-muted">{img && <SmartImage src={img} alt="" width={44} priority />}</div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold">{i.name}</div>
                         {(i.choices.length > 0 || i.note) && (

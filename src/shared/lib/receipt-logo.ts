@@ -84,3 +84,35 @@ export function loadLogo(src: string | null | undefined): Promise<LogoPixels | n
 
 /** Piksel logo bila sudah dimuat; null bila belum (struk dicetak tanpa logo). */
 export const logoPixels = (src: string | null | undefined) => (src ? (cache.get(src) ?? null) : null)
+
+/** Titik printer per baris: 58 mm = 384, 80 mm = 576. */
+export const paperDots = (chars: number) => (chars >= 48 ? 576 : 384)
+
+const scaled = new Map<string, LogoPixels>()
+/**
+ * Logo dengan ukuran sesuai pilihan (persen dari ukuran unggahan). Diperbesar/kecil per titik (nearest neighbor)
+ * supaya pola titik hitam-putih tetap tajam; lebar dibulatkan ke kelipatan 8 dan tidak melebihi kertas.
+ */
+export function logoAt(src: string | null | undefined, pct: number, chars: number): LogoPixels | null {
+  const base = logoPixels(src)
+  if (!base || !src) return null
+  const w = Math.min(paperDots(chars), round8(base.width * (pct / 100)))
+  const h = Math.max(8, Math.round((base.height * w) / base.width))
+  if (w === base.width && h === base.height) return base
+  const key = `${w}x${h}|${src}`
+  const hit = scaled.get(key)
+  if (hit) return hit
+  const data = new Uint8ClampedArray(w * h * 4)
+  for (let y = 0; y < h; y++) {
+    const sy = Math.min(base.height - 1, Math.floor((y * base.height) / h))
+    for (let x = 0; x < w; x++) {
+      const sx = Math.min(base.width - 1, Math.floor((x * base.width) / w))
+      const si = (sy * base.width + sx) * 4
+      const di = (y * w + x) * 4
+      data[di] = base.data[si]; data[di + 1] = base.data[si + 1]; data[di + 2] = base.data[si + 2]; data[di + 3] = 255
+    }
+  }
+  const px = { width: w, height: h, data }
+  scaled.set(key, px)
+  return px
+}

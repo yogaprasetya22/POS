@@ -12,6 +12,8 @@ type Props = {
   promo: string
   /** kartu besar selebar layar (template Majalah, menu pertama) */
   hero?: boolean
+  /** kartu di layar pertama: gambarnya dimuat segera */
+  priority?: boolean
   onOpen: () => void
   onAdd: () => void
 }
@@ -20,7 +22,7 @@ type Props = {
  * Satu kartu menu di halaman pembeli, dalam 10 gaya. Seluruh kartu bisa diketuk (buka detail);
  * tombol + menambah langsung (menu dengan varian tetap membuka detail). Nama & harga min. 16px, tombol + 44px.
  */
-export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
+export function MenuCard({ p, t, qty, promo, hero, priority, onOpen, onAdd }: Props) {
   const ok = isSellable(p)
   const open = (
     <button type="button" onClick={onOpen} disabled={!ok} aria-label={`Lihat ${p.name}`} className="absolute inset-0 z-[1] rounded-[inherit] focus-visible:outline-2 focus-visible:outline-ring" />
@@ -50,7 +52,7 @@ export function MenuCard({ p, t, qty, promo, hero, onOpen, onAdd }: Props) {
   const desc = (cls = '') => p.description && <p className={cn('line-clamp-2 text-sm leading-5 text-muted-foreground', cls)}>{p.description}</p>
   const photo = (aspect: string, cls = '', extra?: ReactNode) => (
     <div className={cn('relative overflow-hidden', cls)}>
-      <MenuImage src={p.image_url} alt="" aspectRatio={aspect} />
+      <MenuImage src={p.image_url} alt="" aspectRatio={aspect} width={hero ? 640 : 280} priority={priority} />
       {soldOut}
       {extra}
     </div>

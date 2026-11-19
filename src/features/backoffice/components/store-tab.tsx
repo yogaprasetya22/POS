@@ -16,7 +16,7 @@ import { BuyerTemplatePicker, LogoPicker, StoreIdentity, ThemePicker } from './b
 import { CashFloatSettings } from './cash-float-settings'
 import { KitchenSettings } from './kitchen-settings'
 import { PrinterCalibration } from './printer-calibration'
-import { getPaperChars, previewReceipt, setPaperChars } from '@shared/lib/print'
+import { LOGO_SIZES, getLogoPct, getPaperChars, previewReceipt, setLogoPct, setPaperChars } from '@shared/lib/print'
 import { loadLogo } from '@shared/lib/receipt-logo'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { supabase } from '@shared/lib/supabase'
@@ -113,6 +113,7 @@ export function StoreTab({ store, run, fail }: Props) {
   const [busy, setBusy] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [paper, setPaper] = useState<number>(getPaperChars())
+  const [logoPct, setLogoPctState] = useState<number>(getLogoPct())
   const [pin, setPin] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -193,7 +194,7 @@ export function StoreTab({ store, run, fail }: Props) {
     })
     return previewReceipt(order, { name: form.name || 'Nama usaha', address: form.address, footer: form.footer, logo: config?.logo }, paper)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- logoReady: muat ulang setelah piksel logo siap
-  }, [form, paper, config?.logo, logoReady])
+  }, [form, paper, config?.logo, logoReady, logoPct])
 
   const sample = 100_000
   const p = preview(sample, form)
@@ -315,6 +316,27 @@ export function StoreTab({ store, run, fail }: Props) {
               <Row label="Pesan di kaki struk" htmlFor="st-foot">
                 <Input id="st-foot" value={form.footer} onChange={(e) => set('footer', e.target.value)} maxLength={200} placeholder="Terima kasih, sampai jumpa lagi!" className="h-11" />
               </Row>
+              {config?.logo && (
+                <Row label="Ukuran logo" hint="Hanya untuk perangkat ini.">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      {LOGO_SIZES.map((o) => (
+                        <Button key={o.pct} type="button" variant={logoPct === o.pct ? 'default' : 'outline'} className="h-11" onClick={() => { setLogoPctState(o.pct); setLogoPct(o.pct) }}>
+                          {o.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range" min={40} max={150} step={5} value={logoPct} aria-label="Ukuran logo (persen)"
+                        onChange={(e) => { const n = Number(e.target.value); setLogoPctState(n); setLogoPct(n) }}
+                        className="h-2 flex-1 cursor-pointer accent-primary"
+                      />
+                      <span className="w-12 text-right text-sm font-semibold tabular-nums">{logoPct}%</span>
+                    </div>
+                  </div>
+                </Row>
+              )}
               <Row label="Lebar kertas printer" hint="Hanya untuk perangkat ini.">
                 <div className="grid grid-cols-2 gap-2">
                   {([32, 48] as const).map((n) => (
@@ -327,7 +349,7 @@ export function StoreTab({ store, run, fail }: Props) {
             </SectionCard>
 
             <aside className="xl:sticky xl:top-4 xl:self-start">
-              <ThermalPaper lines={receiptLines} chars={paper} logo={config?.logo} />
+              <ThermalPaper lines={receiptLines} chars={paper} logo={config?.logo} logoPct={logoPct} />
               <p className="mt-2 text-center text-xs text-muted-foreground">Pratinjau dari perintah printer yang sebenarnya (contoh isi)</p>
               <PrinterCalibration chars={paper} onChars={setPaper} />
             </aside>

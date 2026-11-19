@@ -1,3 +1,4 @@
+import { SmartImage } from './smart-image'
 import { ChevronLeft, ChevronRight, UtensilsCrossed, Video } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 
@@ -73,7 +74,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
     return (
       <div className={`relative overflow-hidden bg-black/90 ${className || 'h-48 sm:h-64 w-full'}`}>
         {item.type === 'image' ? (
-          <img src={item.url} alt={alt} className="size-full object-cover" referrerPolicy="no-referrer" />
+          <SmartImage src={item.url} alt={alt} width={640} priority />
         ) : (
           <video
             src={item.url}
@@ -101,13 +102,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
             className="relative size-full shrink-0 snap-center snap-always flex items-center justify-center overflow-hidden"
           >
             {item.type === 'image' ? (
-              <img
-                src={item.url}
-                alt={`${alt} ${idx + 1}`}
-                className="size-full object-cover"
-                loading={idx === 0 ? 'eager' : 'lazy'}
-                referrerPolicy="no-referrer"
-              />
+              <SmartImage src={item.url} alt={`${alt} ${idx + 1}`} width={640} priority={idx === 0} />
             ) : (
               <div className="relative size-full bg-black flex items-center justify-center">
                 <video
