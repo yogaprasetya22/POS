@@ -383,7 +383,7 @@ export function ReportPageView({ storeName, config }: { storeName: string; confi
             <KpiCard index={0} label="Penjualan bersih" value={rupiah(t?.net ?? 0)} badge={<Trend cur={t?.net ?? 0} prev={prev?.totals.net ?? 0} />} title={`Harga menu ${rupiah(t?.gross ?? 0)} · diskon ${rupiah(t?.discount ?? 0)}`} hint={prev ? `Periode lalu ${rupiah(prev.totals.net)}` : 'Belum ada pembanding'} />
             <KpiCard index={1} label="Jumlah penjualan" value={String(t?.orders ?? 0)} badge={<Trend cur={t?.orders ?? 0} prev={prev?.totals.orders ?? 0} />} title={single ? (peak ? `Paling ramai pukul ${hourRange(peak.hour)}` : 'Belum ada penjualan') : best ? `Hari terbaik: ${dayLabel(best.day)}` : 'Belum ada penjualan'} hint={single ? (peak ? `${peak.orders} penjualan · ${rupiah(peak.net)}` : 'Pilih tanggal lain') : best ? rupiah(best.net) : 'Pilih rentang lain'} />
             <KpiCard index={2} label="Rata-rata per penjualan" value={rupiah(aov)} badge={<Trend cur={aov} prev={prevAov} />} title="Rata-rata belanja tiap pembeli" hint={prevAov ? `Periode lalu ${rupiah(prevAov)}` : 'Belum ada pembanding'} />
-            <KpiCard index={3} label="Dibatalkan & uang kembali" value={rupiah(reversed)} tone={reversed > 0 ? 'bad' : undefined} badge={<Trend cur={reversed} prev={prevReversed} goodWhenUp={false} />} title={`${report.voids.count} void · ${report.refunds.count} refund`} hint="Rincian di tab Transaksi" />
+            <KpiCard index={3} label="Pembatalan" value={rupiah(reversed)} tone={reversed > 0 ? 'bad' : undefined} badge={<Trend cur={reversed} prev={prevReversed} goodWhenUp={false} />} title={`${report.voids.count} dibatalkan · ${report.refunds.count} uang kembali`} hint="Rincian di tab Transaksi" />
           </KpiGrid>
         </div>
       )}

@@ -10,9 +10,9 @@ import { Switch } from '@shared/components/ui/switch'
 import { supabase } from '@shared/lib/supabase'
 import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
-import { KpiCard, KpiGrid, Panel, RangePicker, Trend, addDays, longDay, previousRange, rangeOf, type Preset } from './analytics/kit'
-import { HourlyChart, SalesTrendChart } from './analytics/lazy'
-import { busiestHour, dailySeries, hourRange, hourTotals, hourlySeries, jakartaHour } from './analytics/series'
+import { KpiCard, KpiGrid, Panel, Trend, addDays, longDay } from './analytics/kit'
+import { HourlyChart } from './analytics/lazy'
+import { busiestHour, hourRange, hourTotals, hourlySeries, jakartaHour } from './analytics/series'
 import { clock, dayLabel, fetchReport, type Report } from './report-page'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
@@ -31,10 +31,7 @@ const PAID = ['IN_KITCHEN', 'READY', 'COMPLETED']
  */
 export function Dashboard({ products, run }: { products: Product[]; run: (p: PromiseLike<{ error: { message: string } | null }>) => Promise<void> }) {
   const today = todayJakarta()
-  const [preset, setPreset] = useState<Preset>('30d')
-  const [[from, to], setRange] = useState<[string, string]>(rangeOf('30d'))
   const [report, setReport] = useState<Report | null>(null)
-  const [prev, setPrev] = useState<Report | null>(null)
   const [hourly, setHourly] = useState<{ today: z.infer<typeof PaidSchema>[]; yesterday: z.infer<typeof PaidSchema>[] } | null>(null)
   const [recent, setRecent] = useState<Order[] | null>(null)
   const [low, setLow] = useState<z.infer<typeof IngredientSchema>[] | null>(null)
@@ -42,22 +39,17 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   const [tick, setTick] = useState(0)
   const [showAll, setShowAll] = useState(false)
 
-  // laporan rentang grafik + periode pembanding (2 panggilan untuk seluruh angka penjualan di halaman)
+  // Halaman ini hanya hari ini: laporan kemarin s/d hari ini (kemarin dipakai sebagai pembanding)
   useEffect(() => {
     let alive = true
     setError('')
-    const [pf, pt] = previousRange(from, to)
-    Promise.all([fetchReport(from, to), fetchReport(pf, pt).catch(() => null)])
-      .then(([cur, old]) => {
-        if (!alive) return
-        setReport(cur)
-        setPrev(old)
-      })
+    fetchReport(addDays(today, -1), today)
+      .then((cur) => alive && setReport(cur))
       .catch((e: Error) => alive && setError(e.message))
     return () => {
       alive = false
     }
-  }, [from, to, tick])
+  }, [today, tick])
 
   // data pelengkap: penjualan hari ini per jam, 8 penjualan terakhir, bahan hampir habis
   useEffect(() => {
@@ -67,7 +59,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
       const rows = z.array(PaidSchema.extend({ business_day: z.string() })).safeParse(data ?? []).data ?? []
       setHourly({ today: rows.filter((r) => r.business_day === today), yesterday: rows.filter((r) => r.business_day === yday) })
     })
-    void supabase.from('orders').select('*').not('paid_at', 'is', null).in('status', PAID).order('paid_at', { ascending: false }).limit(5).then(({ data }) => {
+    void supabase.from('orders').select('*').eq('business_day', today).not('paid_at', 'is', null).in('status', PAID).order('paid_at', { ascending: false }).limit(5).then(({ data }) => {
       setRecent(z.array(OrderSchema).safeParse(data ?? []).data ?? [])
     })
     void supabase.from('ingredients').select('id,name,unit,stock,min_stock,is_active').then(({ data }) => {
@@ -76,7 +68,6 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
   }, [today, tick])
 
   const byDay = useMemo(() => new Map((report?.daily ?? []).map((d) => [d.day, d])), [report])
-  const series = useMemo(() => (report ? dailySeries(from, to, report.daily, prev?.daily ?? []) : []), [report, prev, from, to])
   const hours = useMemo(() => (hourly ? hourlySeries(hourly.today, hourly.yesterday, jakartaHour(new Date().toISOString())) : []), [hourly])
   // kemarin sampai jam yang sama dengan sekarang: perbandingan yang adil di tengah hari
   const sameTime = useMemo(() => hourTotals(hours), [hours])
@@ -135,22 +126,12 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
         </KpiGrid>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Panel
-          title="Tren penjualan"
-          description={prev && report && prev.totals.net > 0 ? <span className="inline-flex flex-wrap items-center gap-2">Dibanding periode sebelumnya <Trend cur={report.totals.net} prev={prev.totals.net} /></span> : 'Uang masuk per hari'}
-          action={<RangePicker value={preset} presets={['7d', '30d', '90d']} from={from} to={to} label="Rentang grafik" onChange={(p, r) => { setPreset(p); setRange(r) }} />}
-          className="lg:col-span-2"
-          flush
-        >
-          {report ? <SalesTrendChart rows={series} prevLabel="Periode lalu" /> : <div className="p-4"><ChartSkeleton /></div>}
-        </Panel>
-
-        <Panel title="Jam ramai" description="Jumlah penjualan per jam, hari ini dibanding kemarin">
+      <div className="grid gap-5">
+        <Panel title="Penjualan per jam hari ini" description="Jam berapa paling ramai hari ini (garis tipis = kemarin di jam yang sama)">
           {hourly === null ? (
             <ChartSkeleton />
           ) : hours.length === 0 ? (
-            <EmptyState title="Belum ada penjualan hari ini maupun kemarin" hint="Grafik muncul setelah penjualan pertama dibayar." />
+            <EmptyState title="Belum ada penjualan hari ini" hint="Grafik muncul setelah penjualan pertama dibayar." />
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-base">
@@ -174,7 +155,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
       <div className="grid gap-5 lg:grid-cols-3">
         <Panel
           title="Penjualan terakhir"
-          description="5 penjualan terakhir yang sudah dibayar"
+          description="5 penjualan terakhir hari ini yang sudah dibayar"
           action={<Link to="/admin/laporan" className={buttonVariants({ variant: 'ghost', className: 'h-11 text-base' })}>Semua <ArrowUpRight /></Link>}
           className="lg:col-span-2"
           flush

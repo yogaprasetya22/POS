@@ -105,11 +105,12 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
 }) {
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-base font-medium text-muted-foreground">{label}</p>
-        {badge}
+      {/* label satu baris (min-h tetap) supaya angka besar di semua kartu sejajar */}
+      <div className="flex min-h-7 items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-base font-medium text-muted-foreground" title={label}>{label}</p>
+        <span className="shrink-0">{badge}</span>
       </div>
-      <p className={cn('mt-1 truncate text-[1.75rem] font-extrabold leading-tight tabular-nums tracking-tight', tone === 'bad' && 'text-destructive', tone === 'good' && 'text-emerald-700 dark:text-emerald-400')}>{value}</p>
+      <p className={cn('mt-1 whitespace-nowrap font-extrabold leading-tight tabular-nums tracking-tight', 'text-[clamp(1.2rem,13cqw,1.85rem)]', tone === 'bad' && 'text-destructive', tone === 'good' && 'text-emerald-700 dark:text-emerald-400')}>{value}</p>
       {(title || hint) && (
         <div className="mt-auto space-y-0.5 border-t pt-3 text-base">
           {title && <p className="line-clamp-2 font-semibold">{title}</p>}
@@ -119,7 +120,7 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
     </>
   )
   // kartu polos dengan tinggi sama: label + lencana, angka besar, garis tipis, dua baris keterangan
-  const cls = 'flex h-full min-w-0 flex-col gap-2 rounded-2xl border bg-card p-5 shadow-xs'
+  const cls = '@container flex h-full min-w-0 flex-col gap-2 rounded-2xl border bg-card p-5 shadow-xs'
   return onClick ? (
     <MCard {...appear(index)} className={cn(cls, 'cursor-pointer gap-2 py-5 transition-colors hover:border-primary')} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick()}>
       {body}

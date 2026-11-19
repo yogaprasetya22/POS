@@ -619,22 +619,52 @@ export function CashierPage() {
                 </AnimatePresence>
               </button>
               <Collapse open={detailOpen}>
-              <dl className="mt-1 space-y-0.5 text-sm">
-                {([
-                  ['Subtotal', rupiah(view.subtotal), ''],
-                  view.promo > 0 && [`Promo (${view.promoName ?? 'Diskon'})`, `-${rupiah(view.promo)}`, 'good'],
-                  view.voucher > 0 && ['Voucher', `-${rupiah(view.voucher)}`, 'good'],
-                  view.points > 0 && ['Poin', `-${rupiah(view.points)}`, 'good'],
-                  view.service > 0 && ['Service', rupiah(view.service), ''],
-                  view.tax > 0 && ['Pajak', rupiah(view.tax), ''],
-                  view.rounding !== 0 && ['Pembulatan', `${view.rounding < 0 ? '-' : ''}${rupiah(Math.abs(view.rounding))}`, ''],
-                ].filter(Boolean) as [string, string, string][]).map(([label, value, tone]) => (
-                  <div key={label} className={`flex justify-between gap-2 ${tone === 'good' ? 'text-emerald-700' : 'text-muted-foreground'}`}>
-                    <dt className="truncate">{label}</dt>
-                    <dd className="shrink-0 tabular-nums">{value}</dd>
-                  </div>
-                ))}
-              </dl>
+              {(() => {
+                // Rincian lengkap: tiap baris punya keterangan kecil (persen, dasar hitung, nama promo)
+                const pct = (bp?: number) => (bp ? `${(bp / 100).toLocaleString('id-ID')}%` : '')
+                const count = (selected ? selected.items : items).reduce((n, i) => n + i.qty, 0)
+                const discount = view.promo + view.voucher + view.points
+                const afterDiscount = view.subtotal - discount
+                const rows: { label: string; note?: string; value: string; tone?: 'good' | 'bold' | 'bad' }[] = [
+                  { label: 'Subtotal', note: `${count} barang`, value: rupiah(view.subtotal) },
+                  ...(view.promo > 0 ? [{ label: 'Promo', note: view.promoName ?? 'Diskon', value: `-${rupiah(view.promo)}`, tone: 'good' as const }] : []),
+                  ...(view.voucher > 0 ? [{ label: 'Voucher', note: code || undefined, value: `-${rupiah(view.voucher)}`, tone: 'good' as const }] : []),
+                  ...(view.points > 0 ? [{ label: 'Tukar poin', note: member?.name, value: `-${rupiah(view.points)}`, tone: 'good' as const }] : []),
+                  ...(discount > 0 ? [{ label: 'Setelah potongan', value: rupiah(afterDiscount), tone: 'bold' as const }] : []),
+                  ...(view.service > 0 ? [{ label: 'Service', note: pct(config?.service_bp), value: rupiah(view.service) }] : []),
+                  ...(view.tax > 0 ? [{ label: config?.tax_inclusive ? 'Pajak (sudah termasuk)' : 'Pajak', note: pct(config?.tax_bp), value: rupiah(view.tax) }] : []),
+                  ...(view.rounding !== 0 ? [{ label: 'Pembulatan', note: config?.rounding_to && config.rounding_to > 1 ? `ke Rp${config.rounding_to.toLocaleString('id-ID')} terdekat` : undefined, value: `${view.rounding < 0 ? '-' : '+'}${rupiah(Math.abs(view.rounding))}` }] : []),
+                ]
+                const paying = payer && method === 'CASH' && cashN > 0
+                return (
+                  <dl className="mt-1 space-y-1 rounded-xl bg-muted/50 p-3 text-sm">
+                    {rows.map((r) => (
+                      <div key={r.label} className={`flex items-baseline justify-between gap-2 ${r.tone === 'good' ? 'text-emerald-700 dark:text-emerald-400' : r.tone === 'bold' ? 'border-t pt-1 font-semibold text-foreground' : 'text-foreground/80'}`}>
+                        <dt className="min-w-0">
+                          {r.label}
+                          {r.note && <span className="ml-1.5 text-xs text-muted-foreground">{r.note}</span>}
+                        </dt>
+                        <dd className="shrink-0 tabular-nums">{r.value}</dd>
+                      </div>
+                    ))}
+                    {paying && (
+                      <>
+                        <div className="flex justify-between gap-2 border-t pt-1 text-foreground/80">
+                          <dt>Uang diterima <span className="ml-1.5 text-xs text-muted-foreground">Tunai</span></dt>
+                          <dd className="tabular-nums">{rupiah(cashN)}</dd>
+                        </div>
+                        <div className={`flex justify-between gap-2 font-semibold ${cashN >= total ? 'text-foreground' : 'text-destructive'}`}>
+                          <dt>{cashN >= total ? 'Kembalian' : 'Uang kurang'}</dt>
+                          <dd className="tabular-nums">{rupiah(Math.abs(cashN - total))}</dd>
+                        </div>
+                      </>
+                    )}
+                    {view.earned > 0 && (
+                      <p className="border-t pt-1 text-xs text-muted-foreground">Member dapat {view.earned.toLocaleString('id-ID')} poin dari pesanan ini</p>
+                    )}
+                  </dl>
+                )
+              })()}
               </Collapse>
             </div>
             <div className="flex items-baseline justify-between">
