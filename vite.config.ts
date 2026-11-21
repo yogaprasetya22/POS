@@ -12,11 +12,12 @@ function devApi(): Plugin {
     name: 'dev-api',
     apply: 'serve',
     configureServer(server) {
-      Object.assign(process.env, loadEnv('development', process.cwd(), ''))
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url ?? '', 'http://localhost')
         const m = url.pathname.match(/^\/api\/([\w-]+)$/)
         if (!m) return next()
+        // Muat ulang env terkini dari .env setiap ada panggilan API lokal
+        Object.assign(process.env, loadEnv('development', process.cwd(), ''))
         const chunks: Buffer[] = []
         for await (const c of req) chunks.push(c as Buffer)
         const raw = Buffer.concat(chunks).toString()

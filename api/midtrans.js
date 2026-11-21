@@ -1,5 +1,35 @@
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 import { allow, supabaseFor } from '../server/supabase.js'
+
+/**
+ * Muat variabel env terkini langsung dari file .env (jika ada)
+ * agar pergantian key / mode (Sandbox <-> Production) langsung aktif tanpa perlu restart server dev.
+ */
+function getFreshEnv() {
+  const env = { ...process.env }
+  try {
+    const envPath = path.resolve(process.cwd(), '.env')
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8')
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const eqIdx = trimmed.indexOf('=')
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim()
+          let val = trimmed.slice(eqIdx + 1).trim()
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1)
+          }
+          env[key] = val
+        }
+      }
+    }
+  } catch {}
+  return env
+}
 
 /**
  * Resolusi kredensial Midtrans:
@@ -7,6 +37,7 @@ import { allow, supabaseFor } from '../server/supabase.js'
  * 2. Fallback ke environment variables (MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION).
  */
 async function getMidtransConfig(sb, storeId) {
+  const env = getFreshEnv()
   let storeConfig = null
   if (storeId) {
     const { data } = await sb
@@ -17,10 +48,10 @@ async function getMidtransConfig(sb, storeId) {
     storeConfig = data
   }
 
-  const envIsProd = String(process.env.MIDTRANS_IS_PRODUCTION ?? process.env.VITE_MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
+  const envIsProd = String(env.MIDTRANS_IS_PRODUCTION ?? env.VITE_MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
   const isProduction = envIsProd && Boolean(storeConfig?.midtrans_is_production ?? true)
-  const serverKey = (isProduction ? storeConfig?.midtrans_server_key : null) || process.env.MIDTRANS_SERVER_KEY || ''
-  const clientKey = (isProduction ? storeConfig?.midtrans_client_key : null) || process.env.MIDTRANS_CLIENT_KEY || process.env.VITE_MIDTRANS_CLIENT_KEY || ''
+  const serverKey = (isProduction ? storeConfig?.midtrans_server_key : null) || env.MIDTRANS_SERVER_KEY || ''
+  const clientKey = (isProduction ? storeConfig?.midtrans_client_key : null) || env.MIDTRANS_CLIENT_KEY || env.VITE_MIDTRANS_CLIENT_KEY || ''
   const isEnabled = storeConfig?.midtrans_enabled ?? Boolean(serverKey && clientKey)
 
   return {
@@ -57,13 +88,17 @@ export default async function handler(req, res) {
   // ─── 1. TEST KONEKSI KEY MIDTRANS ───
   if (action === 'test') {
     if (!allow(req, res, 'POST')) return
+    const env = getFreshEnv()
     const { serverKey, isProduction } = req.body || {}
-    const keyToTest = serverKey || process.env.MIDTRANS_SERVER_KEY
+    const isProd = isProduction !== undefined
+      ? Boolean(isProduction)
+      : String(env.MIDTRANS_IS_PRODUCTION ?? env.VITE_MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
+    const keyToTest = serverKey || env.MIDTRANS_SERVER_KEY
     if (!keyToTest) {
       return res.status(400).json({ success: false, error: 'Server Key Midtrans belum diisi' })
     }
 
-    const snapUrl = getSnapUrl(Boolean(isProduction))
+    const snapUrl = getSnapUrl(isProd)
     const authHeader = 'Basic ' + Buffer.from(`${keyToTest}:`).toString('base64')
 
     try {
@@ -90,7 +125,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
           success: true,
           message: 'Koneksi ke Midtrans berhasil! Server Key valid.',
-          mode: isProduction ? 'Production' : 'Sandbox',
+          mode: isProd ? 'Production' : 'Sandbox',
         })
       } else {
         const errMessage = data?.error_messages ? data.error_messages.join(', ') : (data?.message || 'Koneksi ditolak oleh Midtrans')
@@ -388,6 +423,7 @@ export default async function handler(req, res) {
         gross_amount: Math.round(order.total),
         expiry_time: chargeData.expiry_time,
         is_fallback: isFallback,
+        is_production: !isFallback && cfg.isProduction,
         notice: noticeMsg,
       })
     } catch (err) {

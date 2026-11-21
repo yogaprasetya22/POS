@@ -310,8 +310,8 @@ export function InlineQris({
         </span>
       </div>
 
-      {/* Panel Simulasi / Uji Coba QRIS (Sandbox Simulator) */}
-      {(!isProduction || isFallback || qrUrl) && (
+      {/* Panel Simulasi / Uji Coba QRIS (Hanya tampil di mode Sandbox atau fallback jika kanal QRIS Production belum aktif di Midtrans) */}
+      {(!isProduction || isFallback) && (
         <div className="w-full max-w-xs rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-left space-y-2.5 dark:border-amber-900/50 dark:bg-amber-950/20">
           <div className="flex items-center justify-between">
             <span className="font-bold flex items-center gap-1.5 text-xs text-amber-900 dark:text-amber-200">

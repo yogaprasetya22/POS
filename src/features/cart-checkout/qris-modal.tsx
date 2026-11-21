@@ -12,6 +12,7 @@ type Props = {
   qrString: string
   qrUrl?: string
   storeId?: string
+  isProduction?: boolean
   closeLabel?: string
   onManualConfirm?: () => void
   onSuccess: () => void
@@ -25,6 +26,7 @@ export function QrisModal({
   qrString,
   qrUrl,
   storeId,
+  isProduction,
   closeLabel = 'Bayar di kasir saja',
   onManualConfirm,
   onSuccess,
@@ -264,35 +266,37 @@ export function QrisModal({
                   </Button>
                 </div>
 
-                {/* Tombol Salin URL QR Simulator */}
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyQrUrl}
-                    className="h-8.5 text-[11px] font-semibold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10"
-                  >
-                    {copiedUrl ? (
-                      <>
-                        <Check className="mr-1 size-3 text-emerald-600" /> Tersalin!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="mr-1 size-3" /> Salin URL QR
-                      </>
-                    )}
-                  </Button>
+                {/* Tombol Salin URL QR Simulator (Hanya mode Sandbox) */}
+                {!isProduction && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyQrUrl}
+                      className="h-8.5 text-[11px] font-semibold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10"
+                    >
+                      {copiedUrl ? (
+                        <>
+                          <Check className="mr-1 size-3 text-emerald-600" /> Tersalin!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="mr-1 size-3" /> Salin URL QR
+                        </>
+                      )}
+                    </Button>
 
-                  <a
-                    href="https://simulator.sandbox.midtrans.com/qris/index"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-8.5 items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-background/80 px-2 text-[11px] font-semibold text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 transition"
-                  >
-                    Simulator <ExternalLink className="size-3" />
-                  </a>
-                </div>
+                    <a
+                      href="https://simulator.sandbox.midtrans.com/qris/index"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-8.5 items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-background/80 px-2 text-[11px] font-semibold text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 transition"
+                    >
+                      Simulator <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                )}
               </div>
 
               {onManualConfirm && (

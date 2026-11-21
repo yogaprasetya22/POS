@@ -85,6 +85,14 @@ function OrderStatusCard({
   } | null>(null)
   const lastStatus = useRef<string | null>(null)
 
+  // Hitung mundur cooldown 5 menit sejak pesanan dibuat
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    const elapsed = Math.floor((Date.now() - saved.at) / 1000)
+    return Math.max(0, COOLDOWN_SECONDS - elapsed)
+  })
+
+  const isUnpaid = !info || info.status === 'UNPAID'
+
   useEffect(() => {
     let alive = true
     let timer: ReturnType<typeof setTimeout>
@@ -152,6 +160,20 @@ function OrderStatusCard({
     }
   }, [saved.id, saved.is_unpaid, saved.order_type, saved.table_no, storeId])
 
+  useEffect(() => {
+    if (!isUnpaid || secondsLeft <= 0) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - saved.at) / 1000)
+      const remaining = Math.max(0, COOLDOWN_SECONDS - elapsed)
+      setSecondsLeft(remaining)
+      if (remaining <= 0) {
+        clearInterval(interval)
+        forgetMyOrder(storeId, saved.id)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isUnpaid, saved.at, secondsLeft, storeId, saved.id])
+
   const handleOpenQris = async () => {
     setLoadingQris(true)
     try {
@@ -195,32 +217,10 @@ function OrderStatusCard({
     return null
   }
 
-  const isUnpaid = !info || info.status === 'UNPAID'
-
-  // Hitung mundur cooldown 5 menit sejak pesanan dibuat
-  const [secondsLeft, setSecondsLeft] = useState(() => {
-    const elapsed = Math.floor((Date.now() - saved.at) / 1000)
-    return Math.max(0, COOLDOWN_SECONDS - elapsed)
-  })
-
   // Jika cooldown 5 menit telah habis untuk pesanan yang belum dibayar, langsung hilangkan dari antrean
   if (isUnpaid && secondsLeft <= 0) {
     return null
   }
-
-  useEffect(() => {
-    if (!isUnpaid || secondsLeft <= 0) return
-    const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - saved.at) / 1000)
-      const remaining = Math.max(0, COOLDOWN_SECONDS - elapsed)
-      setSecondsLeft(remaining)
-      if (remaining <= 0) {
-        clearInterval(interval)
-        forgetMyOrder(storeId, saved.id)
-      }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [isUnpaid, saved.at, secondsLeft, storeId, saved.id])
 
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60

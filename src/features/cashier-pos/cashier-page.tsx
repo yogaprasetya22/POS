@@ -106,7 +106,7 @@ export function CashierPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
-  const [qrisModal, setQrisModal] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string } | null>(null)
+  const [qrisModal, setQrisModal] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string; isProduction?: boolean } | null>(null)
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
   const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
@@ -300,6 +300,7 @@ export function CashierPage() {
             total,
             qrString: qrisRes.qr_string || '',
             qrUrl: qrisRes.qr_url,
+            isProduction: qrisRes.is_production ?? midtransConfig?.isProduction,
           })
           setBusy(false)
           return
@@ -854,6 +855,7 @@ export function CashierPage() {
           qrString={qrisModal.qrString}
           qrUrl={qrisModal.qrUrl}
           storeId={storeId || undefined}
+          isProduction={qrisModal.isProduction ?? midtransConfig?.isProduction}
           closeLabel="Tutup / Simpan Pesanan"
           onManualConfirm={async () => {
             const id = qrisModal.orderId
