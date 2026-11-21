@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Coins,
   Gift,
+  Globe,
   Headphones,
   Lock,
   MessageSquare,
@@ -17,11 +18,13 @@ import {
   QrCode,
   Receipt,
   ShieldCheck,
+  SlidersHorizontal,
   Smartphone,
   Sparkles,
   Store,
   TrendingUp,
   UserCog,
+  Users,
   Video,
   Wallet,
   XCircle,
@@ -126,6 +129,105 @@ const SHOWCASE_TABS = [
     img: '/landing/stok.webp',
     video: '/landing/video-stok.webm',
     alt: 'Manajemen resep dan bahan baku stok inventori',
+  },
+]
+
+const SETTINGS_FEATURES = [
+  {
+    icon: Receipt,
+    badge: 'Struk & Printer Thermal',
+    title: 'Format Struk & Kustomisasi Logo Toko',
+    text: 'Sesuaikan cetak struk kasir dan tiket dapur Anda. Dukung logo hitam-putih, nama outlet, alamat lengkap, info kontak/wifi, serta ukuran kertas 58mm atau 80mm standar.',
+    points: [
+      'Format otomatis logo hitam-putih presisi untuk printer thermal',
+      'Pesan ucapan terima kasih & promosi akun medsos di footer struk',
+      'Kompatibel printer Bluetooth, USB, dan Ethernet LAN (ESC/POS)',
+      'Dukungan buka laci kas otomatis (auto-kick cash drawer RJ11)',
+    ],
+  },
+  {
+    icon: Coins,
+    badge: 'Pajak & Biaya Layanan',
+    title: 'Pajak Restoran (PB1) & Service Charge',
+    text: 'Hitung kewajiban pajak restoran dan biaya layanan tanpa hitung manual. Sistem mendukung tarif per outlet dengan pembukuan bersih terpisah.',
+    points: [
+      'Tarif PB1 (10%) dan Service Charge (5%) dapat disesuaikan fleksibel',
+      'Pilihan harga inklusif (sudah termasuk) atau eksklusif (ditambahkan di nota)',
+      'Pembulatan total nominal otomatis ke Rp100 atau Rp500 terdekat',
+      'Laporan rekapitulasi setoran pajak daerah otomatis per bulan',
+    ],
+  },
+  {
+    icon: QrCode,
+    badge: 'Denah Meja & QR',
+    title: 'Manajemen Meja & Generator QR Cetak',
+    text: 'Atur denah tempat duduk restoran (indoor, outdoor, lantai 2) dan terbitkan kode QR meja permanen hanya dengan satu kali klik.',
+    points: [
+      'Bebas atur penomoran meja, area ruangan, dan kapasitas kursi tamu',
+      'Ekspor lembar PDF kode QR tajam siap cetak untuk akrilik meja',
+      'Tamu langsung diarahkan ke nomor meja tanpa risiko salah antar pesanan',
+      'Fleksibilitas mode: pesan mandiri bayar di awal atau bayar di kasir',
+    ],
+  },
+  {
+    icon: UserCog,
+    badge: 'Keamanan & Tim',
+    title: 'Hak Akses Staf Berjenjang & Proteksi PIN',
+    text: 'Bagi wewenang kerja antara Owner, Manager, Kasir, Waiter, dan Koki dapur. Mencegah kecurangan kas dan manipulasi transaksi.',
+    points: [
+      'Login kilat kasir & kru menggunakan PIN 4 digit yang praktis',
+      'Proteksi pembatalan transaksi (void), refund, dan ubah pesanan',
+      'Diskon manual dan buka laci kas wajib otorisasi PIN supervisor',
+      'Catatan audit aktivitas staf tersimpan aman di log sistem',
+    ],
+  },
+  {
+    icon: Gift,
+    badge: 'Diskon & Promosi',
+    title: 'Voucher Promo, Diskon % & Buy 1 Get 1',
+    text: 'Tingkatkan omzet dengan berbagai skema promo menarik: potongan harga nominal, diskon persentase, paket bundling, atau kode voucher.',
+    points: [
+      'Atur periode aktif promo dengan tanggal mulai dan kedaluwarsa otomatis',
+      'Syarat minimal nilai transaksi belanja atau kategori menu tertentu',
+      'Kupon voucher eksklusif dengan pembatasan kuota penukaran',
+      'Diskon teraplikasi seketika di kasir dan menu pemesanan QR meja',
+    ],
+  },
+  {
+    icon: Users,
+    badge: 'Pelanggan Setia',
+    title: 'Program Member & Loyalitas Poin Belanja',
+    text: 'Bangun basis pelanggan tetap restoran Anda. Kumpulkan nomor WhatsApp pelanggan dan berikan poin setiap kali mereka bersantap di outlet Anda.',
+    points: [
+      'Daftar member kilat cukup dengan nomor telepon saat pembayaran',
+      'Atur rasio poin (contoh: belanja Rp10.000 dapat 1 poin bernilai Rp100)',
+      'Poin langsung bisa dipotongkan pada pembayaran transaksi berikutnya',
+      'Riwayat total pesanan dan akumulasi belanja tiap pelanggan loyal',
+    ],
+  },
+  {
+    icon: ChefHat,
+    badge: 'Operasional Dapur',
+    title: 'Auto-Routing Tiket Dapur & Notifikasi Suara',
+    text: 'Pastikan koki dapur dan barista bar menerima pesanan tanpa jeda. Sistem memisahkan tiket makanan dan minuman secara terorganisir.',
+    points: [
+      'Pemisahan pesanan otomatis: tiket minuman ke bar, makanan ke dapur masak',
+      'Alarm lonceng suara saat ada pesanan baru masuk dari kasir atau QR meja',
+      'Pilihan cetak rangkap untuk dapur koki dan pelayan penyaji makanan',
+      'Terhubung langsung dengan layar panggil antrean pesanan siap saji',
+    ],
+  },
+  {
+    icon: Globe,
+    badge: 'Multi-Bahasa & Nada Brand',
+    title: 'Pilihan Bahasa & Penyesuaian Gaya Komunikasi',
+    text: 'Sesuaikan gaya bahasa antarmuka kasir dan menu pelanggan dengan konsep bisnis Anda: kafe santai gaul, resto formal, atau ramah wisatawan.',
+    points: [
+      'Tersedia 3 opsi: Bahasa Indonesia baku, Santai (Jaksel), & English',
+      'Kustomisasi kata sapaan dan kalimat peringatan sesuai konsep outlet',
+      'Tiap staf kasir atau koki bebas memilih bahasa di perangkat masing-masing',
+      'Memberikan sentuhan personal yang lebih akrab bagi pelanggan Anda',
+    ],
   },
 ]
 
@@ -276,6 +378,14 @@ const RENTAL_FAQ = [
   {
     q: 'Bagaimana jika saya atau kasir saya butuh bantuan saat operasional toko?',
     a: 'Kami menyediakan dokumentasi panduan video interaktif per peran (kasir, dapur, owner) serta layanan bantuan teknis via WhatsApp yang siap mendampingi tim toko Anda.',
+  },
+  {
+    q: 'Apakah saya bisa mengatur sendiri format struk, logo, dan tarif pajak restoran saya?',
+    a: 'Bisa dan sangat mudah. Melalui menu Pengaturan Toko, Anda dapat mengunggah logo monokrom untuk struk kasir, memasukkan alamat dan kontak outlet, mengatur persentase pajak PB1 (10%) atau service charge (inklusif/eksklusif), serta memilih ukuran kertas printer 58mm atau 80mm tanpa perlu bantuan teknisi.',
+  },
+  {
+    q: 'Bagaimana cara mengatur hak akses staf agar kasir tidak sembarangan void atau beri diskon?',
+    a: 'Sistem dilengkapi Role-Based Access Control (Owner, Manager, Kasir, Dapur, Waiter) dan proteksi PIN supervisor. Tindakan sensitif seperti void pesanan, refund, ubah harga, buka laci kas tunai manual, atau diskon manual terkunci dan wajib memasukkan PIN otorisasi manajer/owner.',
   },
 ]
 
@@ -485,6 +595,7 @@ function SavingsCalculator() {
 export function LandingPage() {
   const [activeTab, setActiveTab] = useState('kasir')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
+  const [settingsMediaMode, setSettingsMediaMode] = useState<'video' | 'image'>('video')
   const [isAnnual, setIsAnnual] = useState(false)
   const [demoStores, setDemoStores] = useState<StoreLink[]>([])
 
@@ -512,8 +623,9 @@ export function LandingPage() {
             <span>{APP_NAME}</span>
           </Link>
 
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex" aria-label="Menu navigasi">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex" aria-label="Menu navigasi">
             <a href="#fitur" className="transition-colors hover:text-foreground">Fitur Resto</a>
+            <a href="#pengaturan" className="transition-colors hover:text-foreground">Pengaturan Toko</a>
             <a href="#komparasi" className="transition-colors hover:text-foreground">Keunggulan Sewa</a>
             <a href="#kalkulator" className="transition-colors hover:text-foreground">Kalkulator Hemat</a>
             <a href="#paket" className="transition-colors hover:text-foreground">Paket Sewa</a>
@@ -765,6 +877,123 @@ export function LandingPage() {
         {/* ─── KALKULATOR PENGHEMATAN BIAYA SEWA ─── */}
         <section id="kalkulator" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-8">
           <SavingsCalculator />
+        </section>
+
+        {/* ─── PUSAT KENDALI & PENGATURAN OPERASIONAL RESTO (BACKOFFICE SUITE) ─── */}
+        <section id="pengaturan" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
+              Pusat Kendali & Konfigurasi Toko
+            </span>
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Pengaturan Operasional Lengkap, Kendalikan Seluruh Aturan Resto Anda
+            </h2>
+            <p className="mt-3 text-base text-muted-foreground">
+              Bukan sekadar mesin kasir biasa. Nikmati fleksibilitas penuh mengatur format struk thermal, pajak PB1, denah meja QR, hak akses tim, hingga program loyalitas member tanpa perlu bantuan teknisi.
+            </p>
+          </div>
+
+          {/* Media Showcase: Foto HD & Video Demo Berjalan Pengaturan Toko */}
+          <div className="mt-12">
+            <div className="mx-auto max-w-4xl">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="size-4 text-primary" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Pratinjau Layar Pengaturan Toko
+                  </span>
+                </div>
+
+                <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsMediaMode('video')}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs transition-all ${
+                      settingsMediaMode === 'video'
+                        ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Video className="size-3.5" />
+                    <span>Video Demo Berjalan</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettingsMediaMode('image')}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs transition-all ${
+                      settingsMediaMode === 'image'
+                        ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <TrendingUp className="size-3.5" />
+                    <span>Tangkapan Layar HD</span>
+                  </button>
+                </div>
+              </div>
+
+              <ShowcaseMedia
+                videoSrc="/landing/video-pengaturan.webm"
+                imgSrc="/landing/pengaturan.webp"
+                alt="Antarmuka workstation pengaturan toko, struk thermal, pajak PB1, dan meja"
+                mode={settingsMediaMode}
+              />
+            </div>
+          </div>
+
+          {/* Grid Fitur Pengaturan Toko Lengkap (8 Kartu Berkarakter) */}
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {SETTINGS_FEATURES.map(({ icon: Icon, badge, title, text, points }) => (
+              <div
+                key={title}
+                className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-xs transition-all hover:border-primary/40 hover:shadow-md"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {badge}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-4 text-base font-bold tracking-tight text-foreground">{title}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{text}</p>
+                </div>
+
+                <ul className="mt-4 space-y-2 border-t border-border/60 pt-3">
+                  {points.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-xs text-foreground/85">
+                      <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Banner Bantuan Setup Pengaturan */}
+          <div className="mx-auto mt-12 max-w-4xl rounded-2xl border border-primary/20 bg-primary/[0.03] p-5 text-center sm:flex sm:items-center sm:justify-between sm:text-left">
+            <div>
+              <h4 className="text-sm font-bold text-foreground">Butuh Bantuan Menyesuaikan Pengaturan Toko Anda?</h4>
+              <p className="text-xs text-muted-foreground">Tim kami siap membantu setup menu, desain logo struk, dan denah meja saat onboarding awal.</p>
+            </div>
+            <a
+              href={WA_SALES_LINK}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'mt-3 sm:mt-0 font-semibold border-primary/30 hover:bg-primary/10',
+              })}
+            >
+              <MessageSquare className="mr-2 size-3.5 text-emerald-600 dark:text-emerald-400" />
+              Konsultasi Setup via WhatsApp
+            </a>
+          </div>
         </section>
 
         {/* ─── FITUR F&B RESTORAN LENGKAP ─── */}
@@ -1092,6 +1321,7 @@ export function LandingPage() {
 
           <div className="flex flex-wrap items-center gap-6 text-xs">
             <a href="#fitur" className="hover:text-foreground">Fitur</a>
+            <a href="#pengaturan" className="hover:text-foreground">Pengaturan</a>
             <a href="#komparasi" className="hover:text-foreground">Komparasi Sewa</a>
             <a href="#kalkulator" className="hover:text-foreground">Kalkulator Hemat</a>
             <a href="#paket" className="hover:text-foreground">Paket Harga</a>
