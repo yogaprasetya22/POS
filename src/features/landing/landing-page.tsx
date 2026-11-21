@@ -354,11 +354,21 @@ function BrowserFrame({ children, isLive = true }: { children: ReactNode; isLive
 
 function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-72 overflow-hidden rounded-[2.5rem] border-[10px] border-foreground/90 bg-card shadow-2xl shadow-primary/15 ring-1 ring-black/10">
-      <div className="h-6 w-full bg-foreground/90 flex items-center justify-center">
-        <span className="h-3 w-16 rounded-full bg-background/20" />
+    <div className="relative mx-auto w-[290px] sm:w-[315px] overflow-hidden rounded-[2.8rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl shadow-primary/20 ring-1 ring-slate-800">
+      {/* Dynamic Island / Speaker */}
+      <div className="relative z-20 flex h-7 w-full items-center justify-center bg-slate-900">
+        <span className="h-3.5 w-20 rounded-full bg-slate-800 ring-1 ring-slate-700/50" />
       </div>
-      {children}
+
+      {/* Screen container with exact mobile aspect ratio */}
+      <div className="relative w-full overflow-hidden bg-background">
+        {children}
+      </div>
+
+      {/* Bottom Home Indicator Bar */}
+      <div className="flex h-5 w-full items-center justify-center bg-slate-900">
+        <span className="h-1 w-24 rounded-full bg-slate-700/70" />
+      </div>
     </div>
   )
 }
@@ -412,6 +422,45 @@ function ShowcaseMedia({
     setIsMuted(nextMuted)
   }
 
+  const controls = (
+    <>
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-label={isMuted ? 'Bunyikan audio narasi' : 'Bisukan suara'}
+        className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-3.5 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-all hover:scale-105 active:scale-95 hover:border-primary/40"
+      >
+        {isMuted ? (
+          <>
+            <VolumeX className="size-3.5 text-muted-foreground" />
+            <span>Suara Mati</span>
+          </>
+        ) : (
+          <>
+            <Volume2 className="size-3.5 text-emerald-500 animate-pulse" />
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">Bersuara</span>
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={isPlaying ? 'Jeda video' : 'Putar video'}
+        className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-3.5 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-all hover:scale-105 active:scale-95 hover:border-primary/40"
+      >
+        {isPlaying ? (
+          <>
+            <Pause className="size-3.5 fill-current" /> Jeda
+          </>
+        ) : (
+          <>
+            <Play className="size-3.5 fill-current" /> Putar
+          </>
+        )}
+      </button>
+    </>
+  )
+
   const content = (
     <div className="relative group bg-muted/20">
       {mode === 'video' ? (
@@ -423,44 +472,17 @@ function ShowcaseMedia({
             loop
             muted={isMuted}
             playsInline
-            className={`block w-full object-cover ${phone ? 'h-[540px]' : 'h-auto max-h-[520px]'}`}
+            className={`block w-full ${
+              phone
+                ? 'aspect-[390/844] object-contain bg-background'
+                : 'h-auto max-h-[520px] object-cover'
+            }`}
           />
-          <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleMute}
-              aria-label={isMuted ? 'Bunyikan audio narasi' : 'Bisukan suara'}
-              className="flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-transform hover:scale-105 active:scale-95"
-            >
-              {isMuted ? (
-                <>
-                  <VolumeX className="size-3.5 text-muted-foreground" />
-                  <span>Suara Mati</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="size-3.5 text-emerald-500 animate-pulse" />
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Bersuara</span>
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={isPlaying ? 'Jeda video' : 'Putar video'}
-              className="flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-transform hover:scale-105 active:scale-95"
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="size-3.5 fill-current" /> Jeda
-                </>
-              ) : (
-                <>
-                  <Play className="size-3.5 fill-current" /> Putar
-                </>
-              )}
-            </button>
-          </div>
+          {!phone && (
+            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+              {controls}
+            </div>
+          )}
         </div>
       ) : (
         <img
@@ -469,14 +491,27 @@ function ShowcaseMedia({
           width={phone ? 390 : 1280}
           height={phone ? 844 : 800}
           loading="lazy"
-          className={`block w-full object-cover ${phone ? 'h-[540px]' : 'h-auto max-h-[520px]'}`}
+          className={`block w-full ${
+            phone
+              ? 'aspect-[390/844] object-contain bg-background'
+              : 'h-auto max-h-[520px] object-cover'
+          }`}
         />
       )}
     </div>
   )
 
   if (phone) {
-    return <PhoneFrame>{content}</PhoneFrame>
+    return (
+      <div className="flex flex-col items-center">
+        <PhoneFrame>{content}</PhoneFrame>
+        {mode === 'video' && (
+          <div className="mt-3.5 flex items-center justify-center gap-2">
+            {controls}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return <BrowserFrame>{content}</BrowserFrame>
