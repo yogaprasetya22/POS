@@ -1,0 +1,235 @@
+import { useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
+import { CheckCircle2, Clock, Download, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
+import { Button } from '@shared/components/ui/button'
+import { rupiah } from '@shared/lib/utils'
+import { checkMidtransStatus } from '@shared/lib/midtrans'
+
+export function InlineQris({
+  orderId,
+  queueCode,
+  total,
+  qrString,
+  qrUrl,
+  storeId,
+  onSuccess,
+  onBack,
+}: {
+  orderId: string
+  queueCode: string
+  total: number
+  qrString: string
+  qrUrl?: string
+  storeId?: string
+  onSuccess: () => void
+  onBack: () => void
+}) {
+  const [qrDataUrl, setQrDataUrl] = useState<string>(qrUrl || '')
+  const [checking, setChecking] = useState(false)
+  const [isPaid, setIsPaid] = useState(false)
+  const [secondsLeft, setSecondsLeft] = useState(900) // 15 menit
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const pollRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Generate QR Code data URL dari EMVCo qr_string
+  useEffect(() => {
+    if (qrString) {
+      QRCode.toDataURL(qrString, {
+        width: 280,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff',
+        },
+      })
+        .then((url) => setQrDataUrl(url))
+        .catch(() => {
+          if (qrUrl) setQrDataUrl(qrUrl)
+        })
+    } else if (qrUrl) {
+      setQrDataUrl(qrUrl)
+    }
+  }, [qrString, qrUrl])
+
+  // Countdown timer 15 menit
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [])
+
+  // Auto-polling status transaksi Midtrans setiap 3 detik
+  useEffect(() => {
+    let active = true
+
+    const check = async () => {
+      if (!active || isPaid) return
+      try {
+        const res = await checkMidtransStatus(orderId, storeId)
+        if (!active) return
+        if (res.success && res.paid) {
+          setIsPaid(true)
+          if (pollRef.current) clearInterval(pollRef.current)
+          setTimeout(() => {
+            onSuccess()
+          }, 1200)
+        }
+      } catch {
+        // abaikan error koneksi sesaat
+      }
+    }
+
+    pollRef.current = setInterval(check, 3000)
+
+    return () => {
+      active = false
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [orderId, storeId, isPaid, onSuccess])
+
+  const handleManualCheck = async () => {
+    setChecking(true)
+    try {
+      const res = await checkMidtransStatus(orderId, storeId)
+      if (res.success && res.paid) {
+        setIsPaid(true)
+        setTimeout(() => {
+          onSuccess()
+        }, 1200)
+      }
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  const handleDownloadQr = () => {
+    if (!qrDataUrl) return
+    const a = document.createElement('a')
+    a.href = qrDataUrl
+    a.download = `QRIS-${queueCode}-${total}.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
+  const minutes = Math.floor(secondsLeft / 60)
+  const seconds = secondsLeft % 60
+  const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+  if (isPaid) {
+    return (
+      <div className="py-12 text-center space-y-4">
+        <CheckCircle2 className="mx-auto size-16 text-emerald-500 animate-bounce" />
+        <h3 className="text-xl font-extrabold text-foreground">Pembayaran Berhasil!</h3>
+        <p className="text-sm text-muted-foreground">
+          Pesanan <span className="font-mono font-bold text-foreground">{queueCode}</span> lunas via QRIS Dinamis dan langsung diproses dapur.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center text-center space-y-4">
+      {/* Header QRIS GPN Nasional */}
+      <div className="flex items-center gap-2">
+        <span className="font-extrabold tracking-wider text-primary text-base font-mono">QRIS</span>
+        <span className="rounded bg-rose-600 px-1.5 py-0.5 text-[9px] font-black text-white uppercase tracking-wider">
+          GPN
+        </span>
+      </div>
+
+      {/* Info Nominal Pas */}
+      <div className="space-y-1">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+          <Sparkles className="size-3.5" /> Nominal Otomatis Terisi
+        </span>
+        <p className="text-3xl font-black tabular-nums tracking-tight text-foreground pt-1">
+          {rupiah(total)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Nomor antrean: <strong className="font-mono text-foreground">{queueCode}</strong>
+        </p>
+      </div>
+
+      {/* Bingkai Kode QR */}
+      <div className="relative mx-auto flex size-64 items-center justify-center rounded-2xl border-2 border-dashed border-primary/30 bg-white p-3 shadow-inner">
+        {qrDataUrl ? (
+          <img
+            src={qrDataUrl}
+            alt={`QRIS Pesanan ${queueCode}`}
+            className="size-full object-contain"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="size-8 animate-spin text-primary" />
+            <span className="text-xs">Memuat kode QRIS…</span>
+          </div>
+        )}
+      </div>
+
+      {/* Timer & Verifikasi */}
+      <div className="flex w-full max-w-xs items-center justify-between text-xs text-muted-foreground px-2">
+        <span className="flex items-center gap-1 font-mono font-medium">
+          <Clock className="size-3.5 text-amber-500" />
+          Sisa waktu: <strong className="text-foreground">{timeFormatted}</strong>
+        </span>
+        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+          <ShieldCheck className="size-3.5" /> Verifikasi Otomatis
+        </span>
+      </div>
+
+      {/* Keterangan e-wallet & bank */}
+      <p className="max-w-xs text-[11px] text-muted-foreground leading-relaxed">
+        Scan lewat <strong>GoPay, BCA, Livin Mandiri, BRImo, ShopeePay, Dana, OVO</strong>, atau aplikasi mobile banking apa saja.
+      </p>
+
+      {/* Aksi Inline */}
+      <div className="grid w-full max-w-xs grid-cols-2 gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleDownloadQr}
+          className="h-10 text-xs font-semibold"
+        >
+          <Download className="mr-1.5 size-3.5" /> Simpan QR
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          disabled={checking}
+          onClick={handleManualCheck}
+          className="h-10 text-xs font-semibold"
+        >
+          {checking ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <>
+              <RefreshCw className="mr-1.5 size-3.5" /> Cek Status
+            </>
+          )}
+        </Button>
+      </div>
+
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-xs text-muted-foreground hover:text-foreground hover:underline pt-1"
+      >
+        ← Kembali ke menu / ubah pesanan
+      </button>
+    </div>
+  )
+}
+

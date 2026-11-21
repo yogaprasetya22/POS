@@ -78,6 +78,34 @@ export async function loadMidtransSnap(clientKey: string, isProduction = false):
 }
 
 /**
+ * Buat transaksi QRIS Dinamis langsung (Nominal otomatis sesuai total pesanan)
+ */
+export async function createMidtransQris(orderId: string, storeId?: string): Promise<{
+  success: boolean
+  qr_string?: string
+  qr_url?: string
+  transaction_id?: string
+  midtrans_order_id?: string
+  gross_amount?: number
+  expiry_time?: string
+  error?: string
+}> {
+  try {
+    const res = await fetch('/api/midtrans?action=qris', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, storeId }),
+    })
+    return await res.json()
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
+/**
  * Buat Snap token untuk suatu pesanan
  */
 export async function createMidtransSnapToken(orderId: string, storeId?: string): Promise<{

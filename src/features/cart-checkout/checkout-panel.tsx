@@ -2,7 +2,7 @@ import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { saveMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { CheckCircle2, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -16,7 +16,8 @@ import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
 import { useQuote } from '@shared/lib/use-quote'
-import { createMidtransSnapToken, openMidtransSnapPay } from '@shared/lib/midtrans'
+import { createMidtransQris } from '@shared/lib/midtrans'
+import { InlineQris } from './inline-qris'
 import { CheckoutSchema, CreatedOrderSchema, type OrderType, type Product, type Promotion } from '@shared/types/contracts'
 import { cartTotal, toLines } from './cart'
 import { useCartStore } from './store/cart-store'
@@ -40,8 +41,9 @@ export function CheckoutPanel({
   const [table, setTable] = useState(defaultTable)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [payMethod, setPayMethod] = useState<'MIDTRANS' | 'CASHIER'>('MIDTRANS')
+  const [payMethod, setPayMethod] = useState<'QRIS' | 'CASHIER'>('QRIS')
   const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
+  const [qrisData, setQrisData] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string } | null>(null)
   const [done, setDone] = useState<{ queue_code: string; total: number; isPaid?: boolean } | null>(null)
   const [inputCode, setInputCode] = useState('')
   const [appliedCode, setAppliedCode] = useState<string | null>(null)
@@ -53,7 +55,7 @@ export function CheckoutPanel({
       .then((data) => {
         if (data?.success && data?.enabled) {
           setMidtransConfig(data)
-          setPayMethod('MIDTRANS')
+          setPayMethod('QRIS')
         } else {
           setPayMethod('CASHIER')
         }
@@ -127,53 +129,33 @@ export function CheckoutPanel({
     const created = CreatedOrderSchema.parse(data)
     saveMyOrder(storeId, { id: created.id, queue_code: created.queue_code, total: created.total })
 
-    // Jika bayar online via Midtrans
-    if (payMethod === 'MIDTRANS' && midtransConfig?.enabled) {
+    // Jika bayar via QRIS Dinamis Midtrans (Sisi Pembeli, nominal otomatis)
+    if (payMethod === 'QRIS' && midtransConfig?.enabled) {
       try {
-        const snapRes = await createMidtransSnapToken(created.id, storeId)
-        if (!snapRes.success || !snapRes.token) {
-          throw new Error(snapRes.error || 'Gagal memulai sesi Snap Midtrans')
+        const qrisRes = await createMidtransQris(created.id, storeId)
+        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url)) {
+          setBusy(false)
+          setQrisData({
+            orderId: created.id,
+            queueCode: created.queue_code,
+            total: created.total,
+            qrString: qrisRes.qr_string || '',
+            qrUrl: qrisRes.qr_url,
+          })
+          return
+        } else {
+          setError(qrisRes.error || 'Gagal memuat QRIS dinamis. Silakan bayar di kasir.')
+          setBusy(false)
+          clear()
+          setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+          return
         }
-
-        await openMidtransSnapPay(
-          snapRes.token,
-          snapRes.client_key || midtransConfig.clientKey,
-          Boolean(snapRes.is_production ?? midtransConfig.isProduction),
-          {
-            onSuccess: async (result) => {
-              await rpc('pay_order_midtrans', {
-                p_order_id: created.id,
-                p_transaction_id: result.transaction_id,
-                p_payment_type: result.payment_type,
-                p_status: result.transaction_status,
-              }, { asPublic: true })
-              clear()
-              setBusy(false)
-              setDone({ queue_code: created.queue_code, total: created.total, isPaid: true })
-            },
-            onPending: () => {
-              clear()
-              setBusy(false)
-              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
-            },
-            onError: () => {
-              clear()
-              setBusy(false)
-              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
-            },
-            onClose: () => {
-              clear()
-              setBusy(false)
-              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
-            },
-          },
-        )
       } catch {
         setBusy(false)
         clear()
         setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+        return
       }
-      return
     }
 
     setBusy(false)
@@ -183,23 +165,94 @@ export function CheckoutPanel({
 
   if (done) {
     return (
-      <Panel onClose={onClose} title={done.isPaid ? 'Pembayaran Berhasil' : 'Pesanan terkirim'} footer={null}>
+      <Panel onClose={onClose} title={done.isPaid ? 'Pembayaran Berhasil' : 'Pesanan Terkirim ke Kasir'} footer={null}>
         <div className="flex flex-col items-center py-8 text-center">
-          <CheckCircle2 className="size-14 text-emerald-600" aria-hidden />
-          <p className="mt-4 text-sm text-muted-foreground">Kode antrean kamu</p>
+          {done.isPaid ? (
+            <CheckCircle2 className="size-14 text-emerald-600" aria-hidden />
+          ) : (
+            <div className="flex size-14 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <Clock className="size-8" aria-hidden />
+            </div>
+          )}
+          <p className="mt-4 text-sm text-muted-foreground">
+            {done.isPaid ? 'Pembayaran terkonfirmasi otomatis' : 'Pesanan menunggu pembayaran di kasir'}
+          </p>
           <p className="mt-1 font-mono text-5xl font-bold tracking-tight" data-testid="queue-code">{done.queue_code}</p>
           <p className="mt-4 text-lg font-semibold tabular-nums">Total {rupiah(done.total)}</p>
           {done.isPaid ? (
             <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-              <Sparkles className="size-3.5" /> Lunas via Midtrans · Langsung Diproses Dapur
+              <Sparkles className="size-3.5" /> Lunas via QRIS Dinamis · Langsung Diproses Dapur
             </div>
           ) : (
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Tunjukkan kode ini ke kasir lalu bayar. Status pesananmu bisa dilihat di bagian atas halaman menu, jadi tidak perlu bertanya ke kasir.
-            </p>
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200 max-w-xs">
+              <p className="font-semibold">Belum Dibayar</p>
+              <p className="mt-1">
+                Tunjukkan kode antrean di atas ke kasir untuk membayar tunai atau kartu.
+              </p>
+            </div>
           )}
           <Button size="lg" className="mt-8 w-full max-w-xs" onClick={onClose}>Selesai</Button>
         </div>
+      </Panel>
+    )
+  }
+
+  if (qrisData) {
+    return (
+      <Panel
+        onClose={() => setQrisData(null)}
+        title="Pembayaran QRIS"
+        aside={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setQrisData(null)}
+            className="text-xs text-muted-foreground"
+          >
+            ← Kembali
+          </Button>
+        }
+        footer={
+          <div className="flex w-full items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setQrisData(null)
+                setPayMethod('CASHIER')
+              }}
+              className="text-xs"
+            >
+              Bayar di Kasir Saja
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setQrisData(null)}
+              className="text-xs"
+            >
+              Ubah Pesanan
+            </Button>
+          </div>
+        }
+      >
+        <InlineQris
+          orderId={qrisData.orderId}
+          queueCode={qrisData.queueCode}
+          total={qrisData.total}
+          qrString={qrisData.qrString}
+          qrUrl={qrisData.qrUrl}
+          storeId={storeId}
+          onSuccess={() => {
+            clear()
+            setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: true })
+            setQrisData(null)
+          }}
+          onBack={() => setQrisData(null)}
+        />
       </Panel>
     )
   }
@@ -208,31 +261,31 @@ export function CheckoutPanel({
     <Panel
       onClose={onClose}
       title={`Pesanan kamu (${totalItemCount})`}
-      footer={
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-lg font-bold tabular-nums">
-              <AnimatedRupiah value={total} />
-              {totalDiscount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground line-through">{rupiah(grossSubtotal)}</span>}
-            </p>
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-lg font-bold tabular-nums">
+                <AnimatedRupiah value={total} />
+                {totalDiscount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground line-through">{rupiah(grossSubtotal)}</span>}
+              </p>
+            </div>
+            <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base font-semibold">
+              {busy ? (
+                'Menghubungkan…'
+              ) : payMethod === 'QRIS' && midtransConfig?.enabled ? (
+                <>
+                  <QrCode className="mr-1.5 size-4" /> Bayar QRIS ({rupiah(total)})
+                </>
+              ) : (
+                <>
+                  <Send className="mr-1.5 size-4" /> Kirim pesanan
+                </>
+              )}
+            </Button>
           </div>
-          <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base font-semibold">
-            {busy ? (
-              'Menghubungkan…'
-            ) : payMethod === 'MIDTRANS' && midtransConfig?.enabled ? (
-              <>
-                <Send className="mr-1.5 size-4" /> Bayar Sekarang
-              </>
-            ) : (
-              <>
-                <Send className="mr-1.5 size-4" /> Kirim pesanan
-              </>
-            )}
-          </Button>
-        </div>
-      }
-    >
+        }
+      >
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed py-8 text-center text-muted-foreground">Belum ada menu yang dipilih.</p>
       ) : (
@@ -375,23 +428,23 @@ export function CheckoutPanel({
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => setPayMethod('MIDTRANS')}
+                onClick={() => setPayMethod('QRIS')}
                 className={`relative flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
-                  payMethod === 'MIDTRANS'
+                  payMethod === 'QRIS'
                     ? 'border-primary bg-primary/5 ring-1.5 ring-primary'
                     : 'border-border/70 bg-card hover:border-primary/40'
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <QrCode className="size-3.5 text-primary" /> Bayar Online
+                    <QrCode className="size-3.5 text-primary" /> QRIS Dinamis
                   </span>
-                  <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-extrabold text-primary uppercase">
-                    Instan
+                  <span className="rounded bg-emerald-600/15 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">
+                    Otomatis
                   </span>
                 </div>
                 <span className="text-[11px] text-muted-foreground leading-tight">
-                  QRIS (GoPay, ShopeePay), VA, Kartu
+                  GoPay, OVO, Dana, BCA, Mandiri dll
                 </span>
               </button>
 
@@ -414,6 +467,11 @@ export function CheckoutPanel({
                 </span>
               </button>
             </div>
+            {payMethod === 'QRIS' && (
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-medium pt-0.5">
+                <Sparkles className="size-3" /> Nominal harga otomatis terisi saat scan QRIS di HP kamu.
+              </p>
+            )}
           </div>
         )}
 

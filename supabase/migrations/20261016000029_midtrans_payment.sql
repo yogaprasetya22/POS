@@ -127,3 +127,4 @@ end $$;
 grant execute on function get_store_midtrans_client_config(uuid) to anon, authenticated;
 grant execute on function pay_order_midtrans(uuid, text, text, text) to anon, authenticated;
 grant execute on function save_store_midtrans_settings(boolean, boolean, text, text) to authenticated;
+

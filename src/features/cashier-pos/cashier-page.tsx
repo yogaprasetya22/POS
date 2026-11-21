@@ -32,14 +32,14 @@ import { supabase } from '@shared/lib/supabase'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
-import { createMidtransSnapToken, openMidtransSnapPay } from '@shared/lib/midtrans'
+import { createMidtransQris } from '@shared/lib/midtrans'
+import { QrisModal } from '@features/cart-checkout/qris-modal'
 import {
   CreatedOrderSchema,
   MemberSchema,
   OrderSchema,
   can,
   PAYMENT_LABEL,
-  PaymentMethodSchema,
   type Member,
   type Order,
   type OrderStatus,
@@ -48,6 +48,8 @@ import {
   type Product,
   isSellable,
 } from '@shared/types/contracts'
+
+const CASHIER_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'QRIS_STATIC', 'EDC_CARD']
 import { MergePanel, SplitPanel } from './components/bill-tools'
 import { ExtrasBox } from './components/extras-box'
 import { HistoryDrawer } from './components/history-drawer'
@@ -102,9 +104,21 @@ export function CashierPage() {
   const [notice, setNotice] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
+  const [qrisModal, setQrisModal] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string } | null>(null)
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
   const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
+
+  useEffect(() => {
+    if (!storeId) return
+    fetch(`/api/midtrans?action=config&storeId=${storeId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && d?.enabled) setMidtransConfig(d)
+      })
+      .catch(() => {})
+  }, [storeId])
 
   const soldOutCount = catalog?.products.filter((p) => !isSellable(p)).length ?? 0
 
@@ -244,6 +258,18 @@ export function CashierPage() {
     }
   }
 
+  const finishPayment = async (orderId: string, payMethod: PaymentMethod = method) => {
+    const { data, error } = await rpc('pay_order', {
+      p_order_id: orderId,
+      p_method: payMethod,
+      p_cash_received: payMethod === 'CASH' ? cashN : null,
+    })
+    if (error) throw error
+    setReceipt(OrderSchema.parse(data))
+    reset()
+    void reloadShift()
+  }
+
   const submit = async () => {
     setBusy(true)
     setError('')
@@ -260,34 +286,26 @@ export function CashierPage() {
         setSelectedId(orderId) // jika bayar gagal, pesanan tetap terbuka sebagai UNPAID
       }
       if (!shift) throw new Error(t('shift.required'))
-      if (method === 'MIDTRANS') {
-        const snapRes = await createMidtransSnapToken(orderId, storeId || undefined)
-        if (!snapRes.success || !snapRes.token) {
-          throw new Error(snapRes.error || 'Gagal memulai sesi Snap Midtrans')
+
+      // Jika kasir memilih QRIS dan Midtrans aktif: buka modal QRIS dinamis (nominal otomatis)
+      if (method === 'QRIS_STATIC' && midtransConfig?.enabled) {
+        const targetOrder = orders.find((o) => o.id === orderId) || selected
+        const queueCode = targetOrder?.queue_code || 'QRIS'
+        const qrisRes = await createMidtransQris(orderId, storeId || undefined)
+        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url)) {
+          setQrisModal({
+            orderId,
+            queueCode,
+            total,
+            qrString: qrisRes.qr_string || '',
+            qrUrl: qrisRes.qr_url,
+          })
+          setBusy(false)
+          return
         }
-        await new Promise<void>((resolve, reject) => {
-          openMidtransSnapPay(
-            snapRes.token!,
-            snapRes.client_key || '',
-            Boolean(snapRes.is_production),
-            {
-              onSuccess: () => resolve(),
-              onPending: () => resolve(),
-              onError: (err) => reject(new Error(err?.status_message || 'Pembayaran Midtrans dibatalkan')),
-              onClose: () => reject(new Error('Sesi pembayaran Midtrans ditutup')),
-            },
-          ).catch(reject)
-        })
       }
-      const { data, error } = await rpc('pay_order', {
-        p_order_id: orderId,
-        p_method: method,
-        p_cash_received: method === 'CASH' ? cashN : null,
-      })
-      if (error) throw error
-      setReceipt(OrderSchema.parse(data))
-      reset()
-      void reloadShift()
+
+      await finishPayment(orderId, method)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -596,25 +614,34 @@ export function CashierPage() {
               <p className="text-sm font-semibold">Pembayaran</p>
               <ToggleGroup
                 aria-label="Metode pembayaran"
-                className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-4"
+                className="grid w-full grid-cols-3 gap-1.5"
                 variant="outline"
                 value={[method]}
                 onValueChange={(v) => v[0] !== undefined && setMethod(v[0] as PaymentMethod)}
               >
-                {PaymentMethodSchema.options.map((m) => (
+                {CASHIER_PAYMENT_METHODS.map((m) => (
                   <ToggleGroupItem key={m} value={m} className={`${CHOICE} text-xs py-2 px-1 text-center`}>
                     {method === m && <LiquidPill id="cashier-pay" className="rounded-md bg-accent" />}
                     <span className="relative truncate">{PAYMENT_LABEL[m]}</span>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              <Collapse open={method === 'MIDTRANS'}>
-                <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1">
-                  <p className="font-semibold text-foreground flex items-center gap-1.5">
-                    <QrCode className="size-3.5 text-primary" /> Midtrans Snap Gateway
-                  </p>
-                  <p>
-                    Layar popup Midtrans Snap akan terbuka untuk memindai QRIS dinamis pelanggan, pembayaran e-wallet, atau kartu.
+              <Collapse open={method === 'QRIS_STATIC'}>
+                <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-foreground flex items-center gap-1.5">
+                      <QrCode className="size-3.5 text-primary" /> QRIS {midtransConfig?.enabled ? 'Dinamis (Otomatis)' : 'Statis'}
+                    </p>
+                    {midtransConfig?.enabled && (
+                      <span className="rounded bg-emerald-600/15 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">
+                        Nominal Pas
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {midtransConfig?.enabled
+                      ? 'Scan via GoPay, BCA, Livin, Mandiri, ShopeePay, Dana dll. Nominal otomatis pas sesuai pesanan.'
+                      : 'Tunjukkan QRIS toko ke pelanggan, lalu verifikasi pembayaran.'}
                   </p>
                 </div>
               </Collapse>
@@ -780,6 +807,42 @@ export function CashierPage() {
         products={catalog?.products ?? []}
         onToggleAvailability={handleToggleAvailability}
       />
+      {qrisModal && (
+        <QrisModal
+          orderId={qrisModal.orderId}
+          queueCode={qrisModal.queueCode}
+          total={qrisModal.total}
+          qrString={qrisModal.qrString}
+          qrUrl={qrisModal.qrUrl}
+          storeId={storeId || undefined}
+          closeLabel="Tutup / Simpan Pesanan"
+          onManualConfirm={async () => {
+            const id = qrisModal.orderId
+            setQrisModal(null)
+            setBusy(true)
+            try {
+              await finishPayment(id, 'QRIS_STATIC')
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err))
+            } finally {
+              setBusy(false)
+            }
+          }}
+          onSuccess={async () => {
+            const id = qrisModal.orderId
+            setQrisModal(null)
+            setBusy(true)
+            try {
+              await finishPayment(id, 'QRIS_STATIC')
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err))
+            } finally {
+              setBusy(false)
+            }
+          }}
+          onClose={() => setQrisModal(null)}
+        />
+      )}
     </div>
   )
 }

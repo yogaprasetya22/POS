@@ -13,3 +13,4 @@ alter table stores drop column if exists midtrans_client_key;
 alter table stores drop column if exists midtrans_server_key;
 alter table stores drop column if exists midtrans_is_production;
 alter table stores drop column if exists midtrans_enabled;
+

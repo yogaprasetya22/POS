@@ -303,7 +303,7 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CASH: 'Tunai',
   QRIS_STATIC: 'QRIS',
   EDC_CARD: 'Kartu debit/kredit',
-  MIDTRANS: 'Midtrans (Online / QRIS)',
+  MIDTRANS: 'QRIS',
 }
 
 // ---------- shift: serah terima, rincian selisih, statistik ----------

@@ -125,14 +125,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'orderId wajib diisi' })
     }
 
-    // Ambil order dari database
-    const { data: order, error: orderErr } = await sb
-      .from('orders')
-      .select('id, queue_code, total, customer_name, table_no, order_type, items, status, store_id')
-      .eq('id', orderId)
-      .maybeSingle()
+    // Ambil order dari database lewat RPC get_order_for_midtrans (aman dari RLS anon)
+    const { data: order, error: orderErr } = await sb.rpc('get_order_for_midtrans', { p_id: orderId })
 
-    if (orderErr || !order) {
+    if (orderErr || !order || !order.id) {
       return res.status(404).json({ success: false, error: 'Pesanan tidak ditemukan' })
     }
 
@@ -191,14 +187,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: msg })
       }
 
-      // Simpan snap token ke pesanan
-      await sb
-        .from('orders')
-        .update({
-          midtrans_snap_token: snapData.token,
-          midtrans_redirect_url: snapData.redirect_url,
-        })
-        .eq('id', order.id)
+      // Simpan snap token ke pesanan lewat RPC (aman dari RLS anon)
+      await sb.rpc('update_order_midtrans_session', {
+        p_id: order.id,
+        p_snap_token: snapData.token,
+        p_redirect_url: snapData.redirect_url,
+      })
 
       return res.status(200).json({
         success: true,
@@ -216,6 +210,107 @@ export default async function handler(req, res) {
     }
   }
 
+  // ─── 4. BUAT CHARGE QRIS DINAMIS LANGSUNG (MIDTRANS CORE API) ───
+  if (action === 'qris') {
+    if (!allow(req, res, 'POST')) return
+    const { orderId, storeId } = req.body || {}
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'orderId wajib diisi' })
+    }
+
+    // Ambil order dari database lewat RPC get_order_for_midtrans (aman dari RLS anon)
+    const { data: order, error: orderErr } = await sb.rpc('get_order_for_midtrans', { p_id: orderId })
+
+    if (orderErr || !order || !order.id) {
+      return res.status(404).json({ success: false, error: 'Pesanan tidak ditemukan' })
+    }
+
+    if (order.status !== 'UNPAID') {
+      return res.status(400).json({ success: false, error: 'Pesanan sudah dibayar atau tidak valid' })
+    }
+
+    const targetStoreId = storeId || order.store_id
+    const cfg = await getMidtransConfig(sb, targetStoreId)
+
+    if (!cfg.serverKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'Midtrans Server Key belum dikonfigurasi untuk toko ini.',
+      })
+    }
+
+    const coreUrl = getCoreApiUrl(cfg.isProduction)
+    const authHeader = 'Basic ' + Buffer.from(`${cfg.serverKey}:`).toString('base64')
+    const midtransOrderId = `${order.queue_code}-${order.id.slice(0, 8)}-${Date.now()}`
+
+    const payload = {
+      payment_type: 'qris',
+      transaction_details: {
+        order_id: midtransOrderId,
+        gross_amount: Math.round(order.total),
+      },
+      qris: {
+        acquirer: 'gopay',
+      },
+      customer_details: {
+        first_name: order.customer_name || 'Pelanggan',
+      },
+      item_details: [
+        {
+          id: order.id.slice(0, 8),
+          price: Math.round(order.total),
+          quantity: 1,
+          name: `Pesanan ${order.queue_code} (${order.order_type === 'DINE_IN' ? `Meja ${order.table_no || '-'}` : 'Bawa Pulang'})`.slice(0, 50),
+        },
+      ],
+    }
+
+    try {
+      const response = await fetch(`${coreUrl}/v2/charge`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const chargeData = await response.json()
+      if (!response.ok || !chargeData?.qr_string) {
+        let msg = chargeData?.error_messages ? chargeData.error_messages.join(', ') : (chargeData?.status_message || chargeData?.message || 'Gagal membuat QRIS Midtrans')
+        if (msg.toLowerCase().includes('payment channel is not activated')) {
+          msg = 'Channel QRIS belum diaktifkan di akun Midtrans Production kamu. Silakan aktifkan metode QRIS di Dashboard Midtrans (Settings > Payment Methods > QRIS).'
+        }
+        return res.status(400).json({ success: false, error: msg })
+      }
+
+      const qrUrl = chargeData.actions?.find((a) => a.name === 'generate-qr-code')?.url || chargeData.actions?.[0]?.url || ''
+
+      // Simpan session QRIS ke pesanan lewat RPC (aman dari RLS anon)
+      await sb.rpc('update_order_midtrans_session', {
+        p_id: order.id,
+        p_transaction_id: chargeData.transaction_id,
+        p_payment_type: 'qris',
+      })
+
+      return res.status(200).json({
+        success: true,
+        qr_string: chargeData.qr_string,
+        qr_url: qrUrl,
+        transaction_id: chargeData.transaction_id,
+        midtrans_order_id: midtransOrderId,
+        gross_amount: Math.round(order.total),
+        expiry_time: chargeData.expiry_time,
+      })
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: `Gagal memanggil Midtrans QRIS: ${err.message}`,
+      })
+    }
+  }
+
   // ─── 4. CEK STATUS TRANSAKSI KE MIDTRANS CORE API ───
   if (action === 'check-status') {
     if (!allow(req, res, 'POST')) return
@@ -224,15 +319,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'orderId atau midtransOrderId wajib diisi' })
     }
 
-    const { data: order } = await sb
-      .from('orders')
-      .select('id, store_id, status, total')
-      .eq('id', orderId)
-      .maybeSingle()
+    // Ambil order dari database lewat RPC (aman dari RLS anon)
+    const { data: order } = await sb.rpc('get_order_for_midtrans', { p_id: orderId })
 
-    if (!order) return res.status(404).json({ success: false, error: 'Pesanan tidak ditemukan' })
+    if (!order || !order.id) return res.status(404).json({ success: false, error: 'Pesanan tidak ditemukan' })
     if (order.status !== 'UNPAID') {
-      return res.status(200).json({ success: true, paid: true, status: order.status })
+      const isActuallyPaid = order.status === 'COMPLETED' || order.status === 'IN_KITCHEN' || order.status === 'READY'
+      return res.status(200).json({ success: true, paid: isActuallyPaid, status: order.status })
     }
 
     const cfg = await getMidtransConfig(sb, storeId || order.store_id)
@@ -241,7 +334,7 @@ export default async function handler(req, res) {
     }
 
     const coreUrl = getCoreApiUrl(cfg.isProduction)
-    const targetOrderId = midtransOrderId || order.id
+    const targetOrderId = order.midtrans_transaction_id || midtransOrderId || order.id
     const authHeader = 'Basic ' + Buffer.from(`${cfg.serverKey}:`).toString('base64')
 
     try {

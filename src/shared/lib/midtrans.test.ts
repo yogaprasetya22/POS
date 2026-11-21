@@ -38,3 +38,4 @@ describe('midtrans payment gateway client', () => {
     expect(res.paid).toBe(true)
   })
 })
+
