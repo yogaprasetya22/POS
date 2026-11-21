@@ -1,6 +1,7 @@
 # POS Project Development & Verification Guidelines
 
 ## Active Skills & Recommendations
+- **`frontend-design`**: Panduan desain visual yang distingtif, berkarakter, dan beropini kuat saat merancang antarmuka UI kasir, menu pelanggan, dan backoffice.
 - **`webapp-testing`**: Gunakan panduan pengujian standar untuk fitur POS, backoffice, cart, dan print receipt.
 - **`playwright-cli`**: Gunakan Playwright untuk otomatisasi browser E2E, pengujian alur kasir, rekam tutorial, dan verifikasi visual.
 - **`verification-before-completion`**: Wajib jalankan verifikasi (`bun run lint && bun run build && bun run test`) sebelum menyatakan tugas selesai atau melakukan git commit/push.
