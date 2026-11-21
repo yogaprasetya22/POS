@@ -8,10 +8,14 @@
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "oxlint src",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "mcp": "bun run scripts/mcp-server.mjs",
+    "mcp:test": "bun run scripts/test-mcp.mjs",
+    "mcp:eval": "bun run scripts/eval-pos-mcp.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@point-of-sale/receipt-printer-encoder": "^4.0.1",
     "@supabase/supabase-js": "^2.118.0",
     "barcode-detector": "^3.2.3",
