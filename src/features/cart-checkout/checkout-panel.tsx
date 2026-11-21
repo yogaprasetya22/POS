@@ -1,6 +1,6 @@
 import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
-import { saveMyOrder } from './my-orders'
+import { forgetMyOrder, saveMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
 import { CheckCircle2, Clock, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
@@ -138,13 +138,19 @@ export function CheckoutPanel({
     }
 
     const created = CreatedOrderSchema.parse(data)
-    saveMyOrder(storeId, { id: created.id, queue_code: created.queue_code, total: created.total })
+    saveMyOrder(storeId, {
+      id: created.id,
+      queue_code: created.queue_code,
+      total: created.total,
+      pay_method: payMethod === 'QRIS' && midtransConfig?.enabled ? 'QRIS' : 'CASHIER',
+    })
 
     // Jika bayar via QRIS Dinamis Midtrans (Sisi Pembeli, nominal otomatis)
     if (payMethod === 'QRIS' && midtransConfig?.enabled) {
       try {
         const qrisRes = await createMidtransQris(created.id, storeId)
         if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url || qrisRes.snap_token)) {
+          clear()
           setBusy(false)
           setQrisData({
             orderId: created.id,
@@ -210,76 +216,71 @@ export function CheckoutPanel({
     )
   }
 
-  if (qrisData) {
-    return (
-      <Panel
-        onClose={() => setQrisData(null)}
-        title="Pembayaran QRIS"
-        aside={
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setQrisData(null)}
-            className="text-xs text-muted-foreground"
-          >
-            ← Kembali
-          </Button>
-        }
-        footer={
-          <div className="flex w-full items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setQrisData(null)
-                setPayMethod('CASHIER')
-              }}
-              className="text-xs"
-            >
-              Bayar di Kasir Saja
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setQrisData(null)}
-              className="text-xs"
-            >
-              Ubah Pesanan
-            </Button>
-          </div>
-        }
-      >
-        <InlineQris
-          orderId={qrisData.orderId}
-          queueCode={qrisData.queueCode}
-          total={qrisData.total}
-          qrString={qrisData.qrString}
-          qrUrl={qrisData.qrUrl}
-          snapToken={qrisData.snapToken}
-          clientKey={qrisData.clientKey}
-          isProduction={qrisData.isProduction}
-          isFallback={qrisData.isFallback}
-          notice={qrisData.notice}
-          storeId={storeId}
-          onSuccess={() => {
-            clear()
-            setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: true })
-            setQrisData(null)
-          }}
-          onBack={() => setQrisData(null)}
-        />
-      </Panel>
-    )
+  const handlePayAtCashierInstead = () => {
+    if (!qrisData) return
+    setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: false })
+    setQrisData(null)
+  }
+
+  const handleCancelOrder = () => {
+    if (qrisData?.orderId) {
+      forgetMyOrder(storeId, qrisData.orderId)
+    }
+    setQrisData(null)
+    onClose()
   }
 
   return (
     <Panel
       onClose={onClose}
-      title={`Pesanan kamu (${totalItemCount})`}
-        footer={
+      title={qrisData ? 'Pembayaran QRIS' : `Pesanan kamu (${totalItemCount})`}
+      aside={
+        qrisData ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-xs text-muted-foreground"
+          >
+            Tutup
+          </Button>
+        ) : undefined
+      }
+      footer={
+        qrisData ? (
+          <div className="flex w-full items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePayAtCashierInstead}
+              className="text-xs font-semibold"
+            >
+              Bayar di Kasir Saja
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelOrder}
+                className="text-xs font-semibold text-destructive hover:bg-destructive/10"
+              >
+                Batalkan
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={onClose}
+                className="text-xs font-semibold"
+              >
+                Cek Pesanan
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Total</p>
@@ -302,8 +303,30 @@ export function CheckoutPanel({
               )}
             </Button>
           </div>
-        }
-      >
+        )
+      }
+    >
+      {qrisData ? (
+        <InlineQris
+          orderId={qrisData.orderId}
+          queueCode={qrisData.queueCode}
+          total={qrisData.total}
+          qrString={qrisData.qrString}
+          qrUrl={qrisData.qrUrl}
+          snapToken={qrisData.snapToken}
+          clientKey={qrisData.clientKey}
+          isProduction={qrisData.isProduction}
+          isFallback={qrisData.isFallback}
+          notice={qrisData.notice}
+          storeId={storeId}
+          onSuccess={() => {
+            setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: true })
+            setQrisData(null)
+          }}
+          onBack={onClose}
+        />
+      ) : (
+        <>
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed py-8 text-center text-muted-foreground">Belum ada menu yang dipilih.</p>
       ) : (
@@ -530,6 +553,8 @@ export function CheckoutPanel({
 
         <ErrorAlert message={error} />
       </form>
-    </Panel>
+      </>
+    )}
+  </Panel>
   )
 }

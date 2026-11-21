@@ -1,11 +1,14 @@
-import { Check, ChefHat, ChevronDown, Clock, X } from 'lucide-react'
+import { Check, ChefHat, ChevronDown, Clock, Loader2, QrCode, X } from 'lucide-react'
 import { supabase } from '@shared/lib/supabase'
 import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@shared/components/ui/button'
+import { Panel } from '@shared/components/panel'
 import { rpc } from '@shared/lib/api'
 import { ding } from '@shared/lib/new-order-toast'
 import { rupiah } from '@shared/lib/utils'
+import { createMidtransQris } from '@shared/lib/midtrans'
+import { InlineQris } from './inline-qris'
 import { forgetMyOrder, loadMyOrders, type SavedOrder } from './my-orders'
 
 const StatusSchema = z.object({
@@ -22,7 +25,7 @@ type Status = z.infer<typeof StatusSchema>
 const POLL_MS = 10_000
 
 type View = { tone: 'wait' | 'paid' | 'ready' | 'done' | 'off'; title: string; text: string }
-function viewOf(status: string | undefined): View {
+function viewOf(status: string | undefined, payMethod?: 'QRIS' | 'CASHIER'): View {
   switch (status) {
     case 'IN_KITCHEN':
       return { tone: 'paid', title: 'Sedang disiapkan', text: 'Sudah dibayar. Tunggu sebentar ya' }
@@ -36,6 +39,9 @@ function viewOf(status: string | undefined): View {
     case 'REFUNDED':
       return { tone: 'off', title: 'Dibatalkan', text: 'Pesan lagi, atau tanya kasir' }
     default:
+      if (payMethod === 'QRIS') {
+        return { tone: 'wait', title: 'Menunggu Pembayaran QRIS', text: 'Ketuk untuk membuka kode QRIS atau bayar di kasir' }
+      }
       return { tone: 'wait', title: 'Bayar di kasir', text: 'Tunjukkan kode ini ke kasir' }
   }
 }
@@ -54,6 +60,17 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
   const [info, setInfo] = useState<Status | null>(null)
   const [failed, setFailed] = useState(false)
   const [open, setOpen] = useState(false)
+  const [qrisOpen, setQrisOpen] = useState(false)
+  const [loadingQris, setLoadingQris] = useState(false)
+  const [qrisData, setQrisData] = useState<{
+    qrString?: string
+    qrUrl?: string
+    snapToken?: string
+    clientKey?: string
+    isProduction?: boolean
+    isFallback?: boolean
+    notice?: string
+  } | null>(null)
   const lastStatus = useRef<string | null>(null)
 
   useEffect(() => {
@@ -104,11 +121,33 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
     }
   }, [saved.id, storeId])
 
-  const v = viewOf(info?.status)
+  const handleOpenQris = async () => {
+    setLoadingQris(true)
+    try {
+      const res = await createMidtransQris(saved.id, storeId)
+      if (res.success && (res.qr_string || res.qr_url || res.snap_token)) {
+        setQrisData({
+          qrString: res.qr_string,
+          qrUrl: res.qr_url,
+          snapToken: res.snap_token,
+          clientKey: res.client_key,
+          isProduction: res.is_production,
+          isFallback: res.is_fallback,
+          notice: res.notice,
+        })
+        setQrisOpen(true)
+      }
+    } finally {
+      setLoadingQris(false)
+    }
+  }
+
+  const v = viewOf(info?.status, saved.pay_method)
   const t = TONE[v.tone]
   const Icon = ICON[v.tone]
   const place = info?.order_type === 'TAKEAWAY' ? 'Bawa pulang' : info?.table_no ? `Meja ${info.table_no}` : null
   const items = info?.items ?? []
+  const isUnpaid = !info || info.status === 'UNPAID'
 
   return (
     <section aria-live="polite">
@@ -135,7 +174,7 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
         </span>
       </button>
       {open && (
-        <div className="space-y-2 rounded-b-2xl border-2 border-t-0 bg-card px-4 py-3">
+        <div className="space-y-3 rounded-b-2xl border-2 border-t-0 bg-card px-4 py-3">
           {items.length > 0 ? (
             <ul className="space-y-1 text-base">
               {items.map((i, n) => (
@@ -145,13 +184,88 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
           ) : (
             <p className="text-base text-muted-foreground">Rincian sedang dimuat…</p>
           )}
+
+          {isUnpaid && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-amber-600" /> Belum Dibayar
+                </span>
+                <span className="text-muted-foreground">Scan QRIS atau bayar di kasir</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={loadingQris}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void handleOpenQris()
+                  }}
+                  className="h-9 px-3.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {loadingQris ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <QrCode className="size-3.5" />
+                  )}
+                  Buka Kode QRIS
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 border-t pt-2">
             <span className="text-sm text-muted-foreground">{place ?? 'Pesanan kamu'}</span>
-            <Button variant="ghost" className="h-11 px-3 text-sm font-semibold text-muted-foreground" onClick={() => forgetMyOrder(storeId, saved.id)}>
-              Sembunyikan kartu
+            <Button
+              variant="ghost"
+              className={`h-11 px-3 text-sm font-semibold ${isUnpaid ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground'}`}
+              onClick={() => forgetMyOrder(storeId, saved.id)}
+            >
+              {isUnpaid ? 'Hapus / Batalkan' : 'Sembunyikan kartu'}
             </Button>
           </div>
         </div>
+      )}
+
+      {qrisOpen && qrisData && (
+        <Panel
+          onClose={() => setQrisOpen(false)}
+          title="Pembayaran QRIS"
+          footer={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setQrisOpen(false)}
+              className="w-full text-xs font-semibold"
+            >
+              Tutup
+            </Button>
+          }
+        >
+          <InlineQris
+            orderId={saved.id}
+            queueCode={saved.queue_code}
+            total={info?.total ?? saved.total}
+            qrString={qrisData.qrString}
+            qrUrl={qrisData.qrUrl}
+            snapToken={qrisData.snapToken}
+            clientKey={qrisData.clientKey}
+            isProduction={qrisData.isProduction}
+            isFallback={qrisData.isFallback}
+            notice={qrisData.notice}
+            storeId={storeId}
+            onSuccess={() => {
+              setQrisOpen(false)
+              void rpc('public_order_status', { p_id: saved.id }, { asPublic: true }).then(({ data }) => {
+                const parsed = StatusSchema.safeParse(data)
+                if (parsed.success) setInfo(parsed.data)
+              })
+            }}
+            onBack={() => setQrisOpen(false)}
+          />
+        </Panel>
       )}
     </section>
   )

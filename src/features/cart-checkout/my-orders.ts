@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
 /** Pesanan pembeli disimpan di HP-nya sendiri supaya kode antrean tidak hilang saat halaman di-refresh. */
-const Saved = z.object({ id: z.string(), queue_code: z.string(), total: z.number(), at: z.number() })
+const Saved = z.object({
+  id: z.string(),
+  queue_code: z.string(),
+  total: z.number(),
+  at: z.number(),
+  pay_method: z.enum(['QRIS', 'CASHIER']).optional(),
+})
 export type SavedOrder = z.infer<typeof Saved>
 
 const KEEP_MS = 12 * 60 * 60_000 // 12 jam: cukup untuk satu kunjungan
