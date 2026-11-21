@@ -90,8 +90,8 @@ def get_openai_key():
                 break
     return key
 
-def generate_via_openai(voice="echo"):
-    """Generate suara laki-laki natural, luwes, dan ramah via OpenAI TTS (echo/onyx)."""
+def generate_via_openai(voice="onyx", model="tts-1-hd", speed=1.02):
+    """Generate suara laki-laki natural, jernih, dan berwibawa via OpenAI TTS HD (onyx/ash/echo)."""
     import urllib.request
     
     key = get_openai_key()
@@ -99,7 +99,7 @@ def generate_via_openai(voice="echo"):
         print("❌ Error: OPENAI_API_KEY tidak ditemukan di environment atau .env")
         return False
         
-    print(f"🎙️ Menggunakan OpenAI TTS Natural Male Voice (Voice: {voice})...")
+    print(f"🎙️ Menggunakan OpenAI TTS HD Male Voice (Model: {model}, Voice: {voice}, Speed: {speed})...")
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
@@ -107,12 +107,12 @@ def generate_via_openai(voice="echo"):
     
     for key_name, item in LANDING_SCRIPTS.items():
         out_mp3 = OUT_DIR / f"{key_name}.mp3"
-        print(f"-> Memproses narasi laki-laki untuk: {item['title']}...")
+        print(f"-> Memproses narasi laki-laki HD ({voice}) untuk: {item['title']}...")
         payload = {
-            "model": "tts-1",
+            "model": model,
             "input": item["text"],
             "voice": voice,
-            "speed": 1.05
+            "speed": speed
         }
         req = urllib.request.Request(
             "https://api.openai.com/v1/audio/speech",
@@ -209,14 +209,16 @@ def merge_audio_to_videos():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TTS Audio Generator untuk POS Landing Page")
     parser.add_argument("--mode", choices=["openai", "edge", "fish-api", "merge-only"], default="openai", help="Metode TTS")
-    parser.add_argument("--voice", default="echo", help="Pilihan suara (openai: echo/onyx; edge: id-ID-ArdiNeural)")
+    parser.add_argument("--voice", default="onyx", help="Pilihan suara (openai: onyx/ash/echo; edge: id-ID-ArdiNeural)")
+    parser.add_argument("--model", default="tts-1-hd", help="Model OpenAI TTS (tts-1-hd atau tts-1)")
+    parser.add_argument("--speed", type=float, default=1.02, help="Kecepatan bicara (default 1.02)")
     parser.add_argument("--api-key", default=os.getenv("FISH_AUDIO_API_KEY", ""), help="Fish Audio API Key")
     parser.add_argument("--model-id", default=None, help="Fish Audio Model/Voice ID")
     parser.add_argument("--merge", action="store_true", help="Gabungkan audio ke file video WebM")
     args = parser.parse_args()
 
     if args.mode == "openai":
-        ok = generate_via_openai(voice=args.voice)
+        ok = generate_via_openai(voice=args.voice, model=args.model, speed=args.speed)
         if not ok:
             print("Mencoba fallback ke Edge TTS (Ardi)...")
             generate_via_edge_tts(voice="id-ID-ArdiNeural")
