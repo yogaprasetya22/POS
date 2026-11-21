@@ -25,6 +25,8 @@ import {
   UserCog,
   Users,
   Video,
+  Volume2,
+  VolumeX,
   Wallet,
   XCircle,
 } from 'lucide-react'
@@ -376,6 +378,7 @@ function ShowcaseMedia({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(true)
+  const [isMuted, setIsMuted] = useState(true)
 
   useEffect(() => {
     if (videoRef.current) {
@@ -401,6 +404,13 @@ function ShowcaseMedia({
     }
   }
 
+  const toggleMute = () => {
+    if (!videoRef.current) return
+    const nextMuted = !videoRef.current.muted
+    videoRef.current.muted = nextMuted
+    setIsMuted(nextMuted)
+  }
+
   const content = (
     <div className="relative group bg-muted/20">
       {mode === 'video' ? (
@@ -410,26 +420,46 @@ function ShowcaseMedia({
             src={videoSrc}
             autoPlay
             loop
-            muted
+            muted={isMuted}
             playsInline
             className={`block w-full object-cover ${phone ? 'h-[540px]' : 'h-auto max-h-[520px]'}`}
           />
-          <button
-            type="button"
-            onClick={togglePlay}
-            aria-label={isPlaying ? 'Jeda video' : 'Putar video'}
-            className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-transform hover:scale-105"
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="size-3.5 fill-current" /> Jeda
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5 fill-current" /> Putar
-              </>
-            )}
-          </button>
+          <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={isMuted ? 'Bunyikan audio narasi' : 'Bisukan suara'}
+              className="flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-transform hover:scale-105 active:scale-95"
+            >
+              {isMuted ? (
+                <>
+                  <VolumeX className="size-3.5 text-muted-foreground" />
+                  <span>Suara Mati</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="size-3.5 text-emerald-500 animate-pulse" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Bersuara</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label={isPlaying ? 'Jeda video' : 'Putar video'}
+              className="flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-md transition-transform hover:scale-105 active:scale-95"
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="size-3.5 fill-current" /> Jeda
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5 fill-current" /> Putar
+                </>
+              )}
+            </button>
+          </div>
         </div>
       ) : (
         <img
