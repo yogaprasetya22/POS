@@ -28,6 +28,7 @@ import { useShift } from '@shared/lib/use-shift'
 import { useQuote } from '@shared/lib/use-quote'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { useLiveOrders } from '@shared/lib/orders'
+import { toast } from 'sonner'
 import { supabase } from '@shared/lib/supabase'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
@@ -372,16 +373,54 @@ export function CashierPage() {
           {oq && (
             <div className="flex w-full flex-wrap gap-2" aria-label="Hasil pencarian pesanan">
               {queue.slice(0, 6).map((o) => (
-                <Button
-                  key={o.id}
-                  variant="outline"
-                  disabled={o.status !== 'UNPAID'}
-                  onClick={() => { setSelectedId(o.id); setOrderQuery('') }}
-                  className="h-11 gap-2 text-base"
-                >
-                  <span className="font-mono font-bold">{o.queue_code}</span> {o.customer_name}
-                  <span className="text-sm text-muted-foreground">· {STATUS[o.status as keyof typeof STATUS]?.label}</span>
-                </Button>
+                <div key={o.id} className="inline-flex items-center gap-1.5 rounded-xl border bg-card p-1 shadow-xs">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (o.status === 'UNPAID') {
+                        setSelectedId(o.id)
+                        setOrderQuery('')
+                      }
+                    }}
+                    className="h-10 gap-2 text-base font-semibold"
+                  >
+                    <span className="font-mono font-bold">{o.queue_code}</span> {o.customer_name}
+                    <span className="text-sm text-muted-foreground">· {STATUS[o.status as keyof typeof STATUS]?.label}</span>
+                  </Button>
+                  {o.status === 'IN_KITCHEN' && (
+                    <Button
+                      size="sm"
+                      className="h-8 bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-700 shadow-xs"
+                      onClick={async () => {
+                        const { error } = await rpc('advance_order', { p_order_id: o.id, p_to: 'READY' })
+                        if (error) toast.error(`Gagal: ${error.message}`)
+                        else {
+                          toast.success(`${o.queue_code} ditandai makanan siap diambil!`)
+                          setOrderQuery('')
+                        }
+                      }}
+                    >
+                      Makanan siap
+                    </Button>
+                  )}
+                  {o.status === 'READY' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-emerald-500 bg-emerald-50/50 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-100 dark:text-emerald-300"
+                      onClick={async () => {
+                        const { error } = await rpc('advance_order', { p_order_id: o.id, p_to: 'COMPLETED' })
+                        if (error) toast.error(`Gagal: ${error.message}`)
+                        else {
+                          toast.success(`${o.queue_code} selesai diambil!`)
+                          setOrderQuery('')
+                        }
+                      }}
+                    >
+                      Sudah diambil
+                    </Button>
+                  )}
+                </div>
               ))}
               {queue.length === 0 && <p className="text-base text-muted-foreground">Tidak ada pesanan dengan kode atau nama itu.</p>}
             </div>

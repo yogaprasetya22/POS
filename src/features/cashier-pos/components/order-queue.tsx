@@ -9,7 +9,7 @@ import type { Order } from '@shared/types/contracts'
 
 export const STATUS = {
   UNPAID: { tone: 'amber', label: 'Menunggu bayar' },
-  IN_KITCHEN: { tone: 'blue', label: 'Sudah dibayar' },
+  IN_KITCHEN: { tone: 'blue', label: 'Sedang disiapkan' },
   READY: { tone: 'green', label: 'Siap diambil' },
 } as const
 
@@ -88,19 +88,31 @@ function OrderRow({ o, now, act }: { o: Order; now: number; act: QueueActions })
         <span className="text-lg font-bold tabular-nums">{rupiah(o.total)}</span>
         {unpaid ? (
           <Button className="h-11 px-5 text-base font-bold" aria-label={`Terima bayar ${o.queue_code}`} onClick={() => act.onPay(o.id)}>Terima bayar</Button>
-        ) : cooking && !act.useKitchen ? (
-          <Button variant="outline" disabled={busy} className="h-11 border-2 px-5 text-base font-bold" aria-label={`Sudah siap ${o.queue_code}`} onClick={advance}>
-            {busy ? 'Menyimpan…' : 'Sudah siap'}
+        ) : cooking ? (
+          <Button
+            variant="default"
+            disabled={busy}
+            className="h-11 bg-sky-600 px-5 text-base font-bold text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 shadow-xs"
+            aria-label={`Makanan siap ${o.queue_code}`}
+            onClick={advance}
+          >
+            {busy ? 'Menyimpan…' : 'Makanan siap'}
           </Button>
         ) : o.status === 'READY' ? (
-          <Button variant="outline" disabled={busy} className="h-11 border-2 border-emerald-500 px-5 text-base font-bold text-emerald-800 dark:text-emerald-300" aria-label={`Sudah diambil ${o.queue_code}`} onClick={advance}>
+          <Button
+            variant="outline"
+            disabled={busy}
+            className="h-11 border-2 border-emerald-500 bg-emerald-50/50 px-5 text-base font-bold text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+            aria-label={`Sudah diambil ${o.queue_code}`}
+            onClick={advance}
+          >
             {busy ? 'Menyimpan…' : 'Sudah diambil'}
           </Button>
         ) : (
-          s && !cooking && <ToneBadge tone={s.tone} className="h-8 px-3 text-sm">{s.label}</ToneBadge>
+          s && <ToneBadge tone={s.tone} className="h-8 px-3 text-sm">{s.label}</ToneBadge>
         )}
       </div>
-      {cooking && !act.useKitchen && o.items.length > 1 && (
+      {cooking && o.items.length > 1 && (
         <ul className="flex w-full flex-wrap gap-2 border-t pt-3" aria-label={`Menu ${o.queue_code}`}>
           {o.items.map((i, n) => {
             const done = o.items_done.includes(n)
@@ -181,7 +193,7 @@ export function OrdersBoard({ orders, loading, act }: { orders: Order[]; loading
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Antrean pesanan</h1>
-        <p className="mt-1 text-lg text-muted-foreground">Pesanan yang belum selesai. Tekan “Terima bayar” untuk membayar di layar Jualan.{act.useKitchen ? '' : ' Tandai “Sudah siap” saat makanan selesai dimasak.'}</p>
+        <p className="mt-1 text-lg text-muted-foreground">Pesanan yang belum selesai. Tekan “Terima bayar” untuk membayar di kasir, dan tekan “Makanan siap” saat pesanan selesai disiapkan.</p>
       </div>
 
       {overdue.length > 0 && (
@@ -195,8 +207,8 @@ export function OrdersBoard({ orders, loading, act }: { orders: Order[]; loading
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3" role="group" aria-label="Saring menurut status">
-        {(['UNPAID', 'READY'] as const).map((st) => {
+      <div className="grid grid-cols-3 gap-3" role="group" aria-label="Saring menurut status">
+        {(['UNPAID', 'IN_KITCHEN', 'READY'] as const).map((st) => {
           const on = status === st
           return (
             <button
