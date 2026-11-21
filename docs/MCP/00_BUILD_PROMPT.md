@@ -29,7 +29,7 @@ secara 100% GRATIS (Rp 0).
 SUMBER SPESIFIKASI (WAJIB DIBACA DULU, JANGAN MENEBAK)
 - docs/MCP/README.md
 - docs/MCP/01_ARCHITECTURE_AND_DEPLOYMENT.md   ← spesifikasi 24 tools, skema envelope & api/mcp.ts
-- docs/MCP/02_150_POS_QA_SCENARIOS.md          ← dataset skenario evaluasi (150 skenario operasional)
+- docs/MCP/02_500_POS_QA_SCENARIOS.md          ← dataset skenario evaluasi (500 skenario operasional)
 - docs/MCP/03_PROMPT_OPTIMIZATION_AND_LLM_JUDGE.md ← master system prompt & guardrail
 - docs/MCP/05_MCP_CONFIG_AND_VERCEL_GUIDE.md   ← konfigurasi .env & mcp_config.json
 

@@ -14,7 +14,7 @@ pos/
 │       ├── README.md
 │       ├── 00_BUILD_PROMPT.md
 │       ├── 01_ARCHITECTURE_AND_DEPLOYMENT.md
-│       ├── 02_150_POS_QA_SCENARIOS.md
+│       ├── 02_500_POS_QA_SCENARIOS.md
 │       ├── 03_PROMPT_OPTIMIZATION_AND_LLM_JUDGE.md
 │       ├── 04_FUTURE_ROADMAP_AND_EXTENSIONS.md
 │       └── 05_MCP_CONFIG_AND_VERCEL_GUIDE.md

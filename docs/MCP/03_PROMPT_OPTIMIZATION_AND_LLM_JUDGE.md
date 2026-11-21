@@ -19,7 +19,7 @@ flowchart TD
         F3["Aturan tanggal relatif → YYYY-MM-DD (WIB)"]
     end
     subgraph L3["Lapis 3: Automated Loop (LLM-as-a-Judge)"]
-        D1["150 skenario (eval-pos-mcp.mjs) dengan fixture offline"]
+        D1["500 skenario (eval-pos-mcp.mjs) dengan fixture offline"]
         D2["Rubrik G-Eval 5 dimensi khusus POS"]
         D3["Regression & Quality Gate CI"]
     end
@@ -101,7 +101,7 @@ Pipeline evaluasi otomatis menggunakan metode **LLM-as-a-Judge** untuk memberika
 
 ## 4. Automated Evaluation Script (`scripts/eval-pos-mcp.ts`)
 
-Skrip pengujian otomatis berbasis JavaScript / TypeScript (dijalankan menggunakan Bun runtime) untuk memverifikasi akurasi respons asisten AI terhadap 150 skenario di `02_150_POS_QA_SCENARIOS.md`:
+Skrip pengujian otomatis berbasis JavaScript / TypeScript (dijalankan menggunakan Bun runtime) untuk memverifikasi akurasi respons asisten AI terhadap 500 skenario di `02_500_POS_QA_SCENARIOS.md`:
 
 ```typescript
 // scripts/eval-pos-mcp.ts

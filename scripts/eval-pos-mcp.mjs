@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Automated Scenario Evaluation Runner for POS MCP Intelligence.
- * Validates scenarios from docs/MCP/02_150_POS_QA_SCENARIOS.md against the actual live database.
+ * Validates scenarios from docs/MCP/02_500_POS_QA_SCENARIOS.md against the actual live database.
  * Run:
  *   bun run scripts/eval-pos-mcp.mjs
  */
@@ -71,7 +71,7 @@ const testScenarios = [
 
 console.log('================================================================');
 console.log('🚀 EVALUATION SUITE: POS MCP Intelligence Scenarios');
-console.log(`📋 Skenario Target: docs/MCP/02_150_POS_QA_SCENARIOS.md`);
+console.log(`📋 Skenario Target: docs/MCP/02_500_POS_QA_SCENARIOS.md`);
 console.log('================================================================\n');
 
 let passed = 0
