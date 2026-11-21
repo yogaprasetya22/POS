@@ -1,4 +1,4 @@
-import { toolDefinitions, toolHandlers } from '../server/mcp-tools.js'
+import { toolDefinitions, toolHandlers, invalidateAuthCache } from '../server/mcp-tools.js'
 
 /**
  * Vercel Serverless Function MCP Endpoint (JSON-RPC 2.0 / HTTP POST & SSE).
@@ -104,7 +104,20 @@ export default async function handler(req, res) {
         }
 
         try {
-          const envelope = await fn(toolArgs, req.headers?.authorization)
+          let envelope
+          try {
+            envelope = await fn(toolArgs, req.headers?.authorization)
+          } catch (firstErr) {
+            // Auto retry on auth failure with fresh token
+            const msg = firstErr.message || ''
+            if (msg.includes('JWT') || msg.includes('token') || msg.includes('forbidden') || msg.includes('expired')) {
+              invalidateAuthCache()
+              envelope = await fn(toolArgs, req.headers?.authorization)
+            } else {
+              throw firstErr
+            }
+          }
+
           return res.status(200).json({
             jsonrpc: '2.0',
             id,

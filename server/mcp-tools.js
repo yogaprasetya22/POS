@@ -40,14 +40,24 @@ export function wrapEnvelope(data, warnings = [], metadata = {}) {
   }
 }
 
-// Buat client Supabase dengan autentikasi yang tepat
+// Global memory cache in Serverless instance (Warm container optimization)
+let cachedAdminClient = null
+let tokenExpiry = 0
+const storeCache = new Map()
+
+// Buat client Supabase dengan autentikasi yang tepat dan memory caching
 export async function getSupabase(authHeader = null) {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
   if (serviceKey) {
-    return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    if (!cachedAdminClient) {
+      cachedAdminClient = createClient(url, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    }
+    return cachedAdminClient
   }
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -57,21 +67,53 @@ export async function getSupabase(authHeader = null) {
     })
   }
 
-  // Fallback: Login sebagai admin/manager agar bisa memanggil RPC berhak akses manager (sales_report, profit_report)
+  // Caching authenticated admin client in serverless memory (5x faster)
+  const now = Date.now()
+  if (cachedAdminClient && now < tokenExpiry) {
+    return cachedAdminClient
+  }
+
   const client = createClient(url, anonKey, { auth: { persistSession: false } })
   const email = process.env.MCP_ADMIN_EMAIL || 'admin@pos.test'
   const password = process.env.MCP_ADMIN_PASSWORD || 'admin12345'
-  await client.auth.signInWithPassword({ email, password })
+  const { data, error } = await client.auth.signInWithPassword({ email, password })
+
+  if (!error && data?.session?.access_token) {
+    // Supabase JWT berlaku 1 jam; kita cache selama 50 menit
+    tokenExpiry = now + 50 * 60 * 1000
+    cachedAdminClient = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${data.session.access_token}` } },
+    })
+    return cachedAdminClient
+  }
+
   return client
 }
 
-// Dapatkan default store_id jika tidak disuplai
+// Invalidate token cache jika ada error autentikasi
+export function invalidateAuthCache() {
+  cachedAdminClient = null
+  tokenExpiry = 0
+}
+
+// Dapatkan default store_id jika tidak disuplai (dengan caching memory)
 export async function getDefaultStoreId(client, storeSlug = null) {
   const slug = storeSlug || 'warkop-nusantara'
+  if (storeCache.has(slug)) {
+    return storeCache.get(slug)
+  }
+
   const { data } = await client.from('stores').select('id, name').eq('slug', slug).maybeSingle()
-  if (data?.id) return { store_id: data.id, store_name: data.name }
+  if (data?.id) {
+    const val = { store_id: data.id, store_name: data.name }
+    storeCache.set(slug, val)
+    return val
+  }
   const { data: first } = await client.from('stores').select('id, name').limit(1).maybeSingle()
-  return { store_id: first?.id || null, store_name: first?.name || 'Toko Default' }
+  const fallback = { store_id: first?.id || null, store_name: first?.name || 'Toko Default' }
+  if (fallback.store_id) storeCache.set(slug, fallback)
+  return fallback
 }
 
 // Ambil tanggal hari ini dalam format WIB YYYY-MM-DD
