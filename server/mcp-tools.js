@@ -40,10 +40,56 @@ export function wrapEnvelope(data, warnings = [], metadata = {}) {
   }
 }
 
+// Default MCP Secret Key untuk autentikasi jika env tidak diatur
+export const DEFAULT_MCP_SECRET = 'pos-sec-7f89d3a1c5b04e28e649'
+
 // Global memory cache in Serverless instance (Warm container optimization)
 let cachedAdminClient = null
 let tokenExpiry = 0
 const storeCache = new Map()
+
+// Verifikasi token autentikasi (mendukung Secret Key maupun Supabase User JWT)
+export async function verifyAuthToken(authHeader) {
+  if (!authHeader) return null
+  const secret = process.env.MCP_SECRET_KEY || DEFAULT_MCP_SECRET
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : String(authHeader).trim()
+
+  // 1. Direct Secret Key match
+  if (token === secret) {
+    return {
+      authenticated: true,
+      auth_type: 'secret_key',
+      user: { role: 'owner', display_name: 'MCP Super Agent' },
+    }
+  }
+
+  // 2. Supabase User JWT verification
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+  if (!url || !anonKey) return null
+
+  try {
+    const client = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { data: { user }, error } = await client.auth.getUser(token)
+    if (error || !user) return null
+
+    const { data: profile } = await client
+      .from('profiles')
+      .select('user_id, role, store_id, display_name, is_super_admin')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    return {
+      authenticated: true,
+      auth_type: 'supabase_jwt',
+      user: profile || { user_id: user.id, role: 'staff', display_name: user.email },
+    }
+  } catch {
+    return null
+  }
+}
 
 // Buat client Supabase dengan autentikasi yang tepat dan memory caching
 export async function getSupabase(authHeader = null) {
@@ -60,7 +106,13 @@ export async function getSupabase(authHeader = null) {
     return cachedAdminClient
   }
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  // Cek apakah authHeader membawa Supabase JWT (format 3 bagian dipisah titik)
+  const isSupabaseJwt = (h) => {
+    if (!h || !h.startsWith('Bearer ')) return false
+    return h.slice(7).trim().split('.').length === 3
+  }
+
+  if (isSupabaseJwt(authHeader)) {
     return createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { headers: { Authorization: authHeader } },
@@ -97,9 +149,32 @@ export function invalidateAuthCache() {
   tokenExpiry = 0
 }
 
-// Dapatkan default store_id jika tidak disuplai (dengan caching memory)
-export async function getDefaultStoreId(client, storeSlug = null) {
-  const slug = storeSlug || 'warkop-nusantara'
+// Dapatkan store_id secara dinamis (mendukung eksplisit slug & multi-tenant user profile)
+export async function getDefaultStoreId(client, storeSlug = null, userContext = null) {
+  // A. Jika storeSlug eksplisit diberikan
+  if (storeSlug) {
+    if (storeCache.has(storeSlug)) return storeCache.get(storeSlug)
+    const { data } = await client.from('stores').select('id, name').eq('slug', storeSlug).maybeSingle()
+    if (data?.id) {
+      const val = { store_id: data.id, store_name: data.name }
+      storeCache.set(storeSlug, val)
+      return val
+    }
+  }
+
+  // B. Multi-tenant: Jika userContext membawa store_id (dari Supabase JWT login kasir/owner)
+  if (userContext?.store_id) {
+    if (storeCache.has(userContext.store_id)) return storeCache.get(userContext.store_id)
+    const { data } = await client.from('stores').select('id, name').eq('id', userContext.store_id).maybeSingle()
+    if (data?.id) {
+      const val = { store_id: data.id, store_name: data.name }
+      storeCache.set(userContext.store_id, val)
+      return val
+    }
+  }
+
+  // C. Fallback ke default store
+  const slug = process.env.MCP_DEFAULT_STORE || 'warkop-nusantara'
   if (storeCache.has(slug)) {
     return storeCache.get(slug)
   }
@@ -910,6 +985,72 @@ export const toolHandlers = {
       suspicious_orders: voids || [],
     })
   },
+
+  // 25. pos_get_shift_discrepancies
+  async pos_get_shift_discrepancies(args, authHeader, userContext) {
+    const client = await getSupabase(authHeader)
+    const { store_id, store_name } = await getDefaultStoreId(client, args.store_slug, userContext)
+    const today = getTodayWib()
+    const from = args.from || today.slice(0, 7) + '-01'
+    const to = args.to || today
+
+    const { data: shifts, error } = await client
+      .from('shifts')
+      .select('id, opened_at, closed_at, opened_by, closed_by, opening_cash, counted_cash, expected_cash, difference, note, forced')
+      .eq('store_id', store_id)
+      .not('closed_at', 'is', null)
+      .neq('difference', 0)
+      .gte('closed_at', `${from}T00:00:00Z`)
+      .lte('closed_at', `${to}T23:59:59Z`)
+      .order('closed_at', { ascending: false })
+
+    if (error) throw new Error(`Gagal mengambil data selisih shift: ${error.message}`)
+
+    const userIds = [...new Set((shifts || []).flatMap((s) => [s.opened_by, s.closed_by]).filter(Boolean))]
+    let profileMap = {}
+    if (userIds.length > 0) {
+      const { data: profs } = await client.from('profiles').select('user_id, display_name, email').in('user_id', userIds)
+      profileMap = Object.fromEntries((profs || []).map((p) => [p.user_id, p.display_name || p.email]))
+    }
+
+    let totalShortage = 0
+    let totalOverage = 0
+
+    const items = (shifts || []).map((s) => {
+      const diff = s.difference || 0
+      if (diff < 0) totalShortage += Math.abs(diff)
+      else totalOverage += diff
+
+      return {
+        shift_id: s.id,
+        closed_at: s.closed_at,
+        cashier: profileMap[s.closed_by] || profileMap[s.opened_by] || 'Kasir',
+        expected_cash: s.expected_cash,
+        expected_cash_formatted: formatRp(s.expected_cash),
+        counted_cash: s.counted_cash,
+        counted_cash_formatted: formatRp(s.counted_cash),
+        difference: diff,
+        difference_formatted: (diff < 0 ? '- ' : '+ ') + formatRp(Math.abs(diff)),
+        status: diff < 0 ? 'TEKOR / KURANG' : 'LEBIH',
+        reason: s.note || '(Tidak ada catatan)',
+        was_forced: s.forced,
+      }
+    })
+
+    return wrapEnvelope({
+      store_id,
+      store_name,
+      period: { from, to },
+      discrepancies_count: items.length,
+      total_shortage: totalShortage,
+      total_shortage_formatted: formatRp(totalShortage),
+      total_overage: totalOverage,
+      total_overage_formatted: formatRp(totalOverage),
+      net_discrepancy: totalOverage - totalShortage,
+      net_discrepancy_formatted: formatRp(totalOverage - totalShortage),
+      shifts: items,
+    })
+  },
 }
 
 // ==========================================
@@ -1184,6 +1325,18 @@ export const toolDefinitions = [
         to: { type: 'string', description: 'Tanggal selesai YYYY-MM-DD' },
       },
       required: ['from', 'to'],
+    },
+  },
+  {
+    name: 'pos_get_shift_discrepancies',
+    description: 'Audit selisih uang laci kasir (kas tekor atau uang lebih) saat tutup shift beserta nama kasir dan alasannya.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'Tanggal mulai YYYY-MM-DD (default awal bulan)' },
+        to: { type: 'string', description: 'Tanggal selesai YYYY-MM-DD (default hari ini)' },
+        store_slug: { type: 'string', description: 'Slug toko (opsional)' },
+      },
     },
   },
 ]

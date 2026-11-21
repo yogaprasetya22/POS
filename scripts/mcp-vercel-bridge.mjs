@@ -6,7 +6,8 @@
 import readline from 'node:readline'
 
 const VERCEL_URL = process.env.POS_MCP_URL || 'https://pos-lac-eta.vercel.app/api/mcp'
-const AUTH_HEADER = process.env.MCP_SECRET_KEY ? `Bearer ${process.env.MCP_SECRET_KEY}` : ''
+const SECRET_KEY = process.env.MCP_SECRET_KEY || 'pos-sec-7f89d3a1c5b04e28e649'
+const AUTH_HEADER = `Bearer ${SECRET_KEY}`
 
 const rl = readline.createInterface({
   input: process.stdin,

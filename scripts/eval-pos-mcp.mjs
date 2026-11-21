@@ -46,6 +46,7 @@ const testScenarios = [
   { id: 'SH-003', category: 'SH', name: 'Latest Closed Shift Detail', tool: 'pos_get_shift_detail', args: { shift_id: 'latest' } },
   { id: 'SH-005', category: 'SH', name: 'Cash Out Movements', tool: 'pos_get_cash_movements', args: { type: 'out', limit: 10 } },
   { id: 'SH-006', category: 'SH', name: 'Shift Discrepancy Rekap', tool: 'pos_get_shift_summary', args: {} },
+  { id: 'SH-007', category: 'SH', name: 'Shift Cash Shortage Audit', tool: 'pos_get_shift_discrepancies', args: { from: '2026-10-01', to: '2026-11-21' } },
 
   // IN: Inventory & Waste
   { id: 'IN-001', category: 'IN', name: 'Low Stock Ingredients', tool: 'pos_get_low_stock_ingredients', args: {} },

@@ -82,10 +82,12 @@ flowchart LR
     R1 & R2 & R3 & TB1 & TB2 & TB3 & TB4 --> N
 ```
 
-### Aturan Keamanan Database:
+### Aturan Keamanan Database & API:
 1. **100% Read-Only:** Serverless handler hanya menggunakan query `SELECT` dan memanggil fungsi RPC analitik. Tidak mengeksekusi operasi `INSERT`, `UPDATE`, atau `DELETE` pada data transaksi.
-2. **Multi-Tenant Isolation:** Setiap query memfilter berdasarkan `store_id` toko yang relevan. Jika pengguna tidak menyebutkan toko, default mengarah ke outlet utama (`warkop-nusantara`).
-3. **Penyembunyian Kredensial:** Data sensitif seperti `supervisor_pin`, `password_hash`, `store_secrets`, dan auth tokens diproteksi dan tidak pernah diekspos ke AI payload.
+2. **Strict Auth Enforcement (Zero Data Leak):** Endpoint publik `/api/mcp` menolak request tanpa `Authorization: Bearer <MCP_SECRET_KEY>` atau Supabase User JWT yang sah (HTTP 401 Unauthorized). Data omzet, margin, dan audit tidak dapat di-scrape publik.
+3. **Multi-Tenant Dynamic Context:** Query otomatis mengenali `store_id` dari profil pengguna yang login atau parameter `store_slug`. Fallback ke `warkop-nusantara` hanya jika dipanggil via master service key.
+4. **Role-Based Access Control (RBAC):** Peran `cashier` dilarang memanggil tool analitik profitabilitas/HPP (`pos_get_profit_report`, `pos_get_item_profitability`, `pos_compare_periods`) dengan respons HTTP 403 Forbidden.
+5. **Penyembunyian Kredensial:** Data sensitif seperti `supervisor_pin`, `password_hash`, `store_secrets`, dan auth tokens diproteksi dan tidak pernah diekspos ke AI payload.
 
 ---
 
