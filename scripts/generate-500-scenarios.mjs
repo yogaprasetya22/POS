@@ -340,3 +340,4 @@ Skrip akan mengeksekusi skenario terhadap instance database aktif, memverifikasi
 const outPath = path.resolve('docs/MCP/02_500_POS_QA_SCENARIOS.md')
 fs.writeFileSync(outPath, md, 'utf8')
 console.log(`Successfully generated 500 scenarios at ${outPath} (${md.length} bytes, ${scenarios.length} scenarios)`)
+
