@@ -4,7 +4,7 @@ import { CurrencyInput } from '@shared/components/currency-input'
 import { BarSkeleton } from '@shared/components/skeletons'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { Bookmark, ChevronDown, History, ListOrdered, Merge, PackageX, Search, Split, Trash2 } from 'lucide-react'
+import { Bookmark, ChevronDown, History, ListOrdered, Merge, PackageX, QrCode, Search, Split, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { Collapse, SwapText, pop } from '@shared/components/motion'
 import { useEffect, useState } from 'react'
@@ -32,6 +32,7 @@ import { supabase } from '@shared/lib/supabase'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
+import { createMidtransSnapToken, openMidtransSnapPay } from '@shared/lib/midtrans'
 import {
   CreatedOrderSchema,
   MemberSchema,
@@ -259,6 +260,25 @@ export function CashierPage() {
         setSelectedId(orderId) // jika bayar gagal, pesanan tetap terbuka sebagai UNPAID
       }
       if (!shift) throw new Error(t('shift.required'))
+      if (method === 'MIDTRANS') {
+        const snapRes = await createMidtransSnapToken(orderId, storeId || undefined)
+        if (!snapRes.success || !snapRes.token) {
+          throw new Error(snapRes.error || 'Gagal memulai sesi Snap Midtrans')
+        }
+        await new Promise<void>((resolve, reject) => {
+          openMidtransSnapPay(
+            snapRes.token!,
+            snapRes.client_key || '',
+            Boolean(snapRes.is_production),
+            {
+              onSuccess: () => resolve(),
+              onPending: () => resolve(),
+              onError: (err) => reject(new Error(err?.status_message || 'Pembayaran Midtrans dibatalkan')),
+              onClose: () => reject(new Error('Sesi pembayaran Midtrans ditutup')),
+            },
+          ).catch(reject)
+        })
+      }
       const { data, error } = await rpc('pay_order', {
         p_order_id: orderId,
         p_method: method,
@@ -576,18 +596,28 @@ export function CashierPage() {
               <p className="text-sm font-semibold">Pembayaran</p>
               <ToggleGroup
                 aria-label="Metode pembayaran"
-                className="grid w-full grid-cols-3"
+                className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-4"
                 variant="outline"
                 value={[method]}
                 onValueChange={(v) => v[0] !== undefined && setMethod(v[0] as PaymentMethod)}
               >
                 {PaymentMethodSchema.options.map((m) => (
-                  <ToggleGroupItem key={m} value={m} className={`${CHOICE} text-xs`}>
+                  <ToggleGroupItem key={m} value={m} className={`${CHOICE} text-xs py-2 px-1 text-center`}>
                     {method === m && <LiquidPill id="cashier-pay" className="rounded-md bg-accent" />}
-                    <span className="relative">{PAYMENT_LABEL[m]}</span>
+                    <span className="relative truncate">{PAYMENT_LABEL[m]}</span>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+              <Collapse open={method === 'MIDTRANS'}>
+                <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <QrCode className="size-3.5 text-primary" /> Midtrans Snap Gateway
+                  </p>
+                  <p>
+                    Layar popup Midtrans Snap akan terbuka untuk memindai QRIS dinamis pelanggan, pembayaran e-wallet, atau kartu.
+                  </p>
+                </div>
+              </Collapse>
               <Collapse open={method === 'CASH'}>
                 <div className="space-y-2 pt-0.5">
                   <CurrencyInput value={cash} onValueChange={setCash} placeholder="Uang diterima" aria-label="Uang diterima" />

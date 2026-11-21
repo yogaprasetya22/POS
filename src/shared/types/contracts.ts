@@ -5,7 +5,7 @@ export const RupiahSchema = z.number().int().nonnegative()
 
 export const OrderStatusSchema = z.enum(['UNPAID', 'IN_KITCHEN', 'READY', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'VOID', 'REFUNDED'])
 export const OrderTypeSchema = z.enum(['DINE_IN', 'TAKEAWAY'])
-export const PaymentMethodSchema = z.enum(['CASH', 'QRIS_STATIC', 'EDC_CARD'])
+export const PaymentMethodSchema = z.enum(['CASH', 'QRIS_STATIC', 'EDC_CARD', 'MIDTRANS'])
 export const StaffRoleSchema = z.enum(['owner', 'manager', 'cashier', 'waiter', 'kitchen'])
 
 export const ModifierGroupSchema = z.object({
@@ -78,6 +78,10 @@ export const StoreConfigSchema = z.object({
   // Default dipakai bila migrasi 20261016000014 belum dijalankan
   use_kitchen_screen: z.boolean().default(true),
   cook_minutes: z.number().int().min(1).max(180).default(15),
+  // Midtrans Payment Gateway
+  midtrans_enabled: z.boolean().default(false),
+  midtrans_is_production: z.boolean().default(false),
+  midtrans_client_key: z.string().nullable().default(null),
 })
 export type StoreConfig = z.infer<typeof StoreConfigSchema>
 
@@ -299,6 +303,7 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CASH: 'Tunai',
   QRIS_STATIC: 'QRIS',
   EDC_CARD: 'Kartu debit/kredit',
+  MIDTRANS: 'Midtrans (Online / QRIS)',
 }
 
 // ---------- shift: serah terima, rincian selisih, statistik ----------

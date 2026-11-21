@@ -2,9 +2,9 @@ import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { saveMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { CheckCircle2, Send, Trash2 } from 'lucide-react'
+import { CheckCircle2, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ErrorAlert } from '@shared/components/error-alert'
 import { Panel } from '@shared/components/panel'
 import { Stepper } from '@shared/components/stepper'
@@ -16,6 +16,7 @@ import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
 import { useQuote } from '@shared/lib/use-quote'
+import { createMidtransSnapToken, openMidtransSnapPay } from '@shared/lib/midtrans'
 import { CheckoutSchema, CreatedOrderSchema, type OrderType, type Product, type Promotion } from '@shared/types/contracts'
 import { cartTotal, toLines } from './cart'
 import { useCartStore } from './store/cart-store'
@@ -39,10 +40,26 @@ export function CheckoutPanel({
   const [table, setTable] = useState(defaultTable)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [done, setDone] = useState<{ queue_code: string; total: number } | null>(null)
+  const [payMethod, setPayMethod] = useState<'MIDTRANS' | 'CASHIER'>('MIDTRANS')
+  const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
+  const [done, setDone] = useState<{ queue_code: string; total: number; isPaid?: boolean } | null>(null)
   const [inputCode, setInputCode] = useState('')
   const [appliedCode, setAppliedCode] = useState<string | null>(null)
   const [codeFeedback, setCodeFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/midtrans?action=config&storeId=${storeId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.success && data?.enabled) {
+          setMidtransConfig(data)
+          setPayMethod('MIDTRANS')
+        } else {
+          setPayMethod('CASHIER')
+        }
+      })
+      .catch(() => setPayMethod('CASHIER'))
+  }, [storeId])
 
   const count = items.reduce((n, i) => n + i.qty, 0)
   const subtotal = cartTotal(items)
@@ -101,26 +118,86 @@ export function CheckoutPanel({
       p_lines: v.lines,
       p_promo_code: appliedCode ?? null,
     }, { asPublic: true })
-    setBusy(false)
-    if (rpcError) return setError(`Pesanan gagal: ${rpcError.message}`)
+
+    if (rpcError) {
+      setBusy(false)
+      return setError(`Pesanan gagal: ${rpcError.message}`)
+    }
 
     const created = CreatedOrderSchema.parse(data)
     saveMyOrder(storeId, { id: created.id, queue_code: created.queue_code, total: created.total })
+
+    // Jika bayar online via Midtrans
+    if (payMethod === 'MIDTRANS' && midtransConfig?.enabled) {
+      try {
+        const snapRes = await createMidtransSnapToken(created.id, storeId)
+        if (!snapRes.success || !snapRes.token) {
+          throw new Error(snapRes.error || 'Gagal memulai sesi Snap Midtrans')
+        }
+
+        await openMidtransSnapPay(
+          snapRes.token,
+          snapRes.client_key || midtransConfig.clientKey,
+          Boolean(snapRes.is_production ?? midtransConfig.isProduction),
+          {
+            onSuccess: async (result) => {
+              await rpc('pay_order_midtrans', {
+                p_order_id: created.id,
+                p_transaction_id: result.transaction_id,
+                p_payment_type: result.payment_type,
+                p_status: result.transaction_status,
+              }, { asPublic: true })
+              clear()
+              setBusy(false)
+              setDone({ queue_code: created.queue_code, total: created.total, isPaid: true })
+            },
+            onPending: () => {
+              clear()
+              setBusy(false)
+              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+            },
+            onError: () => {
+              clear()
+              setBusy(false)
+              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+            },
+            onClose: () => {
+              clear()
+              setBusy(false)
+              setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+            },
+          },
+        )
+      } catch {
+        setBusy(false)
+        clear()
+        setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+      }
+      return
+    }
+
+    setBusy(false)
     clear()
-    setDone({ queue_code: created.queue_code, total: created.total })
+    setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
   }
 
   if (done) {
     return (
-      <Panel onClose={onClose} title="Pesanan terkirim" footer={null}>
+      <Panel onClose={onClose} title={done.isPaid ? 'Pembayaran Berhasil' : 'Pesanan terkirim'} footer={null}>
         <div className="flex flex-col items-center py-8 text-center">
           <CheckCircle2 className="size-14 text-emerald-600" aria-hidden />
           <p className="mt-4 text-sm text-muted-foreground">Kode antrean kamu</p>
           <p className="mt-1 font-mono text-5xl font-bold tracking-tight" data-testid="queue-code">{done.queue_code}</p>
           <p className="mt-4 text-lg font-semibold tabular-nums">Total {rupiah(done.total)}</p>
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            Tunjukkan kode ini ke kasir lalu bayar. Status pesananmu bisa dilihat di bagian atas halaman menu, jadi tidak perlu bertanya ke kasir.
-          </p>
+          {done.isPaid ? (
+            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <Sparkles className="size-3.5" /> Lunas via Midtrans · Langsung Diproses Dapur
+            </div>
+          ) : (
+            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+              Tunjukkan kode ini ke kasir lalu bayar. Status pesananmu bisa dilihat di bagian atas halaman menu, jadi tidak perlu bertanya ke kasir.
+            </p>
+          )}
           <Button size="lg" className="mt-8 w-full max-w-xs" onClick={onClose}>Selesai</Button>
         </div>
       </Panel>
@@ -140,10 +217,16 @@ export function CheckoutPanel({
               {totalDiscount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground line-through">{rupiah(grossSubtotal)}</span>}
             </p>
           </div>
-          <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base">
-            {busy ? 'Memproses…' : (
+          <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base font-semibold">
+            {busy ? (
+              'Menghubungkan…'
+            ) : payMethod === 'MIDTRANS' && midtransConfig?.enabled ? (
               <>
-                <Send /> Kirim pesanan
+                <Send className="mr-1.5 size-4" /> Bayar Sekarang
+              </>
+            ) : (
+              <>
+                <Send className="mr-1.5 size-4" /> Kirim pesanan
               </>
             )}
           </Button>
@@ -285,6 +368,54 @@ export function CheckoutPanel({
           )}
           {codeFeedback && <p className="text-sm text-destructive">{codeFeedback}</p>}
         </div>
+
+        {midtransConfig?.enabled && (
+          <div className="space-y-2 border-t pt-3">
+            <Label className="text-sm font-semibold">Pilih Cara Pembayaran</Label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setPayMethod('MIDTRANS')}
+                className={`relative flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                  payMethod === 'MIDTRANS'
+                    ? 'border-primary bg-primary/5 ring-1.5 ring-primary'
+                    : 'border-border/70 bg-card hover:border-primary/40'
+                }`}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <QrCode className="size-3.5 text-primary" /> Bayar Online
+                  </span>
+                  <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-extrabold text-primary uppercase">
+                    Instan
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground leading-tight">
+                  QRIS (GoPay, ShopeePay), VA, Kartu
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPayMethod('CASHIER')}
+                className={`relative flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                  payMethod === 'CASHIER'
+                    ? 'border-primary bg-primary/5 ring-1.5 ring-primary'
+                    : 'border-border/70 bg-card hover:border-primary/40'
+                }`}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <CreditCard className="size-3.5 text-muted-foreground" /> Di Kasir
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground leading-tight">
+                  Bayar tunai atau EDC di kasir
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <dl className="space-y-1.5 border-t pt-3 text-sm">
           <div className="flex justify-between text-muted-foreground">

@@ -24,6 +24,7 @@ import { liquid } from '@shared/lib/motion'
 import { rupiah } from '@shared/lib/utils'
 import { OrderSchema, StoreSettingsSchema, type Store, type StoreConfig } from '@shared/types/contracts'
 import { ThermalPaper } from '@shared/components/thermal-preview'
+import { MidtransSettings } from './midtrans-settings'
 
 type Props = {
   store: Store
@@ -218,6 +219,7 @@ export function StoreTab({ store, run, fail }: Props) {
             ['tampilan', 'Tampilan'],
             ['dapur', 'Dapur'],
             ['shift', 'Shift'],
+            ['pembayaran', 'Pembayaran Midtrans'],
             ['akses', 'Hak akses'],
             ['keamanan', 'Keamanan'],
           ].map(([v, l]) => (
@@ -378,6 +380,12 @@ export function StoreTab({ store, run, fail }: Props) {
           <CashFloatSettings />
           <ShiftNamesSettings />
         </TabsContent>
+
+        {/* ===== Pembayaran Midtrans ===== */}
+        <TabsContent value="pembayaran" className="max-w-3xl space-y-5">
+          <MidtransSettings storeId={store.id} />
+        </TabsContent>
+
         <TabsContent value="akses" className="max-w-3xl space-y-5">
           <PermissionSettings />
         </TabsContent>
