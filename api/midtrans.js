@@ -17,10 +17,11 @@ async function getMidtransConfig(sb, storeId) {
     storeConfig = data
   }
 
-  const serverKey = storeConfig?.midtrans_server_key || process.env.MIDTRANS_SERVER_KEY || ''
-  const clientKey = storeConfig?.midtrans_client_key || process.env.MIDTRANS_CLIENT_KEY || process.env.VITE_MIDTRANS_CLIENT_KEY || ''
-  const isProduction = storeConfig ? Boolean(storeConfig.midtrans_is_production) : String(process.env.MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
-  const isEnabled = storeConfig ? Boolean(storeConfig.midtrans_enabled) : Boolean(serverKey && clientKey)
+  const envIsProd = String(process.env.MIDTRANS_IS_PRODUCTION ?? process.env.VITE_MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
+  const isProduction = envIsProd && Boolean(storeConfig?.midtrans_is_production ?? true)
+  const serverKey = (isProduction ? storeConfig?.midtrans_server_key : null) || process.env.MIDTRANS_SERVER_KEY || ''
+  const clientKey = (isProduction ? storeConfig?.midtrans_client_key : null) || process.env.MIDTRANS_CLIENT_KEY || process.env.VITE_MIDTRANS_CLIENT_KEY || ''
+  const isEnabled = storeConfig?.midtrans_enabled ?? Boolean(serverKey && clientKey)
 
   return {
     serverKey,
