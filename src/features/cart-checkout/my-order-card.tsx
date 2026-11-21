@@ -9,7 +9,7 @@ import { ding } from '@shared/lib/new-order-toast'
 import { rupiah } from '@shared/lib/utils'
 import { createMidtransQris } from '@shared/lib/midtrans'
 import { InlineQris } from './inline-qris'
-import { forgetMyOrder, loadMyOrders, type SavedOrder } from './my-orders'
+import { forgetMyOrder, loadMyOrders, updateMyOrder, type SavedOrder } from './my-orders'
 
 const StatusSchema = z.object({
   id: z.string(),
@@ -56,7 +56,15 @@ const TONE: Record<View['tone'], { card: string; sub: string; icon: string }> = 
 }
 const ICON = { wait: Clock, paid: ChefHat, ready: Check, done: Check, off: X } as const
 
-function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrder }) {
+function OrderStatusCard({
+  storeId,
+  saved,
+  currentTable,
+}: {
+  storeId: string
+  saved: SavedOrder
+  currentTable?: string | null
+}) {
   const [info, setInfo] = useState<Status | null>(null)
   const [failed, setFailed] = useState(false)
   const [open, setOpen] = useState(false)
@@ -85,18 +93,33 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
       const parsed = StatusSchema.safeParse(data)
       setFailed(!!error || !parsed.success)
       if (parsed.success) {
+        const orderData = parsed.data
+        const isUnpaidStatus = orderData.status === 'UNPAID'
+        // Sinkronkan info meja dan status pembayaran ke localStorage jika belum terisi
+        if (
+          saved.table_no !== (orderData.table_no ?? null) ||
+          saved.order_type !== orderData.order_type ||
+          saved.is_unpaid !== isUnpaidStatus
+        ) {
+          updateMyOrder(storeId, saved.id, {
+            table_no: orderData.table_no ?? null,
+            order_type: orderData.order_type as any,
+            is_unpaid: isUnpaidStatus,
+          })
+        }
+
         // Baru berubah jadi siap: getar + bunyi supaya pembeli tahu walau HP-nya di meja
-        if (parsed.data.status === 'READY' && lastStatus.current && lastStatus.current !== 'READY') {
+        if (orderData.status === 'READY' && lastStatus.current && lastStatus.current !== 'READY') {
           ding()
           navigator.vibrate?.([200, 100, 200])
         }
         // Selesai diambil: kartu tidak perlu lagi. Baru saja selesai -> tampilkan "Selamat menikmati" 5 detik dulu.
-        if (parsed.data.status === 'COMPLETED') {
+        if (orderData.status === 'COMPLETED') {
           const justFinished = lastStatus.current !== null && lastStatus.current !== 'COMPLETED'
           timer = setTimeout(() => forgetMyOrder(storeId, saved.id), justFinished ? 5000 : 0)
         }
-        lastStatus.current = parsed.data.status
-        setInfo(parsed.data)
+        lastStatus.current = orderData.status
+        setInfo(orderData)
       }
       const finished = parsed.success && ['COMPLETED', 'CANCELLED', 'EXPIRED', 'VOID', 'REFUNDED'].includes(parsed.data.status)
       done = finished
@@ -119,7 +142,7 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [saved.id, storeId])
+  }, [saved.id, saved.is_unpaid, saved.order_type, saved.table_no, storeId])
 
   const handleOpenQris = async () => {
     setLoadingQris(true)
@@ -139,6 +162,23 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
       }
     } finally {
       setLoadingQris(false)
+    }
+  }
+
+  // Filter ketat berdasarkan meja yang bersangkutan
+  const normCurrent = currentTable?.trim().toUpperCase()
+  const orderTable = (info?.table_no ?? saved.table_no)?.trim().toUpperCase()
+  const orderType = info?.order_type ?? saved.order_type
+
+  if (normCurrent) {
+    // Sedang membuka link meja spesifik: sembunyikan jika pesanan bawa pulang atau untuk nomor meja lain
+    if (orderType === 'TAKEAWAY' || (orderTable && orderTable !== normCurrent)) {
+      return null
+    }
+  } else {
+    // Sedang membuka link bawa pulang: sembunyikan jika pesanan makan di meja
+    if (orderType === 'DINE_IN' && orderTable) {
+      return null
     }
   }
 
@@ -271,8 +311,8 @@ function OrderStatusCard({ storeId, saved }: { storeId: string; saved: SavedOrde
   )
 }
 
-/** Kartu status pesanan pembeli di halaman menu: tetap ada walau halaman di-refresh. */
-export function MyOrders({ storeId }: { storeId: string }) {
+/** Kartu status pesanan pembeli di halaman menu: disesuaikan dengan meja yang sedang dibuka. */
+export function MyOrders({ storeId, currentTable }: { storeId: string; currentTable?: string | null }) {
   const [list, setList] = useState(() => loadMyOrders(storeId))
   useEffect(() => {
     const refresh = () => setList(loadMyOrders(storeId))
@@ -284,11 +324,40 @@ export function MyOrders({ storeId }: { storeId: string }) {
       window.removeEventListener('storage', refresh)
     }
   }, [storeId])
-  if (list.length === 0) return null
+
+  const normCurrent = currentTable?.trim().toUpperCase()
+
+  // 1. Filter hanya pesanan yang sesuai dengan meja yang sedang dibuka pembeli
+  const matchingOrders = list.filter((o) => {
+    const orderTable = o.table_no?.trim().toUpperCase()
+    if (normCurrent) {
+      // Sedang di meja tertentu (Dine-in): hanya tampilkan jika cocok dengan meja ini
+      // atau belum memiliki data meja di storage (akan disaring setelah dicek ke server)
+      return !orderTable || orderTable === normCurrent
+    } else {
+      // Sedang mode Bawa Pulang (Takeaway): hanya tampilkan pesanan takeaway / tanpa meja
+      return o.order_type === 'TAKEAWAY' || !orderTable
+    }
+  })
+
+  // 2. Untuk pesanan yang berstatus belum dibayar / menunggu pembayaran:
+  // Hanya tampilkan 1 pesanan UNPAID paling baru untuk meja ini agar kartu tidak menumpuk.
+  let seenUnpaid = false
+  const dedupedOrders = matchingOrders.filter((o) => {
+    const isUnpaid = o.is_unpaid ?? true
+    if (isUnpaid) {
+      if (seenUnpaid) return false
+      seenUnpaid = true
+      return true
+    }
+    return true
+  })
+
+  if (dedupedOrders.length === 0) return null
   return (
     <div className="mb-3 space-y-2">
-      {list.slice(0, 3).map((o) => (
-        <OrderStatusCard key={o.id} storeId={storeId} saved={o} />
+      {dedupedOrders.slice(0, 3).map((o) => (
+        <OrderStatusCard key={o.id} storeId={storeId} saved={o} currentTable={currentTable} />
       ))}
     </div>
   )

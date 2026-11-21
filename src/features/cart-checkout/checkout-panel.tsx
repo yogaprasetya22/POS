@@ -1,6 +1,6 @@
 import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
-import { forgetMyOrder, saveMyOrder } from './my-orders'
+import { forgetMyOrder, saveMyOrder, updateMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
 import { CheckCircle2, Clock, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
@@ -143,6 +143,9 @@ export function CheckoutPanel({
       queue_code: created.queue_code,
       total: created.total,
       pay_method: payMethod === 'QRIS' && midtransConfig?.enabled ? 'QRIS' : 'CASHIER',
+      table_no: orderType === 'DINE_IN' ? (table?.trim() || null) : null,
+      order_type: orderType,
+      is_unpaid: true,
     })
 
     // Jika bayar via QRIS Dinamis Midtrans (Sisi Pembeli, nominal otomatis)
@@ -218,6 +221,7 @@ export function CheckoutPanel({
 
   const handlePayAtCashierInstead = () => {
     if (!qrisData) return
+    updateMyOrder(storeId, qrisData.orderId, { pay_method: 'CASHIER' })
     setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: false })
     setQrisData(null)
   }
@@ -320,6 +324,7 @@ export function CheckoutPanel({
           notice={qrisData.notice}
           storeId={storeId}
           onSuccess={() => {
+            updateMyOrder(storeId, qrisData.orderId, { is_unpaid: false })
             setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: true })
             setQrisData(null)
           }}

@@ -95,7 +95,7 @@ export function MenuPage() {
   const discountedTotal = Math.max(0, totalPrice - promo.discount)
   const qtyOf = (productId: string) =>
     items.filter((i) => i.product_id === productId).reduce((n, i) => n + i.qty, 0)
-  const table = params.get('tipe') === 'bungkus' ? null : params.get('meja')
+  const table = params.get('tipe') === 'bungkus' ? null : (params.get('meja') || params.get('t'))
   // tombol +: menu tanpa varian langsung masuk pesanan; menu dengan varian membuka pilihan dulu
   const quickAdd = (p: Product) => {
     if (p.modifiers.length > 0) return setPicking(p)
@@ -153,7 +153,7 @@ export function MenuPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pt-4">
-        <MyOrders storeId={data.store.id} />
+        <MyOrders storeId={data.store.id} currentTable={table} />
         {shown.length === 0 ? (
           <p className="rounded-lg border border-dashed py-14 text-center text-muted-foreground">Menu tidak ditemukan.</p>
         ) : (
