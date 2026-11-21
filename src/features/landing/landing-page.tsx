@@ -41,24 +41,24 @@ const APP_NAME = import.meta.env.VITE_APP_NAME || 'POS Resto'
 const WA_SALES_LINK = 'https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20tertarik%20konsultasi%20sewa%20sistem%20POS%20untuk%20restoran%2Fkafe%20saya.'
 
 const QUICK = [
-  { icon: Smartphone, text: 'Bisa di HP, iPad, Tablet Android & Laptop' },
-  { icon: Coins, text: '0% Komisi Transaksi (Omzet 100% Milik Anda)' },
-  { icon: Receipt, text: 'Cetak Struk Thermal & Tiket Dapur Otomatis' },
-  { icon: Sparkles, text: 'Terintegrasi Asisten AI Analisis Finansial' },
+  { icon: Smartphone, text: 'Bisa pakai HP, tablet, atau laptop yang ada' },
+  { icon: Coins, text: '0% komisi — 100% omzet masuk ke rekening Anda' },
+  { icon: Receipt, text: 'Cetak struk 58/80mm & tiket dapur otomatis' },
+  { icon: Sparkles, text: 'Tanya omzet & sisa stok lewat chat AI' },
 ]
 
 const SHOWCASE_TABS = [
   {
     id: 'kasir',
-    label: 'Layar Kasir POS',
+    label: 'Layar Kasir',
     tag: 'Kasir & Pembayaran',
-    title: 'Pencatatan kasir secepat kilat dengan kontrol laci transparan',
-    text: 'Kasir melayani pesanan makan di tempat atau bungkus, split bill, cetak struk thermal, dan menutup shift dengan audit uang kas yang rapi.',
+    title: 'Kasir cepat dengan kontrol laci kas anti-tekor',
+    text: 'Pesanan makan di tempat atau bungkus, split bill, cetak struk thermal, dan tutup shift dengan hitungan modal awal vs setoran yang rapi.',
     points: [
-      'Pemisahan otomatis uang setoran owner vs modal kembalian di laci',
-      'Pilihan bayar lengkap: Tunai, QRIS dinamis, dan Kartu EDC',
-      'Pencarian menu instan dengan filter kategori & status ketersediaan',
-      'Proteksi pembatalan transaksi (void) dengan otorisasi PIN supervisor',
+      'Pemisahan otomatis modal kembalian di laci vs uang setoran owner',
+      'Pembayaran lengkap: Tunai, QRIS dinamis, dan Kartu Debit/Kredit',
+      'Cari menu cepat berdasarkan nama, kategori, atau status stok',
+      'Hapus item (void) dan diskon manual terkunci PIN supervisor',
     ],
     img: '/landing/kasir.webp',
     video: '/landing/video-kasir.webm',
@@ -66,15 +66,15 @@ const SHOWCASE_TABS = [
   },
   {
     id: 'qr',
-    label: 'Menu QR Meja',
-    tag: 'Pemesanan Mandiri Tamu',
-    title: 'Pelanggan pesan dan bayar dari meja tanpa antre di kasir',
-    text: 'Cukup cetak stiker QR di tiap meja. Tamu memindai kode lewat kamera HP mereka, memilih menu beserta varian, dan pesanan langsung masuk ke dapur.',
+    label: 'Pesan Mandiri QR',
+    tag: 'Menu QR Meja',
+    title: 'Pelanggan pesan dari meja, antrean kasir berkurang',
+    text: 'Tamu memindai stiker QR di meja pakai kamera HP, memilih menu beserta catatan rasa, dan pesanan langsung masuk ke dapur tanpa unduh aplikasi.',
     points: [
-      'Tanpa download aplikasi, bekerja langsung di browser smartphone tamu',
-      'Status stok menu otomatis sinkron (menu habis tidak bisa dipilih)',
-      'Tiket pesanan & nomor antrean instan terbit di layar HP pelanggan',
-      'Memangkas beban antrean kasir hingga 60% saat jam-jam sibuk',
+      'Buka langsung di browser HP tamu tanpa perlu download aplikasi',
+      'Stok otomatis sinkron: menu yang habis tidak bisa dipesan',
+      'Nomor antrean dan ringkasan pesanan muncul di HP pelanggan',
+      'Mengurangi antrean di meja kasir saat jam makan siang dan malam',
     ],
     img: '/landing/pelanggan.webp',
     video: '/landing/video-qr.webm',
@@ -84,14 +84,14 @@ const SHOWCASE_TABS = [
   {
     id: 'dapur',
     label: 'Layar Dapur (KDS)',
-    tag: 'Kitchen Display System',
-    title: 'Tiket antrean pesanan real-time di dapur tanpa kertas tercecer',
-    text: 'Pesanan lunas seketika tampil di monitor dapur koki. Dilengkapi penanda waktu masak visual agar seluruh sajian keluar tepat waktu.',
+    tag: 'Monitor Dapur',
+    title: 'Pesanan masuk ke koki tanpa nota kertas hilang',
+    text: 'Pesanan lunas seketika tampil di monitor dapur lengkap dengan penanda waktu. Koki tahu persis urutan mana yang harus dimasak lebih dulu.',
     points: [
-      'Tiket terurut otomatis berdasarkan waktu pesanan masuk ke sistem',
-      'Indikator timer visual warna-warni untuk memantau pesanan yang terlambat',
-      'Koki cukup ketuk layar untuk menandai masakan selesai disiapkan',
-      'Mencegah salah baca pesanan atau tiket nota yang hilang di dapur',
+      'Tiket terurut otomatis sesuai jam masuk pesanan ke kasir',
+      'Penanda warna visual jika ada masakan yang melebihi estimasi waktu',
+      'Koki cukup ketuk tombol saat masakan siap diantar pramusaji',
+      'Menghilangkan masalah salah baca tulisan tangan atau nota tercecer',
     ],
     img: '/landing/dapur.webp',
     video: '/landing/video-dapur.webm',
@@ -100,14 +100,14 @@ const SHOWCASE_TABS = [
   {
     id: 'laporan',
     label: 'Dashboard & Laba',
-    tag: 'Laporan & Finansial',
-    title: 'Pantau omzet, laba kotor, dan HPP restoran kapan saja',
-    text: 'Owner dapat mengakses data performa toko langsung dari HP di luar kota. Analisis hari ramai, menu terlaris, dan kas tekor tersaji akurat.',
+    tag: 'Laporan Keuangan',
+    title: 'Pantau omzet dan laba bersih dari HP di mana saja',
+    text: 'Owner bisa cek omzet hari ini, menu terlaris, dan riwayat tutup kasir langsung dari HP tanpa harus standby seharian di outlet.',
     points: [
-      'Perhitungan omzet kotor, omzet bersih, diskon, dan pajak restoran',
-      'Laporan laba kotor (Gross Profit) dan rasio margin laba tiap produk',
-      'Ekspor seluruh data transaksi dan inventori ke format CSV / Excel',
-      'Riwayat tutup shift dan audit selisih kas tiap pergantian kasir',
+      'Rekap otomatis omzet kotor, omzet bersih, diskon, dan pajak PB1',
+      'Laporan laba kotor dan margin keuntungan tiap item menu',
+      'Unduh rekapan penjualan harian dan bulanan ke format Excel / CSV',
+      'Catatan selisih kas tiap kasir membuka dan menutup shift',
     ],
     img: '/landing/dashboard.webp',
     video: '/landing/video-dashboard.webm',
@@ -115,15 +115,15 @@ const SHOWCASE_TABS = [
   },
   {
     id: 'stok',
-    label: 'Stok & Resep',
+    label: 'Bahan & Resep',
     tag: 'Inventori Otomatis',
-    title: 'Stok bahan baku terpotong otomatis saat pesanan lunas',
-    text: 'Cukup masukkan takaran resep sekali. Setiap porsi kopi atau makanan yang terjual otomatis memotong gramatur bahan di gudang dan dapur.',
+    title: 'Stok bahan baku terpotong otomatis saat menu laku',
+    text: 'Cukup masukkan resep menu sekali. Setiap porsi makanan atau minuman yang dibayar kasir otomatis memotong takaran bahan baku di gudang.',
     points: [
-      'Peringatan otomatis saat persediaan bahan baku kritis atau menipis',
-      'Sisa porsi yang bisa dibuat langsung terlihat di layar kasir',
-      'Pencatatan barang masuk (restock), barang rusak (waste), dan opname',
-      'Mencegah kebocoran bahan baku dan selisih stok dapur yang merugikan',
+      'Peringatan otomatis saat persediaan bahan baku mulai menipis',
+      'Kasir langsung tahu sisa porsi yang bisa dibuat hari ini',
+      'Pencatatan bahan masuk belanjaan, bahan basi/rusak, dan stok opname',
+      'Mencegah kecurangan atau kebocoran bahan baku dapur',
     ],
     img: '/landing/stok.webp',
     video: '/landing/video-stok.webm',
@@ -134,144 +134,144 @@ const SHOWCASE_TABS = [
 const SETTINGS_FEATURES = [
   {
     icon: Receipt,
-    badge: 'Struk & Printer Thermal',
-    title: 'Format Struk & Kustomisasi Logo Toko',
-    text: 'Sesuaikan cetak struk kasir dan tiket dapur Anda. Dukung logo hitam-putih, nama outlet, alamat lengkap, info kontak/wifi, serta ukuran kertas 58mm atau 80mm standar.',
+    badge: 'Struk Thermal',
+    title: 'Format Struk & Logo Outlet',
+    text: 'Sesuaikan cetakan struk kasir dan tiket dapur. Pasang logo toko, nama cabang, alamat, catatan footer, serta ukuran kertas 58mm atau 80mm.',
     points: [
-      'Format otomatis logo hitam-putih presisi untuk printer thermal',
-      'Pesan ucapan terima kasih & promosi akun medsos di footer struk',
-      'Kompatibel printer Bluetooth, USB, dan Ethernet LAN (ESC/POS)',
-      'Dukungan buka laci kas otomatis (auto-kick cash drawer RJ11)',
+      'Logo hitam-putih otomatis disesuaikan untuk hasil print kontras tinggi',
+      'Pesan terima kasih & promo akun Instagram di bagian bawah struk',
+      'Mendukung printer Bluetooth, USB, dan kabel LAN (ESC/POS)',
+      'Otomatis membuka laci kas kasir (kick cash drawer) saat print struk',
     ],
   },
   {
     icon: Coins,
-    badge: 'Pajak & Biaya Layanan',
-    title: 'Pajak Restoran (PB1) & Service Charge',
-    text: 'Hitung kewajiban pajak restoran dan biaya layanan tanpa hitung manual. Sistem mendukung tarif per outlet dengan pembukuan bersih terpisah.',
+    badge: 'Pajak & Layanan',
+    title: 'Pajak PB1 (10%) & Service Charge',
+    text: 'Hitung kewajiban pajak restoran dan biaya layanan tanpa hitung manual. Nilai pajak dan servis terpisah rapi di laporan bulanan.',
     points: [
-      'Tarif PB1 (10%) dan Service Charge (5%) dapat disesuaikan fleksibel',
-      'Pilihan harga inklusif (sudah termasuk) atau eksklusif (ditambahkan di nota)',
-      'Pembulatan total nominal otomatis ke Rp100 atau Rp500 terdekat',
-      'Laporan rekapitulasi setoran pajak daerah otomatis per bulan',
+      'Tarif PB1 dan service charge bisa diatur sesuai peraturan daerah',
+      'Pilihan harga menu inklusif (sudah nett) atau ditambah di nota',
+      'Pembulatan total akhir otomatis ke Rp100 atau Rp500 terdekat',
+      'Rekap setoran pajak daerah siap unduh per bulan',
     ],
   },
   {
     icon: QrCode,
-    badge: 'Denah Meja & QR',
-    title: 'Manajemen Meja & Generator QR Cetak',
-    text: 'Atur denah tempat duduk restoran (indoor, outdoor, lantai 2) dan terbitkan kode QR meja permanen hanya dengan satu kali klik.',
+    badge: 'Meja & QR',
+    title: 'Atur Meja & Cetak QR Meja',
+    text: 'Bagi area tempat duduk (indoor, outdoor, lantai 2) dan cetak kode QR meja sekali klik tanpa repot buat manual.',
     points: [
-      'Bebas atur penomoran meja, area ruangan, dan kapasitas kursi tamu',
-      'Ekspor lembar PDF kode QR tajam siap cetak untuk akrilik meja',
-      'Tamu langsung diarahkan ke nomor meja tanpa risiko salah antar pesanan',
-      'Fleksibilitas mode: pesan mandiri bayar di awal atau bayar di kasir',
+      'Bebas atur nomor meja, kapasitas kursi, dan pembagian area ruangan',
+      'Unduh lembar PDF kode QR tajam siap cetak untuk akrilik meja',
+      'Tamu langsung diarahkan ke nomor meja tanpa risiko salah antar',
+      'Fleksibel: tamu bisa bayar langsung atau bayar di kasir setelah makan',
     ],
   },
   {
     icon: UserCog,
-    badge: 'Keamanan & Tim',
-    title: 'Hak Akses Staf Berjenjang & Proteksi PIN',
-    text: 'Bagi wewenang kerja antara Owner, Manager, Kasir, Waiter, dan Koki dapur. Mencegah kecurangan kas dan manipulasi transaksi.',
+    badge: 'Keamanan Kas',
+    title: 'Hak Akses Staf & Kunci PIN',
+    text: 'Batasi wewenang antara Owner, Kasir, dan Koki dapur agar uang kasir aman dan terhindar dari manipulasi nota.',
     points: [
-      'Login kilat kasir & kru menggunakan PIN 4 digit yang praktis',
-      'Proteksi pembatalan transaksi (void), refund, dan ubah pesanan',
-      'Diskon manual dan buka laci kas wajib otorisasi PIN supervisor',
-      'Catatan audit aktivitas staf tersimpan aman di log sistem',
+      'Login kilat tiap kru cukup menggunakan PIN 4 digit',
+      'Batalkan nota (void), refund, dan edit pesanan butuh PIN supervisor',
+      'Staf kasir tidak bisa mengintip laba bersih atau HPP bahan rahasia',
+      'Setiap pembukaan laci kas dan pembatalan transaksi tercatat di log',
     ],
   },
   {
     icon: Gift,
-    badge: 'Diskon & Promosi',
-    title: 'Voucher Promo, Diskon % & Buy 1 Get 1',
-    text: 'Tingkatkan omzet dengan berbagai skema promo menarik: potongan harga nominal, diskon persentase, paket bundling, atau kode voucher.',
+    badge: 'Diskon & Promo',
+    title: 'Voucher, Diskon %, & Bundling',
+    text: 'Bikin promo untuk jam-jam sepi: potongan nominal, diskon persentase, paket bundling hemat, atau kupon voucher belanja.',
     points: [
-      'Atur periode aktif promo dengan tanggal mulai dan kedaluwarsa otomatis',
-      'Syarat minimal nilai transaksi belanja atau kategori menu tertentu',
-      'Kupon voucher eksklusif dengan pembatasan kuota penukaran',
-      'Diskon teraplikasi seketika di kasir dan menu pemesanan QR meja',
+      'Atur masa berlaku promo dengan tanggal mulai dan selesai otomatis',
+      'Atur syarat minimal belanja atau khusus kategori menu tertentu',
+      'Kupon voucher dengan batas maksimal jumlah penukaran',
+      'Promo langsung terpotong otomatis di kasir dan menu QR meja',
     ],
   },
   {
     icon: Users,
-    badge: 'Pelanggan Setia',
-    title: 'Program Member & Loyalitas Poin Belanja',
-    text: 'Bangun basis pelanggan tetap restoran Anda. Kumpulkan nomor WhatsApp pelanggan dan berikan poin setiap kali mereka bersantap di outlet Anda.',
+    badge: 'Member Toko',
+    title: 'Program Member & Poin Belanja',
+    text: 'Bangun pelanggan tetap toko Anda. Simpan nomor WhatsApp pelanggan dan berikan poin setiap kali mereka jajan.',
     points: [
-      'Daftar member kilat cukup dengan nomor telepon saat pembayaran',
-      'Atur rasio poin (contoh: belanja Rp10.000 dapat 1 poin bernilai Rp100)',
-      'Poin langsung bisa dipotongkan pada pembayaran transaksi berikutnya',
-      'Riwayat total pesanan dan akumulasi belanja tiap pelanggan loyal',
+      'Daftar member dalam 5 detik hanya dengan nomor HP pembeli',
+      'Tentukan nilai poin (misal tiap belanja Rp10.000 dapat 1 poin Rp100)',
+      'Poin bisa langsung dipotongkan untuk belanja berikutnya',
+      'Pantau riwayat pelanggan yang paling sering datang ke outlet',
     ],
   },
   {
     icon: ChefHat,
-    badge: 'Operasional Dapur',
-    title: 'Auto-Routing Tiket Dapur & Notifikasi Suara',
-    text: 'Pastikan koki dapur dan barista bar menerima pesanan tanpa jeda. Sistem memisahkan tiket makanan dan minuman secara terorganisir.',
+    badge: 'Alur Dapur',
+    title: 'Pisah Tiket Makanan & Minuman',
+    text: 'Pesanan minuman otomatis dikirim ke barista bar, sedangkan makanan masuk ke koki dapur tanpa tercampur.',
     points: [
-      'Pemisahan pesanan otomatis: tiket minuman ke bar, makanan ke dapur masak',
-      'Alarm lonceng suara saat ada pesanan baru masuk dari kasir atau QR meja',
-      'Pilihan cetak rangkap untuk dapur koki dan pelayan penyaji makanan',
-      'Terhubung langsung dengan layar panggil antrean pesanan siap saji',
+      'Pemisahan tiket otomatis: minuman ke bar, makanan ke koki dapur',
+      'Bunyi lonceng notifikasi saat ada pesanan baru masuk',
+      'Bisa cetak rangkap untuk dapur masak dan pelayan pengantar',
+      'Sinkron dengan monitor status antrean siap saji',
     ],
   },
   {
     icon: Globe,
-    badge: 'Multi-Bahasa & Nada Brand',
-    title: 'Pilihan Bahasa & Penyesuaian Gaya Komunikasi',
-    text: 'Sesuaikan gaya bahasa antarmuka kasir dan menu pelanggan dengan konsep bisnis Anda: kafe santai gaul, resto formal, atau ramah wisatawan.',
+    badge: 'Pilihan Bahasa',
+    title: 'Bahasa Indonesia, Jaksel, & English',
+    text: 'Sesuaikan bahasa kasir dan menu tamu dengan konsep resto Anda: kafe santai kekinian, warkop akrab, atau resto turis.',
     points: [
-      'Tersedia 3 opsi: Bahasa Indonesia baku, Santai (Jaksel), & English',
-      'Kustomisasi kata sapaan dan kalimat peringatan sesuai konsep outlet',
-      'Tiap staf kasir atau koki bebas memilih bahasa di perangkat masing-masing',
-      'Memberikan sentuhan personal yang lebih akrab bagi pelanggan Anda',
+      'Tersedia 3 bahasa: Bahasa Indonesia baku, Santai (Jaksel), & English',
+      'Kalimat sapaan kasir dan nota mengikuti gaya bahasa yang dipilih',
+      'Tiap staf bisa memilih bahasa sendiri di layar perangkat masing-masing',
+      'Tampilan ramah wisatawan asing tanpa perlu terjemahan manual',
     ],
   },
 ]
 
 const FEATURES = [
-  { icon: Receipt, title: 'Kasir Cepat & Fleksibel', text: 'Makan di tempat atau take-away, bayar belakangan, pisah tagihan (split bill), dan gabung meja dalam hitungan detik.' },
-  { icon: ChefHat, title: 'Monitor Dapur (KDS)', text: 'Pesanan yang telah dibayar seketika tampil di layar koki dapur lengkap dengan tanda waktu dan tiket cetak otomatis.' },
-  { icon: Wallet, title: 'Audit Laci & Shift Kasir', text: 'Serah terima shift teratur. Sistem otomatis menghitung modal awal, omzet tunai harian, dan mendeteksi kas tekor.' },
-  { icon: Gift, title: 'Member, Poin & Voucher', text: 'Program loyalitas pelanggan berulang: kumpulkan poin tiap belanja dan gunakan kode promo diskon promosi.' },
-  { icon: QrCode, title: 'Pencatatan Multi-Metode', text: 'Mendukung uang tunai, QRIS statis/dinamis, kartu debit/kredit, serta transfer bank dengan pembukuan terpisah.' },
-  { icon: ClipboardList, title: 'Pajak PB1 & Service Charge', text: 'Pengaturan pajak restoran (PB1) dan service charge yang otomatis terhitung di nota kasir dan pembukuan bulanan.' },
-  { icon: UserCog, title: 'Hak Akses Staf Berjenjang', text: 'Owner, Manager, Kasir, Pelayan, dan Koki memiliki layar dan wewenang yang berbeda demi keamanan kas.' },
-  { icon: Boxes, title: 'Multi-Cabang Satu Akun', text: 'Kelola puluhan outlet atau cabang waralaba Anda dari satu akun pusat dengan data terisolasi.' },
-  { icon: Sparkles, title: 'POS Intelligence AI', text: 'Terintegrasi asisten AI (MCP): tanyakan omzet hari ini, HPP menu, atau stok kritis lewat chat langsung.' },
+  { icon: Receipt, title: 'Kasir Cepat & Praktis', text: 'Makan di tempat atau bungkus, bayar belakangan, pisah tagihan (split bill), dan gabung meja dalam hitungan detik.' },
+  { icon: ChefHat, title: 'Layar Dapur (KDS)', text: 'Pesanan lunas seketika tampil di monitor dapur koki dengan hitungan waktu masak dan opsi cetak tiket.' },
+  { icon: Wallet, title: 'Hitung Laci Kasir Anti-Tekor', text: 'Serah terima shift tercatat. Modal awal laci terpisah dari omzet, selisih uang langsung ketahuan.' },
+  { icon: Gift, title: 'Member, Poin & Promo', text: 'Kumpulkan nomor WhatsApp pembeli untuk program poin loyalitas dan berikan diskon otomatis.' },
+  { icon: QrCode, title: 'Semua Metode Pembayaran', text: 'Mendukung tunai uang pas/pecahan cepat, QRIS dinamis, kartu debit/kredit, dan transfer bank.' },
+  { icon: ClipboardList, title: 'Pajak PB1 & Service Charge', text: 'Hitungan pajak resto 10% dan servis otomatis tercatat di struk dan rekap bulanan.' },
+  { icon: UserCog, title: 'Kunci Akses PIN Karyawan', text: 'Owner, Kasir, dan Koki memiliki wewenang berbeda. Hapus item nota terkunci PIN supervisor.' },
+  { icon: Boxes, title: 'Multi-Outlet Satu Layar', text: 'Pantau dan kelola banyak cabang resto Anda dari satu akun pusat tanpa data tertukar.' },
+  { icon: Sparkles, title: 'Tanya Jawab Data via AI', text: 'Tanyakan omzet hari ini, menu paling laku, atau stok bahan yang menipis langsung lewat chat.' },
 ]
 
 const COMPARISON = [
   {
-    feature: 'Biaya Awal Investasi',
-    legacy: 'Jutaan rupiah untuk beli lisensi putus & paket server',
-    pos: 'Sewa bulanan fleksibel terjangkau, tanpa modal beli lisensi jutaan',
+    feature: 'Biaya Awal',
+    legacy: 'Beli lisensi putus jutaan rupiah + sewa server sendiri',
+    pos: 'Sewa bulanan terjangkau, tanpa modal beli lisensi jutaan',
   },
   {
-    feature: 'Potongan Komisi Penjualan',
-    legacy: 'Dikenakan potongan 1% - 2.5% dari total omzet transaksi',
-    pos: '0% Komisi (100% uang penjualan masuk ke rekening Anda)',
+    feature: 'Potongan Komisi',
+    legacy: 'Dipotong 1% - 2.5% dari total omzet transaksi Anda',
+    pos: '0% Komisi — 100% uang penjualan masuk utuh ke rekening Anda',
   },
   {
     feature: 'Perangkat Keras (Hardware)',
-    legacy: 'Terkunci hanya bisa di perangkat mesin kasir khusus mereka',
-    pos: 'Bebas pakai HP, Tablet Android, iPad, atau Laptop yang sudah ada',
+    legacy: 'Wajib beli mesin kasir proprietary khusus mereka',
+    pos: 'Bebas pakai HP Android, iPhone, iPad, atau laptop Anda',
   },
   {
-    feature: 'Printer Struk & Laci Kas',
-    legacy: 'Wajib membeli printer mahal dengan konektor spesifik',
-    pos: 'Kompatibel dengan semua printer Bluetooth thermal 58mm & 80mm standar',
+    feature: 'Printer Thermal & Laci',
+    legacy: 'Wajib beli printer khusus dengan konektor spesifik',
+    pos: 'Cocok untuk semua printer Bluetooth thermal 58mm & 80mm',
   },
   {
-    feature: 'Pembaruan Fitur (Update)',
-    legacy: 'Bayar biaya upgrade mahal atau teknisi datang ke lokasi',
-    pos: 'Update cloud otomatis gratis seumur masa sewa berlangsung',
+    feature: 'Pembaruan Fitur',
+    legacy: 'Bayar biaya upgrade mahal atau panggil teknisi ke toko',
+    pos: 'Update cloud otomatis gratis selama masa sewa aktif',
   },
   {
-    feature: 'Resiko Kerugian Bisnis',
-    legacy: 'Rugi modal besar jika konsep restoran berganti arah',
-    pos: 'Bisa berhenti sewa kapan saja tanpa biaya penalti atau denda',
+    feature: 'Fleksibilitas Kontrak',
+    legacy: 'Terkunci kontrak tahunan dan denda berhenti',
+    pos: 'Bisa berhenti sewa kapan saja tanpa biaya penalti',
   },
 ]
 
@@ -540,22 +540,22 @@ export function LandingPage() {
             <Reveal>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
                 <Sparkles className="size-3.5 text-amber-500" />
-                <span>Sewa Sistem POS Resto & Kafe Modern · 0% Komisi Transaksi</span>
+                <span>Sewa Aplikasi Kasir Kafe &amp; Resto · 0% Komisi</span>
               </div>
             </Reveal>
 
             <Reveal delay={0.05}>
               <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl md:leading-[1.15]">
-                Sistem Kasir & Dapur Restoran Lengkap, <br className="hidden sm:inline" />
+                Kasir Cepat, Dapur Rapi, Laporan Jelas. <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-primary via-primary/90 to-amber-600 bg-clip-text text-transparent">
-                  Tanpa Beban Modal Awal Jutaan Rupiah
+                  Tanpa Beban Modal Mesin Jutaan.
                 </span>
               </h1>
             </Reveal>
 
             <Reveal delay={0.1}>
               <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Solusi sewa bulanan all-in-one untuk kafe, resto, dan warung makan. Dilengkapi aplikasi kasir cepat, pemesanan QR meja mandiri, layar monitor dapur (KDS), kontrol resep bahan baku, dan asisten AI finansial.
+                Satu sistem untuk kasir, pesan mandiri QR meja, monitor dapur (KDS), dan resep bahan baku. Cukup sewa bulanan dan pakai HP atau tablet yang sudah ada, tanpa ikatan kontrak.
               </p>
             </Reveal>
 
@@ -712,17 +712,17 @@ export function LandingPage() {
           </ul>
         </section>
 
-        {/* ─── KENAPA LEBIH MENGUNTUNGKAN SEWA (KOMPARASI) ─── */}
+        {/* ─── KOMPARASI SEWA VS BELI KONVENSIONAL ─── */}
         <section id="komparasi" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
           <div className="text-center max-w-3xl mx-auto">
             <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              Analisis Efisiensi Biaya
+              Bandingkan Biaya
             </span>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Mengapa Menyewa Jauh Lebih Untung Dibanding Beli POS Konvensional?
+              Kenapa Menyewa Lebih Menguntungkan Dibanding Beli Mesin Kasir?
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Bandingkan resiko modal, fleksibilitas perangkat keras, dan keuntungan jangka panjang bagi kelangsungan kas restoran Anda.
+              Bandingkan modal awal, potongan komisi transaksi, dan kebebasan menggunakan perangkat yang sudah Anda miliki.
             </p>
           </div>
 
@@ -730,7 +730,7 @@ export function LandingPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/60 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-6 py-4">Kriteria Penilaian</th>
+                  <th scope="col" className="px-6 py-4">Perbandingan</th>
                   <th scope="col" className="px-6 py-4 text-rose-500">POS Konvensional / Beli Putus</th>
                   <th scope="col" className="px-6 py-4 text-primary bg-primary/5">Sewa Sistem {APP_NAME}</th>
                 </tr>
@@ -758,17 +758,17 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── PUSAT KENDALI & PENGATURAN OPERASIONAL RESTO (BACKOFFICE SUITE) ─── */}
+        {/* ─── PENGATURAN TOKO & BACKOFFICE ─── */}
         <section id="pengaturan" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
           <div className="text-center max-w-3xl mx-auto">
             <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              Pusat Kendali & Konfigurasi Toko
+              Pengaturan Toko
             </span>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Pengaturan Operasional Lengkap, Kendalikan Seluruh Aturan Resto Anda
+              Semua Pengaturan Outlet Bisa Anda Atur Sendiri
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Bukan sekadar mesin kasir biasa. Nikmati fleksibilitas penuh mengatur format struk thermal, pajak PB1, denah meja QR, hak akses tim, hingga program loyalitas member tanpa perlu bantuan teknisi.
+              Atur format struk thermal, pajak PB1, denah meja QR, pembagian tugas kasir dan koki, hingga poin member langsung dari dashboard tanpa perlu panggil teknisi.
             </p>
           </div>
 
@@ -875,18 +875,18 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── FITUR F&B RESTORAN LENGKAP ─── */}
+        {/* ─── FITUR OPERASIONAL RESTO ─── */}
         <section className="bg-muted/30 py-20">
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center max-w-2xl mx-auto">
               <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-                Fitur Lengkap Industri Kuliner
+                Alur Kerja Resto
               </span>
               <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Semua Kebutuhan Restoran Anda Sudah Tersedia
+                Dibuat Khusus untuk Kafe &amp; Rumah Makan
               </h2>
               <p className="mt-3 text-base text-muted-foreground">
-                Didesain khusus untuk alur kerja operasional F&B Indonesia: dari kasir, dapur, manajemen resep, hingga asisten AI.
+                Mencakup kebutuhan nyata operasional harian: kasir laci anti-tekor, tiket dapur otomatis, resep bahan baku, dan laporan laba bersih.
               </p>
             </div>
 
@@ -907,14 +907,14 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── CARA MEMULAI SEWA (3 LANGKAH) ─── */}
+        {/* ─── CARA MULAI SEWA (3 LANGKAH) ─── */}
         <section className="mx-auto max-w-6xl px-4 py-20">
           <div className="text-center max-w-2xl mx-auto">
             <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              Onboarding Cepat
+              Cara Mulai
             </span>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Mulai Pakai dalam 3 Langkah Sederhana
+              Siap Pakai dalam 3 Langkah Mudah
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
               Tidak butuh instalasi rumit ataupun teknisi datang. Semua berjalan langsung di browser perangkat Anda.
@@ -932,17 +932,17 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── KEAMANAN DATA & ISOLASI TENANT ─── */}
+        {/* ─── KEAMANAN DATA ─── */}
         <section id="keamanan" className="bg-muted/40 py-16 border-y border-border/60">
           <div className="mx-auto max-w-6xl px-4 text-center">
             <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              Keamanan Data & Privasi Terjamin
+              Keamanan Data
             </span>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-              Data Resep, Keuangan & Pelanggan Anda Sepenuhnya Terisolasi
+              Data Resep dan Laporan Keuangan Anda Aman
             </h2>
             <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
-              Setiap tenant penyewa terlindungi dengan standar keamanan cloud perbankan dan enkripsi data tingkat enterprise.
+              Data transaksi dan inventori terisolasi penuh di database. Staf kasir tidak bisa melihat laba bersih atau HPP resep rahasia Anda.
             </p>
 
             <div className="mt-10 grid gap-6 sm:grid-cols-3 max-w-4xl mx-auto">
@@ -1034,10 +1034,10 @@ export function LandingPage() {
               Mulai Sekarang
             </span>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-5xl">
-              Siap Modernisasi Kasir & Dapur Resto Anda?
+              Siap Bikin Kasir &amp; Dapur Resto Lebih Rapi?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-              Daftar sekarang dan nikmati masa uji coba gratis 14 hari penuh. Tanpa kartu kredit, tanpa kontrak komitmen.
+              Coba gratis 14 hari langsung di outlet Anda. Tanpa kartu kredit, tanpa kontrak mengikat, dan bisa berhenti sewa kapan saja.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -1048,7 +1048,7 @@ export function LandingPage() {
                   className: 'h-13 w-full px-8 text-base font-semibold shadow-xl shadow-primary/30 sm:w-auto',
                 })}
               >
-                Coba 14 Hari Gratis Sekarang
+                Coba 14 Hari Gratis
                 <ArrowRight className="ml-2 size-4" />
               </Link>
               <a
@@ -1062,7 +1062,7 @@ export function LandingPage() {
                 })}
               >
                 <MessageSquare className="mr-2 size-4 text-emerald-600 dark:text-emerald-400" />
-                Hubungi Konsultan Kami
+                Tanya-Tanya via WhatsApp
               </a>
             </div>
           </div>
