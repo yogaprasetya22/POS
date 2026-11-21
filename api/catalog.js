@@ -1,5 +1,9 @@
 import { allow, supabaseFor } from '../server/supabase.js'
 
+// In-memory cache 60 detik untuk mempercepat respon katalog publik
+const catalogMemoryCache = new Map()
+const CACHE_TTL_MS = 60_000
+
 // Produk diambil per 1.000 baris (batas bawaan PostgREST) supaya katalog besar tidak terpotong.
 async function allProducts(db, storeId) {
   const out = []
@@ -17,6 +21,12 @@ export default async function handler(req, res) {
   const slug = String(req.query?.slug || '').trim()
   if (!slug) return res.status(400).json({ success: false, error: 'slug wajib diisi' })
 
+  const cached = catalogMemoryCache.get(slug)
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120')
+    return res.status(200).json(cached.payload)
+  }
+
   const db = supabaseFor(req)
   const s = await db.from('stores').select('id, slug, name, wa_number, is_active, theme, buyer_template, logo_url, tagline').eq('slug', slug).maybeSingle()
   if (s.error) return res.status(500).json({ success: false, error: s.error.message })
@@ -31,6 +41,9 @@ export default async function handler(req, res) {
   const err = c.error ?? p.error ?? pr.error
   if (err) return res.status(500).json({ success: false, error: err.message })
 
+  const payload = { success: true, store: s.data, categories: c.data, products: p.data, promotions: pr.data }
+  catalogMemoryCache.set(slug, { at: Date.now(), payload })
+
   res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120')
-  res.status(200).json({ success: true, store: s.data, categories: c.data, products: p.data, promotions: pr.data })
+  res.status(200).json(payload)
 }

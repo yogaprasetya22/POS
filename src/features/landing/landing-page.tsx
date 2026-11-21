@@ -71,7 +71,7 @@ const SHOWCASE_TABS = [
     points: [
       'Tanpa download aplikasi, bekerja langsung di browser smartphone tamu',
       'Status stok menu otomatis sinkron (menu habis tidak bisa dipilih)',
-      'Dukungan catatan khusus pelanggan (mis. tanpa gula, pedas sedang)',
+      'Tiket pesanan & nomor antrean instan terbit di layar HP pelanggan',
       'Memangkas beban antrean kasir hingga 60% saat jam-jam sibuk',
     ],
     img: '/landing/pelanggan.webp',

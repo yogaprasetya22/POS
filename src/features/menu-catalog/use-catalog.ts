@@ -17,7 +17,7 @@ function getCatalogCache(by: 'slug' | 'id', value: string): Catalog | null {
   const mem = memoryCatalogCache.get(key)
   if (mem) return mem
   try {
-    const raw = sessionStorage.getItem(SESSION_CACHE_PREFIX + key)
+    const raw = sessionStorage.getItem(SESSION_CACHE_PREFIX + key) || localStorage.getItem(SESSION_CACHE_PREFIX + key)
     if (raw) {
       const parsed = JSON.parse(raw) as Catalog
       memoryCatalogCache.set(key, parsed)
@@ -38,6 +38,8 @@ function setCatalogCache(catalog: Catalog) {
     const str = JSON.stringify(catalog)
     sessionStorage.setItem(SESSION_CACHE_PREFIX + idKey, str)
     sessionStorage.setItem(SESSION_CACHE_PREFIX + slugKey, str)
+    localStorage.setItem(SESSION_CACHE_PREFIX + idKey, str)
+    localStorage.setItem(SESSION_CACHE_PREFIX + slugKey, str)
   } catch {
     // Abaikan jika quota penyimpanan penuh
   }
