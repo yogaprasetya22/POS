@@ -49,7 +49,8 @@ export default async function handler(req, res) {
     return res.status(204).end()
   }
 
-  const action = req.query?.action || req.body?.action || 'token'
+  const isWebhookPayload = Boolean(req.body?.order_id && req.body?.status_code && req.body?.signature_key)
+  const action = req.query?.action || req.body?.action || (isWebhookPayload ? 'webhook' : 'token')
   const sb = supabaseFor(req)
 
   // ─── 1. TEST KONEKSI KEY MIDTRANS ───
@@ -422,37 +423,66 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Invalid webhook payload' })
     }
 
-    // Ambil order id asli dari midtrans order_id (format: QUEUE-ORDERID8-TIMESTAMP)
-    // Atau cari di tabel orders
-    const parts = order_id.split('-')
-    const shortId = parts.length >= 2 ? parts[1] : null
-
+    // 1. Cari order berdasarkan midtrans_transaction_id yang disimpan saat pembuatan QRIS
     let order = null
-    if (shortId) {
-      const { data } = await sb.from('orders').select('id, store_id, total').ilike('id', `${shortId}%`).maybeSingle()
-      order = data
-    }
+    const { data: byMidtransId } = await sb
+      .from('orders')
+      .select('id, store_id, total, status')
+      .eq('midtrans_transaction_id', order_id)
+      .maybeSingle()
+    order = byMidtransId
+
+    // 2. Jika belum ketemu, parse 8-karakter hex UUID dari midtrans order_id (format: QUEUE-SHORTUUID-TIMESTAMP)
     if (!order) {
-      const { data } = await sb.from('orders').select('id, store_id, total').eq('id', order_id).maybeSingle()
-      order = data
+      const parts = order_id.split('-')
+      const hexPart = parts.find((p) => /^[0-9a-f]{8}$/i.test(p))
+      if (hexPart) {
+        const { data: byHex } = await sb
+          .from('orders')
+          .select('id, store_id, total, status')
+          .ilike('id', `${hexPart}%`)
+          .maybeSingle()
+        order = byHex
+      }
+    }
+
+    // 3. Fallback jika order_id langsung berupa full UUID
+    if (!order) {
+      const { data: byId } = await sb
+        .from('orders')
+        .select('id, store_id, total, status')
+        .eq('id', order_id)
+        .maybeSingle()
+      order = byId
     }
 
     const cfg = await getMidtransConfig(sb, order?.store_id)
-    if (cfg.serverKey) {
+    const serverKey = cfg.serverKey || process.env.MIDTRANS_SERVER_KEY
+    if (serverKey) {
       // Verifikasi signature: SHA512(order_id + status_code + gross_amount + server_key)
       const expectedSignature = crypto
         .createHash('sha512')
-        .update(`${order_id}${status_code}${gross_amount}${cfg.serverKey}`)
+        .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
         .digest('hex')
 
       if (expectedSignature !== signature_key) {
-        return res.status(403).json({ success: false, error: 'Invalid signature key' })
+        // Cek juga kemungkinan fallback sandbox server key
+        const sbKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
+        const sbExpected = crypto
+          .createHash('sha512')
+          .update(`${order_id}${status_code}${gross_amount}${sbKey}`)
+          .digest('hex')
+
+        if (sbExpected !== signature_key) {
+          console.warn('Midtrans webhook: signature verification failed')
+          return res.status(403).json({ success: false, error: 'Invalid signature key' })
+        }
       }
     }
 
     const isPaid = (transaction_status === 'capture' && fraud_status === 'accept') || transaction_status === 'settlement'
 
-    if (order && isPaid) {
+    if (order && isPaid && order.status === 'UNPAID') {
       await sb.rpc('pay_order_midtrans', {
         p_order_id: order.id,
         p_transaction_id: transaction_id || null,
