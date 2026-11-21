@@ -11,3 +11,4 @@ Sebelum menutup task atau membuat git commit:
 2. `bun run build` (tsc pass, bundle sukses)
 3. `bun run test` (semua unit test pass)
 4. `bun run mcp:test` (jika mengubah server MCP atau API)
+
