@@ -47,8 +47,11 @@ export function CheckoutPanel({
     orderId: string
     queueCode: string
     total: number
-    qrString: string
+    qrString?: string
     qrUrl?: string
+    snapToken?: string
+    clientKey?: string
+    isProduction?: boolean
     isFallback?: boolean
     notice?: string
   } | null>(null)
@@ -141,7 +144,7 @@ export function CheckoutPanel({
     if (payMethod === 'QRIS' && midtransConfig?.enabled) {
       try {
         const qrisRes = await createMidtransQris(created.id, storeId)
-        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url)) {
+        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url || qrisRes.snap_token)) {
           setBusy(false)
           setQrisData({
             orderId: created.id,
@@ -149,6 +152,9 @@ export function CheckoutPanel({
             total: created.total,
             qrString: qrisRes.qr_string || '',
             qrUrl: qrisRes.qr_url,
+            snapToken: qrisRes.snap_token,
+            clientKey: qrisRes.client_key || midtransConfig.clientKey,
+            isProduction: qrisRes.is_production ?? midtransConfig.isProduction,
             isFallback: qrisRes.is_fallback,
             notice: qrisRes.notice,
           })
@@ -252,6 +258,9 @@ export function CheckoutPanel({
           total={qrisData.total}
           qrString={qrisData.qrString}
           qrUrl={qrisData.qrUrl}
+          snapToken={qrisData.snapToken}
+          clientKey={qrisData.clientKey}
+          isProduction={qrisData.isProduction}
           isFallback={qrisData.isFallback}
           notice={qrisData.notice}
           storeId={storeId}

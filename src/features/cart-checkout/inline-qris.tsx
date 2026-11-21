@@ -3,7 +3,7 @@ import QRCode from 'qrcode'
 import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { rupiah } from '@shared/lib/utils'
-import { checkMidtransStatus } from '@shared/lib/midtrans'
+import { checkMidtransStatus, loadMidtransSnap } from '@shared/lib/midtrans'
 
 export function InlineQris({
   orderId,
@@ -11,6 +11,9 @@ export function InlineQris({
   total,
   qrString,
   qrUrl,
+  snapToken,
+  clientKey,
+  isProduction,
   isFallback,
   notice,
   storeId,
@@ -20,8 +23,11 @@ export function InlineQris({
   orderId: string
   queueCode: string
   total: number
-  qrString: string
+  qrString?: string
   qrUrl?: string
+  snapToken?: string
+  clientKey?: string
+  isProduction?: boolean
   isFallback?: boolean
   notice?: string
   storeId?: string
@@ -32,9 +38,47 @@ export function InlineQris({
   const [checking, setChecking] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [snapLoaded, setSnapLoaded] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(900) // 15 menit
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Inisialisasi Snap Embed untuk mode Production QRIS resmi Midtrans
+  useEffect(() => {
+    if (!snapToken || !clientKey) return
+    let active = true
+
+    loadMidtransSnap(clientKey, isProduction ?? true).then((loaded) => {
+      if (!active || !loaded) return
+      setSnapLoaded(true)
+      try {
+        if (window.snap?.embed) {
+          window.snap.embed(snapToken, {
+            embedId: 'snap-qris-embed-container',
+            onSuccess: () => {
+              setIsPaid(true)
+              setTimeout(() => onSuccess(), 1200)
+            },
+            onPending: () => {
+              // menunggu pembayaran
+            },
+            onError: (err: unknown) => {
+              console.error('Snap error:', err)
+            },
+            onClose: () => {
+              onBack()
+            },
+          })
+        }
+      } catch (err) {
+        console.error('Error embedding snap:', err)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [snapToken, clientKey, isProduction, onSuccess, onBack])
 
   // Generate QR Code data URL dari EMVCo qr_string
   useEffect(() => {
@@ -150,6 +194,31 @@ export function InlineQris({
         <p className="text-sm text-muted-foreground">
           Pesanan <span className="font-mono font-bold text-foreground">{queueCode}</span> lunas via QRIS Dinamis dan langsung diproses dapur.
         </p>
+      </div>
+    )
+  }
+
+  // Jika menggunakan Midtrans Snap Token (Production QRIS GoPay Resmi)
+  if (snapToken) {
+    return (
+      <div className="flex flex-col items-center text-center space-y-3 pb-4">
+        <div className="relative w-full overflow-hidden rounded-2xl border bg-white shadow-xs min-h-[520px]">
+          {!snapLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/80 p-4 text-center">
+              <Loader2 className="size-8 animate-spin text-primary" />
+              <p className="text-xs font-medium text-muted-foreground">Memuat QRIS GoPay Resmi…</p>
+            </div>
+          )}
+          <div id="snap-qris-embed-container" className="w-full min-h-[520px]" />
+        </div>
+
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline pt-1"
+        >
+          ← Kembali ke menu / ubah pesanan
+        </button>
       </div>
     )
   }

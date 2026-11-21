@@ -267,6 +267,59 @@ export default async function handler(req, res) {
     }
 
     try {
+      // 1. Jika mode Production: gunakan Midtrans Snap dengan enabled_payments: ['other_qris']
+      // Metode ini secara resmi mengaktifkan QRIS GoPay asli Production tanpa terhambat status 402 Core API
+      if (cfg.isProduction) {
+        const snapRes = await fetch(getSnapUrl(true), {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({
+            transaction_details: {
+              order_id: midtransOrderId,
+              gross_amount: Math.round(order.total),
+            },
+            enabled_payments: ['other_qris'],
+            customer_details: {
+              first_name: order.customer_name || 'Pelanggan',
+            },
+            item_details: [
+              {
+                id: order.id.slice(0, 8),
+                price: Math.round(order.total),
+                quantity: 1,
+                name: `Pesanan ${order.queue_code} (${order.order_type === 'DINE_IN' ? `Meja ${order.table_no || '-'}` : 'Bawa Pulang'})`.slice(0, 50),
+              },
+            ],
+          }),
+        })
+
+        const snapData = await snapRes.json()
+        if (snapRes.ok && snapData?.token) {
+          await sb.rpc('update_order_midtrans_session', {
+            p_id: order.id,
+            p_snap_token: snapData.token,
+            p_redirect_url: snapData.redirect_url,
+            p_transaction_id: midtransOrderId,
+            p_payment_type: 'qris',
+          })
+
+          return res.status(200).json({
+            success: true,
+            snap_token: snapData.token,
+            redirect_url: snapData.redirect_url,
+            client_key: cfg.clientKey,
+            is_production: true,
+            midtrans_order_id: midtransOrderId,
+            gross_amount: Math.round(order.total),
+            is_fallback: false,
+          })
+        }
+      }
+
       let response = await fetch(`${coreUrl}/v2/charge`, {
         method: 'POST',
         headers: {

@@ -32,7 +32,16 @@ declare global {
           onClose?: () => void
         },
       ) => void
-      embed?: (token: string, options: { embedId: string }) => void
+      embed?: (
+        token: string,
+        options: {
+          embedId: string
+          onSuccess?: (result: MidtransSnapResult) => void
+          onPending?: (result: MidtransSnapResult) => void
+          onError?: (result: unknown) => void
+          onClose?: () => void
+        },
+      ) => void
     }
   }
 }
@@ -84,6 +93,10 @@ export async function createMidtransQris(orderId: string, storeId?: string): Pro
   success: boolean
   qr_string?: string
   qr_url?: string
+  snap_token?: string
+  redirect_url?: string
+  client_key?: string
+  is_production?: boolean
   transaction_id?: string
   midtrans_order_id?: string
   gross_amount?: number
