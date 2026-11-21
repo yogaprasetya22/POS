@@ -33,6 +33,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Reveal } from '@shared/components/reveal'
+import { PosLogo } from '@shared/components/pos-logo'
 import { buttonVariants } from '@shared/components/ui/button'
 import { fetchStores } from '@shared/lib/api'
 
@@ -504,11 +505,8 @@ export function LandingPage() {
       {/* ─── STICKY HEADER ─── */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
-          <Link to="/" className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight">
-            <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
-              <Store className="size-4" />
-            </span>
-            <span>{APP_NAME}</span>
+          <Link to="/" className="group flex items-center transition-opacity hover:opacity-90">
+            <PosLogo size="md" subtitle={true} />
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex" aria-label="Menu navigasi">
@@ -1074,13 +1072,10 @@ export function LandingPage() {
       {/* ─── FOOTER ─── */}
       <footer className="border-t border-border bg-card py-12 text-sm text-muted-foreground">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 md:flex-row">
-          <div className="flex items-center gap-2 font-bold text-foreground">
-            <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Store className="size-3.5" />
-            </span>
-            <span>{APP_NAME}</span>
-            <span className="text-xs font-normal text-muted-foreground ml-2">
-              · Sistem Sewa Kasir & Dapur Restoran 0% Komisi
+          <div className="flex flex-wrap items-center gap-2.5 font-bold text-foreground">
+            <PosLogo size="sm" showText={true} />
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              · Sistem Sewa Kasir &amp; Dapur Restoran 0% Komisi
             </span>
           </div>
 

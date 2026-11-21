@@ -177,3 +177,4 @@ if __name__ == "__main__":
 
     if args.merge:
         merge_audio_to_videos()
+

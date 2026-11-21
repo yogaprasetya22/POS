@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="fav-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="fav-spark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#fav-bg)" />
+  <!-- Minimalist P + Cloche Mark -->
+  <rect x="8" y="7" width="4.5" height="18" rx="2.25" fill="#FFFFFF" />
+  <path d="M12 7 C 20 7, 24 10.5, 24 15 C 24 19.5, 20 22.5, 12 22.5 L 12 18 C 17 18, 19.5 16.5, 19.5 15 C 19.5 13, 17 11.5, 12 11.5 Z" fill="#FFFFFF" />
+  <circle cx="21" cy="9.5" r="2.2" fill="url(#fav-spark)" />
+</svg>
