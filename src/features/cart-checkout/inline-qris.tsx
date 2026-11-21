@@ -17,6 +17,7 @@ export function InlineQris({
   isFallback,
   notice,
   storeId,
+  initialSeconds = 300,
   onSuccess,
   onBack,
 }: {
@@ -31,6 +32,7 @@ export function InlineQris({
   isFallback?: boolean
   notice?: string
   storeId?: string
+  initialSeconds?: number
   onSuccess: () => void
   onBack: () => void
 }) {
@@ -39,7 +41,7 @@ export function InlineQris({
   const [isPaid, setIsPaid] = useState(false)
   const [copied, setCopied] = useState(false)
   const [snapLoaded, setSnapLoaded] = useState(false)
-  const [secondsLeft, setSecondsLeft] = useState(900) // 15 menit
+  const [secondsLeft, setSecondsLeft] = useState(initialSeconds) // default 5 menit (300 detik)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -185,6 +187,21 @@ export function InlineQris({
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
   const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+  if (secondsLeft <= 0) {
+    return (
+      <div className="py-10 text-center space-y-4">
+        <Clock className="mx-auto size-16 text-destructive/80" />
+        <h3 className="text-xl font-extrabold text-foreground">Batas Waktu Pembayaran Habis</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+          Batas waktu pembayaran 5 menit untuk pesanan <span className="font-mono font-bold text-foreground">{queueCode}</span> telah berakhir.
+        </p>
+        <Button onClick={onBack} variant="outline" className="mt-2 text-xs font-semibold">
+          Kembali ke Menu
+        </Button>
+      </div>
+    )
+  }
 
   if (isPaid) {
     return (

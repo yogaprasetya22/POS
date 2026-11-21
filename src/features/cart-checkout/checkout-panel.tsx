@@ -323,6 +323,7 @@ export function CheckoutPanel({
           isFallback={qrisData.isFallback}
           notice={qrisData.notice}
           storeId={storeId}
+          initialSeconds={300}
           onSuccess={() => {
             updateMyOrder(storeId, qrisData.orderId, { is_unpaid: false })
             setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: true })

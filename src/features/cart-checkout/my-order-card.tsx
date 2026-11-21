@@ -23,9 +23,10 @@ const StatusSchema = z.object({
 type Status = z.infer<typeof StatusSchema>
 
 const POLL_MS = 10_000
+const COOLDOWN_SECONDS = 300 // 5 menit
 
 type View = { tone: 'wait' | 'paid' | 'ready' | 'done' | 'off'; title: string; text: string }
-function viewOf(status: string | undefined, payMethod?: 'QRIS' | 'CASHIER'): View {
+function viewOf(status: string | undefined, payMethod?: 'QRIS' | 'CASHIER', secondsLeft?: number): View {
   switch (status) {
     case 'IN_KITCHEN':
       return { tone: 'paid', title: 'Sedang disiapkan', text: 'Sudah dibayar. Tunggu sebentar ya' }
@@ -39,6 +40,9 @@ function viewOf(status: string | undefined, payMethod?: 'QRIS' | 'CASHIER'): Vie
     case 'REFUNDED':
       return { tone: 'off', title: 'Dibatalkan', text: 'Pesan lagi, atau tanya kasir' }
     default:
+      if (typeof secondsLeft === 'number' && secondsLeft <= 0) {
+        return { tone: 'off', title: 'Batas Waktu Habis', text: 'Melebihi batas 5 menit. Silakan pesan ulang' }
+      }
       if (payMethod === 'QRIS') {
         return { tone: 'wait', title: 'Menunggu Pembayaran QRIS', text: 'Ketuk untuk membuka kode QRIS atau bayar di kasir' }
       }
@@ -182,12 +186,36 @@ function OrderStatusCard({
     }
   }
 
-  const v = viewOf(info?.status, saved.pay_method)
+  const isUnpaid = !info || info.status === 'UNPAID'
+
+  // Hitung mundur cooldown 5 menit sejak pesanan dibuat
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    const elapsed = Math.floor((Date.now() - saved.at) / 1000)
+    return Math.max(0, COOLDOWN_SECONDS - elapsed)
+  })
+
+  useEffect(() => {
+    if (!isUnpaid || secondsLeft <= 0) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - saved.at) / 1000)
+      const remaining = Math.max(0, COOLDOWN_SECONDS - elapsed)
+      setSecondsLeft(remaining)
+      if (remaining <= 0) {
+        clearInterval(interval)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isUnpaid, saved.at, secondsLeft])
+
+  const minutes = Math.floor(secondsLeft / 60)
+  const seconds = secondsLeft % 60
+  const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+  const v = viewOf(info?.status, saved.pay_method, isUnpaid ? secondsLeft : undefined)
   const t = TONE[v.tone]
   const Icon = ICON[v.tone]
   const place = info?.order_type === 'TAKEAWAY' ? 'Bawa pulang' : info?.table_no ? `Meja ${info.table_no}` : null
   const items = info?.items ?? []
-  const isUnpaid = !info || info.status === 'UNPAID'
 
   return (
     <section aria-live="polite">
@@ -204,7 +232,13 @@ function OrderStatusCard({
           <span className="block truncate text-[17px] font-extrabold leading-snug">
             <span className="font-mono">{saved.queue_code}</span> · {v.title}
           </span>
-          <span className={`block truncate text-[15px] ${t.sub}`}>{failed && !info ? 'Mengecek status…' : v.text}</span>
+          <span className={`block truncate text-[15px] ${t.sub}`}>
+            {failed && !info
+              ? 'Mengecek status…'
+              : isUnpaid && secondsLeft > 0
+                ? `Sisa waktu bayar: ${timeFormatted} · Ketuk untuk bayar QRIS`
+                : v.text}
+          </span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
           <span className="text-base font-extrabold tabular-nums">{rupiah(info?.total ?? saved.total)}</span>
@@ -226,32 +260,52 @@ function OrderStatusCard({
           )}
 
           {isUnpaid && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20 space-y-2">
+            <div className={`rounded-xl border p-3 space-y-2.5 ${
+              secondsLeft > 0
+                ? 'border-amber-300 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/20'
+                : 'border-destructive/30 bg-destructive/10 dark:border-destructive/40 dark:bg-destructive/20'
+            }`}>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                  <Clock className="size-3.5 text-amber-600" /> Belum Dibayar
+                <span className={`font-bold flex items-center gap-1.5 ${
+                  secondsLeft > 0 ? 'text-amber-900 dark:text-amber-200' : 'text-destructive font-bold'
+                }`}>
+                  <Clock className={`size-3.5 ${secondsLeft > 0 ? 'text-amber-600 animate-pulse' : 'text-destructive'}`} />
+                  {secondsLeft > 0 ? 'Belum Dibayar' : 'Batas Waktu Pembayaran Habis'}
                 </span>
-                <span className="text-muted-foreground">Scan QRIS atau bayar di kasir</span>
+                {secondsLeft > 0 ? (
+                  <span className="font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-900/40 px-2 py-0.5 rounded-md">
+                    Sisa waktu {timeFormatted}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold text-destructive">Kedaluwarsa (5 menit)</span>
+                )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={loadingQris}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void handleOpenQris()
-                  }}
-                  className="h-9 px-3.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {loadingQris ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <QrCode className="size-3.5" />
-                  )}
-                  Buka Kode QRIS
-                </Button>
-              </div>
+
+              {secondsLeft > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={loadingQris}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleOpenQris()
+                    }}
+                    className="h-9 px-3.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {loadingQris ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <QrCode className="size-3.5" />
+                    )}
+                    Buka Kode QRIS ({timeFormatted})
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Batas waktu pembayaran 5 menit telah berakhir. Silakan batalkan pesanan ini dan buat pesanan baru.
+                </p>
+              )}
             </div>
           )}
 
@@ -296,6 +350,7 @@ function OrderStatusCard({
             isFallback={qrisData.isFallback}
             notice={qrisData.notice}
             storeId={storeId}
+            initialSeconds={secondsLeft}
             onSuccess={() => {
               setQrisOpen(false)
               void rpc('public_order_status', { p_id: saved.id }, { asPublic: true }).then(({ data }) => {
