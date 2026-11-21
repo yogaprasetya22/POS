@@ -298,7 +298,7 @@ async function run() {
 
     await page.goto('http://localhost:5199/admin/stok');
     // Tunggu sampai teks daftar bahan muncul
-    await page.waitForSelector('text=Semua bahan, text=Stok bahan, text=Unduh template', { timeout: 20000 });
+    await page.locator('text=Semua bahan').waitFor({ timeout: 20000 });
     // Pastikan skeleton 0!
     await page.waitForFunction(() => document.querySelectorAll('.animate-pulse').length === 0, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(2000);
