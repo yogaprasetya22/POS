@@ -88,6 +88,8 @@ export async function createMidtransQris(orderId: string, storeId?: string): Pro
   midtrans_order_id?: string
   gross_amount?: number
   expiry_time?: string
+  is_fallback?: boolean
+  notice?: string
   error?: string
 }> {
   try {

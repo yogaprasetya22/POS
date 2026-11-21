@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { CheckCircle2, Clock, Download, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { rupiah } from '@shared/lib/utils'
 import { checkMidtransStatus } from '@shared/lib/midtrans'
@@ -11,6 +11,8 @@ export function InlineQris({
   total,
   qrString,
   qrUrl,
+  isFallback,
+  notice,
   storeId,
   onSuccess,
   onBack,
@@ -20,6 +22,8 @@ export function InlineQris({
   total: number
   qrString: string
   qrUrl?: string
+  isFallback?: boolean
+  notice?: string
   storeId?: string
   onSuccess: () => void
   onBack: () => void
@@ -27,6 +31,7 @@ export function InlineQris({
   const [qrDataUrl, setQrDataUrl] = useState<string>(qrUrl || '')
   const [checking, setChecking] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(900) // 15 menit
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
@@ -122,6 +127,17 @@ export function InlineQris({
     document.body.removeChild(a)
   }
 
+  const handleCopyQrString = async () => {
+    if (!qrString) return
+    try {
+      await navigator.clipboard.writeText(qrString)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+    }
+  }
+
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
   const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
@@ -187,6 +203,39 @@ export function InlineQris({
           <ShieldCheck className="size-3.5" /> Verifikasi Otomatis
         </span>
       </div>
+
+      {/* Notice jika fallback ke QRIS Sandbox simulator */}
+      {isFallback && (
+        <div className="w-full max-w-xs rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-left text-[11px] text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-1.5 font-bold">
+            <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <span>Mode Uji Coba (QRIS Sandbox)</span>
+          </div>
+          <p className="mt-1 text-[10.5px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+            {notice || 'Channel QRIS Production di Midtrans masih menunggu aktivasi approval. Aplikasi GoPay asli di HP akan menolak kode sandbox.'}
+          </p>
+          <div className="mt-2.5 flex items-center gap-2">
+            <a
+              href="https://simulator.sandbox.midtrans.com/qris/index"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-[10.5px] font-bold text-white shadow-xs hover:bg-amber-700 transition"
+            >
+              Buka Simulator Midtrans <ExternalLink className="size-3" />
+            </a>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyQrString}
+              className="h-7 px-2 text-[10.5px] font-medium border-amber-500/40 bg-background/50 hover:bg-background"
+            >
+              {copied ? <Check className="size-3 mr-1 text-emerald-600" /> : <Copy className="size-3 mr-1" />}
+              {copied ? 'Tersalin' : 'Salin Kode'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Keterangan e-wallet & bank */}
       <p className="max-w-xs text-[11px] text-muted-foreground leading-relaxed">

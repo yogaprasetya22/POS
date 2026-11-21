@@ -43,7 +43,15 @@ export function CheckoutPanel({
   const [busy, setBusy] = useState(false)
   const [payMethod, setPayMethod] = useState<'QRIS' | 'CASHIER'>('QRIS')
   const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
-  const [qrisData, setQrisData] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string } | null>(null)
+  const [qrisData, setQrisData] = useState<{
+    orderId: string
+    queueCode: string
+    total: number
+    qrString: string
+    qrUrl?: string
+    isFallback?: boolean
+    notice?: string
+  } | null>(null)
   const [done, setDone] = useState<{ queue_code: string; total: number; isPaid?: boolean } | null>(null)
   const [inputCode, setInputCode] = useState('')
   const [appliedCode, setAppliedCode] = useState<string | null>(null)
@@ -141,6 +149,8 @@ export function CheckoutPanel({
             total: created.total,
             qrString: qrisRes.qr_string || '',
             qrUrl: qrisRes.qr_url,
+            isFallback: qrisRes.is_fallback,
+            notice: qrisRes.notice,
           })
           return
         } else {
@@ -242,6 +252,8 @@ export function CheckoutPanel({
           total={qrisData.total}
           qrString={qrisData.qrString}
           qrUrl={qrisData.qrUrl}
+          isFallback={qrisData.isFallback}
+          notice={qrisData.notice}
           storeId={storeId}
           onSuccess={() => {
             clear()
