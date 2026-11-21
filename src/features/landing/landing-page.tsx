@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   Boxes,
-  Calculator,
   Check,
   CheckCircle2,
   ChefHat,
@@ -37,9 +36,6 @@ import { fetchStores } from '@shared/lib/api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME || 'POS Resto'
 const WA_SALES_LINK = 'https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20tertarik%20konsultasi%20sewa%20sistem%20POS%20untuk%20restoran%2Fkafe%20saya.'
-
-const formatRp = (num: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num)
 
 const QUICK = [
   { icon: Smartphone, text: 'Bisa di HP, iPad, Tablet Android & Laptop' },
@@ -247,7 +243,7 @@ const COMPARISON = [
   {
     feature: 'Biaya Awal Investasi',
     legacy: 'Jutaan rupiah untuk beli lisensi putus & paket server',
-    pos: 'Mulai Rp 99.000/bln (Sewa fleksibel, tanpa modal besar)',
+    pos: 'Sewa bulanan fleksibel terjangkau, tanpa modal beli lisensi jutaan',
   },
   {
     feature: 'Potongan Komisi Penjualan',
@@ -273,66 +269,6 @@ const COMPARISON = [
     feature: 'Resiko Kerugian Bisnis',
     legacy: 'Rugi modal besar jika konsep restoran berganti arah',
     pos: 'Bisa berhenti sewa kapan saja tanpa biaya penalti atau denda',
-  },
-]
-
-const PRICING_PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter Resto',
-    badge: 'Kedai & Warung',
-    desc: 'Pilihan hemat untuk usaha kuliner pemula, warung kopi, booth takeaway, atau cloud kitchen tunggal.',
-    monthlyPrice: 99_000,
-    annualPrice: 79_000,
-    features: [
-      '1 Outlet / Toko aktif',
-      '1 Akun Kasir + 1 Akun Dapur',
-      'Pemesanan QR Meja Mandiri tanpa batas',
-      'Cetak struk thermal 58mm / 80mm',
-      'Laporan omzet harian & bulanan',
-      'Dukungan via WhatsApp Chat',
-    ],
-    ctaText: 'Pilih Paket Starter',
-    popular: false,
-  },
-  {
-    id: 'pro',
-    name: 'Pro Resto',
-    badge: 'Paling Diminati',
-    desc: 'Solusi lengkap untuk kafe, resto keluarga, dan bistro dengan kebutuhan kontrol stok bahan dan multi-staf.',
-    monthlyPrice: 189_000,
-    annualPrice: 149_000,
-    features: [
-      '1 Outlet Utama + Bebas Meja',
-      'Kasir & Staf Pelayan tak terbatas',
-      'Layar Dapur KDS real-time monitor',
-      'Manajemen Resep & Potong Stok Otomatis',
-      'Audit Shift Kasir & Deteksi Kas Tekor',
-      'Fitur POS Intelligence AI (MCP Analysis)',
-      'Program Member, Poin & Voucher Promo',
-      'Prioritas Dukungan Teknis Fast Response',
-    ],
-    ctaText: 'Sewa Paket Pro (Rekomendasi)',
-    popular: true,
-  },
-  {
-    id: 'multi',
-    name: 'Multi-Outlet',
-    badge: 'Waralaba & Cabang',
-    desc: 'Untuk pemilik bisnis dengan banyak cabang restoran yang membutuhkan laporan konsolidasi pusat terintegrasi.',
-    monthlyPrice: 349_000,
-    annualPrice: 279_000,
-    features: [
-      'Hingga 5 Outlet Resto (Bisa tambah)',
-      'Seluruh Fitur Paket Pro di tiap outlet',
-      'Laporan Konsolidasi Omzet Multi-Cabang',
-      'Manajemen Transfer Stok Antar Gudang',
-      'Audit log aktivitas & proteksi anti-fraud',
-      'Akses API Webhook & Integrasi Khusus',
-      'Pendampingan Onboarding & Setup Menu',
-    ],
-    ctaText: 'Hubungi Sales Multi-Cabang',
-    popular: false,
   },
 ]
 
@@ -515,88 +451,10 @@ function ShowcaseMedia({
   return <BrowserFrame>{content}</BrowserFrame>
 }
 
-/** Kalkulator Penghematan Biaya Sewa POS vs Sistem Berkomisi */
-function SavingsCalculator() {
-  const [revenue, setRevenue] = useState(60_000_000)
-  const legacyRate = 0.02 // Rata-rata komisi kompetitor 2%
-  const monthlyCostOther = Math.round(revenue * legacyRate)
-  const ourRentalCost = 189_000 // Paket Pro Resto
-  const monthlySavings = Math.max(0, monthlyCostOther - ourRentalCost)
-  const annualSavings = monthlySavings * 12
-
-  return (
-    <div className="mx-auto mt-12 max-w-4xl rounded-3xl border border-primary/20 bg-gradient-to-b from-card to-card/60 p-6 shadow-xl shadow-primary/5 sm:p-10">
-      <div className="flex flex-col gap-8 md:flex-row md:items-center">
-        <div className="flex-1 space-y-4 text-left">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            <Calculator className="size-3.5" />
-            <span>Kalkulator Efisiensi Biaya</span>
-          </div>
-          <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Hitung Berapa Uang yang Anda Hemat dengan Sewa POS 0% Komisi
-          </h3>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Sistem POS lain memotong 1.5% hingga 2.5% dari setiap rupiah yang masuk ke restoran Anda. Dengan skema sewa flat tanpa komisi, omzet Anda 100% menjadi hak Anda.
-          </p>
-
-          <div className="pt-2">
-            <div className="flex items-center justify-between text-sm font-semibold">
-              <span className="text-muted-foreground">Estimasi Omzet Resto Anda / Bulan:</span>
-              <span className="text-lg font-extrabold text-primary">{formatRp(revenue)}</span>
-            </div>
-            <input
-              type="range"
-              min={15_000_000}
-              max={250_000_000}
-              step={5_000_000}
-              value={revenue}
-              onChange={(e) => setRevenue(Number(e.target.value))}
-              aria-label="Estimasi Omzet Resto per Bulan"
-              className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
-            />
-            <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-              <span>Rp 15 Juta</span>
-              <span>Rp 120 Juta</span>
-              <span>Rp 250 Juta</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full md:w-80 rounded-2xl border border-border/80 bg-background/80 p-6 text-left shadow-inner">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perbandingan Biaya Bulanan</span>
-
-          <div className="mt-4 space-y-3 pb-4 border-b border-border/80 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">POS Lain (Komisi 2%):</span>
-              <span className="font-semibold text-rose-500">{formatRp(monthlyCostOther)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Sewa POS Pro (0% Komisi):</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Rp 189.000</span>
-            </div>
-          </div>
-
-          <div className="pt-4 space-y-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Anda Menghemat Bersih:</span>
-            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {formatRp(monthlySavings)}
-              <span className="text-xs font-normal text-muted-foreground"> / bulan</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground/90 pt-1">
-              Atau <strong className="text-foreground">{formatRp(annualSavings)}/tahun</strong> yang bisa Anda alihkan untuk modal bahan baku atau bonus staf.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function LandingPage() {
   const [activeTab, setActiveTab] = useState('kasir')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
   const [settingsMediaMode, setSettingsMediaMode] = useState<'video' | 'image'>('video')
-  const [isAnnual, setIsAnnual] = useState(false)
   const [demoStores, setDemoStores] = useState<StoreLink[]>([])
 
   useEffect(() => {
@@ -623,12 +481,10 @@ export function LandingPage() {
             <span>{APP_NAME}</span>
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex" aria-label="Menu navigasi">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex" aria-label="Menu navigasi">
             <a href="#fitur" className="transition-colors hover:text-foreground">Fitur Resto</a>
             <a href="#pengaturan" className="transition-colors hover:text-foreground">Pengaturan Toko</a>
             <a href="#komparasi" className="transition-colors hover:text-foreground">Keunggulan Sewa</a>
-            <a href="#kalkulator" className="transition-colors hover:text-foreground">Kalkulator Hemat</a>
-            <a href="#paket" className="transition-colors hover:text-foreground">Paket Sewa</a>
             <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
           </nav>
 
@@ -874,11 +730,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── KALKULATOR PENGHEMATAN BIAYA SEWA ─── */}
-        <section id="kalkulator" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-8">
-          <SavingsCalculator />
-        </section>
-
         {/* ─── PUSAT KENDALI & PENGATURAN OPERASIONAL RESTO (BACKOFFICE SUITE) ─── */}
         <section id="pengaturan" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
           <div className="text-center max-w-3xl mx-auto">
@@ -1053,122 +904,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── TABEL PAKET SEWA (PRICING) ─── */}
-        <section id="paket" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="rounded-full bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary uppercase tracking-wider">
-              Pilihan Paket Sewa Transparan
-            </span>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Biaya Sewa Terjangkau, Tanpa Potongan Omzet
-            </h2>
-            <p className="mt-3 text-base text-muted-foreground">
-              Semua paket sudah termasuk server cloud berkecepatan tinggi, backup otomatis harian, dan gratis update fitur berkala.
-            </p>
-
-            {/* Billing Toggle: Bulanan vs Tahunan */}
-            <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-border bg-muted/60 p-1.5">
-              <button
-                type="button"
-                onClick={() => setIsAnnual(false)}
-                className={`rounded-full px-5 py-2 text-xs font-bold transition-all sm:text-sm ${
-                  !isAnnual ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Bayar Bulanan
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAnnual(true)}
-                className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all sm:text-sm ${
-                  isAnnual ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <span>Bayar Tahunan</span>
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
-                  Hemat 2 Bulan
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-14 grid gap-8 lg:grid-cols-3">
-            {PRICING_PLANS.map((plan) => {
-              const price = isAnnual ? plan.annualPrice : plan.monthlyPrice
-              return (
-                <div
-                  key={plan.id}
-                  className={`relative flex flex-col justify-between rounded-3xl border p-8 transition-all ${
-                    plan.popular
-                      ? 'border-primary bg-card shadow-2xl shadow-primary/10 ring-2 ring-primary'
-                      : 'border-border bg-card/60 shadow-sm hover:border-primary/40'
-                  }`}
-                >
-                  {plan.popular && (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-extrabold text-primary-foreground shadow-md shadow-primary/30 uppercase tracking-wider">
-                      {plan.badge}
-                    </span>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-bold tracking-tight text-foreground">{plan.name}</h3>
-                      {!plan.popular && (
-                        <span className="rounded-md bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                          {plan.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{plan.desc}</p>
-
-                    <div className="mt-6 border-y border-border/80 py-5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold tracking-tight sm:text-4xl text-foreground">
-                          {formatRp(price)}
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground">/ bulan</span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {isAnnual ? 'Ditagih tahunan (hemat s.d 20%)' : 'Ditagih tiap bulan, batal kapan saja'}
-                      </p>
-                    </div>
-
-                    <ul className="mt-6 space-y-3">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5 text-xs sm:text-sm">
-                          <Check className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                          <span className="text-foreground/90">{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-8 pt-4">
-                    <Link
-                      to="/register"
-                      className={buttonVariants({
-                        variant: plan.popular ? 'default' : 'outline',
-                        className: `w-full h-11 text-sm font-semibold ${
-                          plan.popular ? 'shadow-md shadow-primary/25' : 'border-2'
-                        }`,
-                      })}
-                    >
-                      {plan.ctaText}
-                    </Link>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            Butuh sewa khusus lebih dari 20 outlet waralaba atau fitur custom?{' '}
-            <a href={WA_SALES_LINK} target="_blank" rel="noreferrer" className="font-semibold text-primary underline">
-              Hubungi Tim Enterprise Sales via WhatsApp
-            </a>
-          </p>
-        </section>
-
         {/* ─── KEAMANAN DATA & ISOLASI TENANT ─── */}
         <section id="keamanan" className="bg-muted/40 py-16 border-y border-border/60">
           <div className="mx-auto max-w-6xl px-4 text-center">
@@ -1323,8 +1058,6 @@ export function LandingPage() {
             <a href="#fitur" className="hover:text-foreground">Fitur</a>
             <a href="#pengaturan" className="hover:text-foreground">Pengaturan</a>
             <a href="#komparasi" className="hover:text-foreground">Komparasi Sewa</a>
-            <a href="#kalkulator" className="hover:text-foreground">Kalkulator Hemat</a>
-            <a href="#paket" className="hover:text-foreground">Paket Harga</a>
             <a href="#faq" className="hover:text-foreground">FAQ</a>
             <Link to="/privasi" className="hover:text-foreground">Kebijakan Privasi</Link>
             <Link to="/syarat" className="hover:text-foreground">Ketentuan Layanan</Link>
