@@ -144,16 +144,13 @@ export function CheckoutPanel({
           })
           return
         } else {
-          setError(qrisRes.error || 'Gagal memuat QRIS dinamis. Silakan bayar di kasir.')
           setBusy(false)
-          clear()
-          setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+          setError(qrisRes.error || 'Gagal memuat QRIS dinamis. Silakan coba lagi atau pilih opsi Bayar di Kasir.')
           return
         }
-      } catch {
+      } catch (err) {
         setBusy(false)
-        clear()
-        setDone({ queue_code: created.queue_code, total: created.total, isPaid: false })
+        setError(err instanceof Error ? err.message : 'Terjadi kendala saat memuat QRIS. Silakan pilih opsi Bayar di Kasir.')
         return
       }
     }

@@ -266,7 +266,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const response = await fetch(`${coreUrl}/v2/charge`, {
+      let response = await fetch(`${coreUrl}/v2/charge`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -276,7 +276,33 @@ export default async function handler(req, res) {
         body: JSON.stringify(payload),
       })
 
-      const chargeData = await response.json()
+      let chargeData = await response.json()
+      let isFallback = false
+      let noticeMsg = ''
+
+      // Jika Production gagal karena channel QRIS belum aktif di akun Midtrans merchant,
+      // fallback otomatis ke Sandbox agar QRIS tetap tampil di modal pembelian
+      if (!chargeData?.qr_string && (chargeData?.status_code === '402' || String(chargeData?.status_message).toLowerCase().includes('payment channel is not activated'))) {
+        const sandboxKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
+        const sbAuth = 'Basic ' + Buffer.from(`${sandboxKey}:`).toString('base64')
+        const sbRes = await fetch('https://api.sandbox.midtrans.com/v2/charge', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: sbAuth,
+          },
+          body: JSON.stringify(payload),
+        })
+        const sbData = await sbRes.json()
+        if (sbRes.ok && sbData?.qr_string) {
+          chargeData = sbData
+          response = sbRes
+          isFallback = true
+          noticeMsg = 'Akun Midtrans Production sedang menunggu aktivasi channel QRIS di dashboard. Menampilkan QRIS simulasi aktif.'
+        }
+      }
+
       if (!response.ok || !chargeData?.qr_string) {
         let msg = chargeData?.error_messages ? chargeData.error_messages.join(', ') : (chargeData?.status_message || chargeData?.message || 'Gagal membuat QRIS Midtrans')
         if (msg.toLowerCase().includes('payment channel is not activated')) {
@@ -302,6 +328,8 @@ export default async function handler(req, res) {
         midtrans_order_id: midtransOrderId,
         gross_amount: Math.round(order.total),
         expiry_time: chargeData.expiry_time,
+        is_fallback: isFallback,
+        notice: noticeMsg,
       })
     } catch (err) {
       return res.status(500).json({
@@ -338,10 +366,24 @@ export default async function handler(req, res) {
     const authHeader = 'Basic ' + Buffer.from(`${cfg.serverKey}:`).toString('base64')
 
     try {
-      const response = await fetch(`${coreUrl}/v2/${targetOrderId}/status`, {
+      let response = await fetch(`${coreUrl}/v2/${targetOrderId}/status`, {
         headers: { Accept: 'application/json', Authorization: authHeader },
       })
-      const statusData = await response.json()
+      let statusData = await response.json()
+
+      // Jika 404 di Production dan transaksi berasal dari simulasi fallback Sandbox:
+      if ((!response.ok || statusData?.status_code === '404') && cfg.isProduction) {
+        const sbKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
+        const sbAuth = 'Basic ' + Buffer.from(`${sbKey}:`).toString('base64')
+        const sbRes = await fetch(`https://api.sandbox.midtrans.com/v2/${targetOrderId}/status`, {
+          headers: { Accept: 'application/json', Authorization: sbAuth },
+        })
+        const sbData = await sbRes.json()
+        if (sbRes.ok && sbData?.transaction_status) {
+          response = sbRes
+          statusData = sbData
+        }
+      }
 
       const txStatus = statusData.transaction_status
       const fraudStatus = statusData.fraud_status
