@@ -324,7 +324,7 @@ export function InlineQris({
           </div>
 
           <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
-            {notice || 'Salin URL QR di bawah, lalu paste di form Simulator Midtrans untuk simulasi scan bayar:'}
+            {notice || 'Salin URL QR di bawah, lalu paste di form Simulator Midtrans untuk simulasi scan bayar (PIN uji coba: 123456):'}
           </p>
 
           <div className="flex flex-col gap-1.5 pt-0.5">

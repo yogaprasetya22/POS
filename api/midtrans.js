@@ -252,7 +252,7 @@ export default async function handler(req, res) {
         gross_amount: Math.round(order.total),
       },
       qris: {
-        acquirer: 'gopay',
+        acquirer: cfg.isProduction ? 'gopay' : 'airpay shopee',
       },
       customer_details: {
         first_name: order.customer_name || 'Pelanggan',
@@ -340,6 +340,7 @@ export default async function handler(req, res) {
       if (!chargeData?.qr_string && (chargeData?.status_code === '402' || String(chargeData?.status_message).toLowerCase().includes('payment channel is not activated'))) {
         const sandboxKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
         const sbAuth = 'Basic ' + Buffer.from(`${sandboxKey}:`).toString('base64')
+        const sbPayload = { ...payload, qris: { acquirer: 'airpay shopee' } }
         const sbRes = await fetch('https://api.sandbox.midtrans.com/v2/charge', {
           method: 'POST',
           headers: {
@@ -347,7 +348,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
             Authorization: sbAuth,
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(sbPayload),
         })
         const sbData = await sbRes.json()
         if (sbRes.ok && sbData?.qr_string) {
