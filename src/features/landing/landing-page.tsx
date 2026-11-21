@@ -537,12 +537,12 @@ export function LandingPage() {
           <div className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-[700px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-primary/15 to-amber-500/10 blur-3xl" />
 
           <div className="mx-auto max-w-5xl text-center">
-            <Reveal>
+            {/* <Reveal>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
                 <Sparkles className="size-3.5 text-amber-500" />
                 <span>Sewa Aplikasi Kasir Kafe &amp; Resto · 0% Komisi</span>
               </div>
-            </Reveal>
+            </Reveal> */}
 
             <Reveal delay={0.05}>
               <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl md:leading-[1.15]">

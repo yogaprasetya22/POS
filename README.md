@@ -124,24 +124,21 @@ bun run test:e2e   # Playwright: pesan → bayar (shift) → dapur realtime, iso
 
 `db-check` dan `test:e2e` memakai akun demo dan **mengubah data** di database yang ada di `.env`; jalankan hanya ke database demo/dev.
 
-## Video panduan tutorial (19 Video)
+## Video Demo Interaktif Landing Page
 
-Tersedia 19 video panduan lengkap (12 seri fitur + 7 seri peran staf) berbahasa Indonesia yang direkam otomatis dari aplikasi yang berjalan menggunakan Playwright, Microsoft Edge Neural TTS / Piper, dan FFmpeg. Panduan teknis lengkap dapat dibaca di [`docs/PANDUAN_VIDEO_TUTORIAL.md`](docs/PANDUAN_VIDEO_TUTORIAL.md).
+Video demo interaktif pada landing page direkam secara otomatis menggunakan Playwright dan dinarasikan dengan suara alami (OpenAI TTS / Edge TTS Neural) yang di-remux menggunakan FFmpeg:
 
 ```bash
 # 1. Jalankan dev server
 bun run dev
 
-# 2. (Opsional) Buat atau perbarui suara TTS (ArdiNeural / GadisNeural)
-python3 scripts/tutorial/gen-edge.py docs/narasi.txt docs/audio id-ID-ArdiNeural
+# 2. Rekam video demo interaktif kualitas tinggi
+node scripts/master-flawless-videos.mjs
 
-# 3. Rekam seri fitur (12 video) -> docs/videos/fitur/
-node scripts/tutorial/record.mjs all --set fitur --audio docs/audio
-
-# 4. Rekam seri peran (7 video) -> docs/videos/peran/
-node scripts/tutorial/record.mjs all --set peran --audio docs/audio
+# 3. Generate narasi suara laki-laki natural dan gabungkan ke video WebM
+python3 scripts/generate-audio.py --mode openai --voice echo --merge
 ```
 
-Hasil video otomatis disimpan terorganisir di:
-* `docs/videos/fitur/` (12 video fitur produk)
-* `docs/videos/peran/` (7 video peran staf: pelanggan, kasir, dapur, pelayan, manager, owner, super admin)
+Aset video dan audio demo tersimpan di:
+* `public/landing/*.webm` (video demo interaktif WebM)
+* `public/landing/audio/*.mp3` (track audio narasi suara laki-laki)

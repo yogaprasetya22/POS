@@ -81,6 +81,55 @@ LANDING_SCRIPTS = {
     },
 }
 
+def get_openai_key():
+    key = os.getenv("OPENAI_API_KEY", "")
+    if not key and (ROOT / ".env").exists():
+        for line in (ROOT / ".env").read_text().splitlines():
+            if line.startswith("OPENAI_API_KEY="):
+                key = line.split("=", 1)[1].strip().strip("\"'")
+                break
+    return key
+
+def generate_via_openai(voice="echo"):
+    """Generate suara laki-laki natural, luwes, dan ramah via OpenAI TTS (echo/onyx)."""
+    import urllib.request
+    
+    key = get_openai_key()
+    if not key:
+        print("❌ Error: OPENAI_API_KEY tidak ditemukan di environment atau .env")
+        return False
+        
+    print(f"🎙️ Menggunakan OpenAI TTS Natural Male Voice (Voice: {voice})...")
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+    }
+    
+    for key_name, item in LANDING_SCRIPTS.items():
+        out_mp3 = OUT_DIR / f"{key_name}.mp3"
+        print(f"-> Memproses narasi laki-laki untuk: {item['title']}...")
+        payload = {
+            "model": "tts-1",
+            "input": item["text"],
+            "voice": voice,
+            "speed": 1.05
+        }
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/audio/speech",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req) as resp:
+                data = resp.read()
+                out_mp3.write_bytes(data)
+                print(f"   ✓ Suara jernih tersimpan: {out_mp3.name} ({len(data):,} bytes)")
+        except Exception as e:
+            print(f"   ✗ Gagal generate OpenAI TTS ({key_name}): {e}")
+            return False
+    return True
+
 def generate_via_fish_api(key, model_id=None):
     """Generate audio menggunakan REST API resmi Fish Audio."""
     import urllib.request
@@ -115,9 +164,9 @@ def generate_via_fish_api(key, model_id=None):
         except Exception as e:
             print(f"   ✗ Gagal Fish Audio API ({key_name}): {e}")
 
-def generate_via_edge_tts(voice="id-ID-GadisNeural"):
-    """Generate suara natural Indonesia gratis menggunakan Edge TTS."""
-    print(f"🔊 Menggunakan Edge Neural TTS (Suara: {voice})...")
+def generate_via_edge_tts(voice="id-ID-ArdiNeural"):
+    """Generate suara natural laki-laki Indonesia gratis menggunakan Edge TTS."""
+    print(f"🔊 Menggunakan Edge Neural TTS Laki-laki (Suara: {voice})...")
     import asyncio
     import edge_tts
     
@@ -125,7 +174,7 @@ def generate_via_edge_tts(voice="id-ID-GadisNeural"):
         for key_name, item in LANDING_SCRIPTS.items():
             out_mp3 = OUT_DIR / f"{key_name}.mp3"
             print(f"-> Memproses suara untuk: {item['title']}...")
-            comm = edge_tts.Communicate(item["text"], voice, rate="-2%")
+            comm = edge_tts.Communicate(item["text"], voice, rate="+2%")
             await comm.save(str(out_mp3))
             print(f"   ✓ Berhasil disimpan: {out_mp3.name} ({out_mp3.stat().st_size:,} bytes)")
 
@@ -133,15 +182,15 @@ def generate_via_edge_tts(voice="id-ID-GadisNeural"):
 
 def merge_audio_to_videos():
     """Menggabungkan audio MP3 ke video demo WebM landing page."""
-    print("\n🎬 Menggabungkan audio ke video demo...")
+    print("\n🎬 Menggabungkan audio narasi laki-laki ke video demo...")
     for key_name, item in LANDING_SCRIPTS.items():
         audio_file = OUT_DIR / f"{key_name}.mp3"
         video_file = item["video"]
         if not audio_file.exists() or not video_file.exists():
             continue
             
-        dest_video = video_file.parent / f"{video_file.stem}-audio.webm"
-        print(f"-> Menggabungkan {video_file.name} + {audio_file.name} -> {dest_video.name}")
+        tmp_video = video_file.parent / f"tmp-{video_file.name}"
+        print(f"-> Menggabungkan {video_file.name} + {audio_file.name}")
         cmd = [
             "ffmpeg", "-y",
             "-i", str(video_file),
@@ -150,27 +199,34 @@ def merge_audio_to_videos():
             "-c:a", "libopus",
             "-b:a", "96k",
             "-shortest",
-            str(dest_video)
+            str(tmp_video)
         ]
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if dest_video.exists():
-            print(f"   ✓ Selesai: {dest_video.name} ({round(dest_video.stat().st_size/1024)} KB)")
+        if tmp_video.exists() and tmp_video.stat().st_size > 1000:
+            tmp_video.replace(video_file)
+            print(f"   ✓ Video demo terbarui: {video_file.name} ({round(video_file.stat().st_size/1024)} KB)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TTS Audio Generator untuk POS Landing Page")
-    parser.add_argument("--mode", choices=["fish-api", "edge", "merge-only"], default="edge", help="Metode TTS")
+    parser.add_argument("--mode", choices=["openai", "edge", "fish-api", "merge-only"], default="openai", help="Metode TTS")
+    parser.add_argument("--voice", default="echo", help="Pilihan suara (openai: echo/onyx; edge: id-ID-ArdiNeural)")
     parser.add_argument("--api-key", default=os.getenv("FISH_AUDIO_API_KEY", ""), help="Fish Audio API Key")
     parser.add_argument("--model-id", default=None, help="Fish Audio Model/Voice ID")
     parser.add_argument("--merge", action="store_true", help="Gabungkan audio ke file video WebM")
     args = parser.parse_args()
 
-    if args.mode == "fish-api":
+    if args.mode == "openai":
+        ok = generate_via_openai(voice=args.voice)
+        if not ok:
+            print("Mencoba fallback ke Edge TTS (Ardi)...")
+            generate_via_edge_tts(voice="id-ID-ArdiNeural")
+    elif args.mode == "fish-api":
         if not args.api_key:
             print("❌ Error: API key wajib diisi jika menggunakan mode fish-api (--api-key atau FISH_AUDIO_API_KEY)")
             sys.exit(1)
         generate_via_fish_api(args.api_key, args.model_id)
     elif args.mode == "edge":
-        generate_via_edge_tts()
+        generate_via_edge_tts(voice=args.voice if "Neural" in args.voice else "id-ID-ArdiNeural")
     elif args.mode == "merge-only":
         merge_audio_to_videos()
         sys.exit(0)
