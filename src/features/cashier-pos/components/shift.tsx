@@ -1,4 +1,4 @@
-import { Banknote, Lock, TriangleAlert } from 'lucide-react'
+import { Banknote, CheckCircle2, Lock, LockOpen, Moon, Sun, TriangleAlert } from 'lucide-react'
 import { useShiftNames } from '@shared/lib/shift-names'
 import { useI18n } from '@shared/i18n'
 import { useEffect, useState } from 'react'
@@ -38,11 +38,22 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
   const [error, setError] = useState('')
   const [force, setForce] = useState(false)
   const shiftNames = useShiftNames().active
-  const [shiftName, setShiftName] = useState('')
+  const [shiftName, setShiftName] = useState(() => (shiftNames.length === 1 ? shiftNames[0].id : ''))
 
   useEffect(() => {
     if (!touched && handover != null) setCash(String(handover))
   }, [handover, touched])
+
+  useEffect(() => {
+    if (shiftNames.length > 0 && !shiftName) {
+      const hour = new Date().getHours()
+      const morning = shiftNames.find((s) => s.name.toLowerCase().includes('pagi'))
+      const evening = shiftNames.find((s) => s.name.toLowerCase().includes('sore') || s.name.toLowerCase().includes('malam'))
+      if (hour < 14 && morning) setShiftName(morning.id)
+      else if (hour >= 14 && evening) setShiftName(evening.id)
+      else setShiftName(shiftNames[0].id)
+    }
+  }, [shiftNames, shiftName])
 
   const holder = status?.open && !status.open.mine ? status.open : null
   const amount = Number(cash) || 0
@@ -50,15 +61,24 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
 
   if (holder) {
     return (
-      <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-500/40 dark:bg-amber-500/10">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="min-w-0 flex-1 basis-64 text-sm">
-            <span className="flex items-center gap-1.5 font-medium"><TriangleAlert className="size-4 shrink-0" aria-hidden /> {t('shift.ui.held_title', { who: holder.who ?? '—' })}</span>
-            <span className="block text-muted-foreground">{t('shift.ui.held_hint', { at: timeJakarta(holder.opened_at) })}</span>
-          </p>
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5 backdrop-blur-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <TriangleAlert className="size-5" aria-hidden />
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-foreground">
+                {t('shift.ui.held_title', { who: holder.who ?? '—' })}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t('shift.ui.held_hint', { at: timeJakarta(holder.opened_at) })}
+              </p>
+            </div>
+          </div>
           {can.manage(role) && (
-            <Button variant="outline" className="h-11" onClick={() => setForce(true)}>
-              <Lock /> Tutup paksa shift
+            <Button variant="outline" className="h-11 rounded-xl border-amber-500/30 font-semibold hover:bg-amber-500/10" onClick={() => setForce(true)}>
+              <Lock className="mr-1.5 size-4" /> Tutup paksa shift
             </Button>
           )}
         </div>
@@ -77,53 +97,141 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
 
   return (
     <form
-      className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-500/40 dark:bg-amber-500/10"
+      className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/[0.04] p-4 sm:p-5 shadow-xs transition-all"
       onSubmit={(e) => {
         e.preventDefault()
         void open()
       }}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="min-w-0 flex-1 basis-56 text-sm">
-          <span className="flex items-center gap-1.5 font-medium"><Banknote className="size-4 shrink-0" aria-hidden /> {t('shift.ui.not_open_title')}</span>
-          <span className="block text-muted-foreground">
-            {handover != null ? t('shift.ui.hint_handover', { who: status?.last_closed?.who ?? '—', amount: handover }) : t('shift.ui.hint_first')}
-          </span>
-          <span className="block text-xs text-muted-foreground/80">{t('shift.ui.opening_why')}</span>
-        </p>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="open-cash" className="sr-only">Modal awal (Rp)</Label>
-          <CurrencyInput id="open-cash" value={cash} onValueChange={(raw) => { setTouched(true); setCash(raw) }} placeholder="Modal awal" aria-label="Modal awal (Rp)" className="h-11 w-48 bg-background" />
-          <Button type="submit" disabled={busy || (differs && note.trim().length < 3) || (shiftNames.length > 0 && !shiftName)} className="h-11 px-5">
-            {busy ? 'Membuka…' : 'Buka shift'}
-          </Button>
+      <div className="absolute inset-y-0 left-0 w-1.5 bg-primary rounded-l-2xl" />
+
+      <div className="flex flex-col gap-4 pl-1 sm:pl-2">
+        {/* Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary shadow-xs">
+              <Banknote className="size-5" aria-hidden />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground sm:text-lg">
+                  {t('shift.ui.not_open_title')}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="size-1.5 rounded-full bg-amber-500" />
+                  Laci Belum Dibuka
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground sm:text-sm">
+                {handover != null ? (
+                  <span>
+                    Serah terima dari <strong className="text-foreground">{status?.last_closed?.who ?? 'kasir sebelumnya'}</strong>: kas di laci tercatat <strong className="tabular-nums text-foreground">{rupiah(handover)}</strong>.
+                  </span>
+                ) : (
+                  <span>{t('shift.ui.hint_first')}</span>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-      {shiftNames.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Shift yang dibuka">
-          <span className="text-base font-semibold">Shift mana?</span>
-          {shiftNames.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              role="radio"
-              aria-checked={shiftName === n.id}
-              onClick={() => setShiftName(n.id)}
-              className={`h-12 rounded-full border-2 px-5 text-base font-bold ${shiftName === n.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+
+        {/* Input & Shift Selection Row */}
+        <div className="flex flex-wrap items-end gap-3 pt-1">
+          {/* Shift Segmented Pills */}
+          {shiftNames.length > 0 && (
+            <div className="min-w-44 flex-1 space-y-1.5 sm:flex-initial">
+              <span className="text-xs font-semibold text-muted-foreground">Pilih Sesi Shift:</span>
+              <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Shift yang dibuka">
+                {shiftNames.map((n) => {
+                  const isSelected = shiftName === n.id
+                  const isPagi = n.name.toLowerCase().includes('pagi')
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setShiftName(n.id)}
+                      className={`flex h-11 items-center justify-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold transition-all ${
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                          : 'border-border/80 bg-background/80 text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {isPagi ? <Sun className="size-4 shrink-0" /> : <Moon className="size-4 shrink-0" />}
+                      <span>{n.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Modal Awal Input */}
+          <div className="min-w-56 flex-1 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="open-cash" className="text-xs font-semibold text-muted-foreground">
+                Modal Awal di Laci:
+              </Label>
+              {handover != null && amount !== handover && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCash(String(handover))
+                    setTouched(true)
+                  }}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Sesuai Laci (Rp{handover.toLocaleString('id-ID')})
+                </button>
+              )}
+            </div>
+            <CurrencyInput
+              id="open-cash"
+              value={cash}
+              onValueChange={(raw) => {
+                setTouched(true)
+                setCash(raw)
+              }}
+              placeholder="0"
+              aria-label="Modal awal (Rp)"
+              className="h-11 rounded-xl border-border/80 bg-background font-semibold text-base"
+            />
+          </div>
+
+          {/* Action CTA Button */}
+          <div className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={busy || (differs && note.trim().length < 3) || (shiftNames.length > 0 && !shiftName)}
+              className="h-11 w-full sm:w-auto px-6 rounded-xl font-bold shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
             >
-              {n.name}
-            </button>
-          ))}
-          {!shiftName && <span className="text-base text-muted-foreground">Pilih dulu sebelum membuka shift.</span>}
+              <LockOpen className="mr-1.5 size-4" />
+              <span>{busy ? 'Membuka Shift…' : 'Buka Shift Sekarang'}</span>
+            </Button>
+          </div>
         </div>
-      )}
-      {differs && (
-        <div className="mt-2 space-y-1.5">
-          <p className="text-sm font-medium text-destructive">{t('shift.ui.opening_differs', { diff: amount - (handover ?? 0) })}</p>
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: ada tambahan modal dari owner" aria-label="Catatan selisih serah terima" maxLength={200} className="h-11 bg-background" />
-        </div>
-      )}
-      {error && <ErrorAlert message={error} />}
+
+        {/* Diff Reason Alert when amount !== handover */}
+        {differs && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-1.5">
+            <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+              <TriangleAlert className="size-3.5 shrink-0" />
+              {t('shift.ui.opening_differs', { diff: amount - (handover ?? 0) })}
+            </p>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Jelaskan alasan selisih (mis. ada tambahan modal dari owner)..."
+              aria-label="Catatan selisih serah terima"
+              maxLength={200}
+              className="h-10 rounded-lg bg-background text-xs sm:text-sm"
+            />
+          </div>
+        )}
+
+        {error && <ErrorAlert message={error} />}
+      </div>
     </form>
   )
 }
@@ -133,14 +241,43 @@ export function ShiftBar({ shift, onChange }: { shift: ShiftSummary; onChange: (
   const [open, setOpen] = useState(false)
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-        <p>
-          <span className="font-medium">Shift terbuka</span>
-          <span className="text-muted-foreground"> sejak {timeJakarta(shift.opened_at)} · kas diharapkan </span>
-          <span className="font-semibold tabular-nums">{rupiah(shift.expected_cash ?? 0)}</span>
-        </p>
-        <Button variant="outline" size="sm" className="h-9" onClick={() => setOpen(true)}>
-          <Lock /> Kas &amp; tutup shift
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3 sm:px-4 sm:py-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-4.5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-bold text-foreground">
+                Shift Kasir Aktif
+              </span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                · dibuka {timeJakarta(shift.opened_at)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Kas di laci saat ini:{' '}
+              <span className="font-bold tabular-nums text-foreground">
+                {rupiah(shift.expected_cash ?? 0)}
+              </span>
+              {shift.cash_sales > 0 && (
+                <span className="ml-1 text-emerald-600 dark:text-emerald-400">
+                  (+{rupiah(shift.cash_sales)} tunai)
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9.5 rounded-xl border-border px-3.5 text-xs font-semibold hover:bg-muted"
+          onClick={() => setOpen(true)}
+        >
+          <Lock className="mr-1.5 size-3.5 text-muted-foreground" />
+          <span>Kelola Kas &amp; Tutup Shift</span>
         </Button>
       </div>
       {open && <ShiftPanel shift={shift} onClose={() => setOpen(false)} onChange={onChange} />}
