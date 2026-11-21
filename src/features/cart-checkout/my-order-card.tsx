@@ -9,7 +9,7 @@ import { ding } from '@shared/lib/new-order-toast'
 import { rupiah } from '@shared/lib/utils'
 import { createMidtransQris } from '@shared/lib/midtrans'
 import { InlineQris } from './inline-qris'
-import { forgetMyOrder, loadMyOrders, updateMyOrder, type SavedOrder } from './my-orders'
+import { cancelMyOrder, forgetMyOrder, loadMyOrders, updateMyOrder, type SavedOrder } from './my-orders'
 
 const StatusSchema = z.object({
   id: z.string(),
@@ -122,6 +122,10 @@ function OrderStatusCard({
           const justFinished = lastStatus.current !== null && lastStatus.current !== 'COMPLETED'
           timer = setTimeout(() => forgetMyOrder(storeId, saved.id), justFinished ? 5000 : 0)
         }
+        // Dibatalkan / Kedaluwarsa / Void / Refunded: langsung hilangkan seketika dari antrean
+        if (['CANCELLED', 'EXPIRED', 'VOID', 'REFUNDED'].includes(orderData.status)) {
+          forgetMyOrder(storeId, saved.id)
+        }
         lastStatus.current = orderData.status
         setInfo(orderData)
       }
@@ -186,6 +190,11 @@ function OrderStatusCard({
     }
   }
 
+  // Sembunyikan dan hilangkan seketika jika pesanan dibatalkan atau kedaluwarsa di server
+  if (info && ['CANCELLED', 'EXPIRED', 'VOID', 'REFUNDED'].includes(info.status)) {
+    return null
+  }
+
   const isUnpaid = !info || info.status === 'UNPAID'
 
   // Hitung mundur cooldown 5 menit sejak pesanan dibuat
@@ -193,6 +202,11 @@ function OrderStatusCard({
     const elapsed = Math.floor((Date.now() - saved.at) / 1000)
     return Math.max(0, COOLDOWN_SECONDS - elapsed)
   })
+
+  // Jika cooldown 5 menit telah habis untuk pesanan yang belum dibayar, langsung hilangkan dari antrean
+  if (isUnpaid && secondsLeft <= 0) {
+    return null
+  }
 
   useEffect(() => {
     if (!isUnpaid || secondsLeft <= 0) return
@@ -202,10 +216,11 @@ function OrderStatusCard({
       setSecondsLeft(remaining)
       if (remaining <= 0) {
         clearInterval(interval)
+        forgetMyOrder(storeId, saved.id)
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [isUnpaid, saved.at, secondsLeft])
+  }, [isUnpaid, saved.at, secondsLeft, storeId, saved.id])
 
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
@@ -314,7 +329,13 @@ function OrderStatusCard({
             <Button
               variant="ghost"
               className={`h-11 px-3 text-sm font-semibold ${isUnpaid ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground'}`}
-              onClick={() => forgetMyOrder(storeId, saved.id)}
+              onClick={() => {
+                if (isUnpaid) {
+                  cancelMyOrder(storeId, saved.id)
+                } else {
+                  forgetMyOrder(storeId, saved.id)
+                }
+              }}
             >
               {isUnpaid ? 'Hapus / Batalkan' : 'Sembunyikan kartu'}
             </Button>

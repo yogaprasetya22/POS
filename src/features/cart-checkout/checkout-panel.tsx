@@ -1,6 +1,6 @@
 import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
-import { forgetMyOrder, saveMyOrder, updateMyOrder } from './my-orders'
+import { cancelMyOrder, saveMyOrder, updateMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
 import { CheckCircle2, Clock, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
@@ -228,7 +228,7 @@ export function CheckoutPanel({
 
   const handleCancelOrder = () => {
     if (qrisData?.orderId) {
-      forgetMyOrder(storeId, qrisData.orderId)
+      cancelMyOrder(storeId, qrisData.orderId)
     }
     setQrisData(null)
     onClose()

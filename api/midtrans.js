@@ -366,7 +366,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: msg })
       }
 
-      const qrUrl = chargeData.actions?.find((a) => a.name === 'generate-qr-code')?.url || chargeData.actions?.[0]?.url || ''
+      const qrUrl = chargeData.actions?.find((a) => a.name === 'generate-qr-code')?.url
+        || chargeData.actions?.find((a) => a.name === 'generate-qr-code-v2')?.url
+        || chargeData.actions?.[0]?.url
+        || (chargeData.transaction_id ? `https://api.sandbox.midtrans.com/v2/qris/${chargeData.transaction_id}/qr-code` : '')
 
       // Simpan session QRIS ke pesanan lewat RPC (aman dari RLS anon)
       await sb.rpc('update_order_midtrans_session', {

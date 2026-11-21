@@ -40,6 +40,7 @@ export function InlineQris({
   const [checking, setChecking] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState(false)
   const [snapLoaded, setSnapLoaded] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds) // default 5 menit (300 detik)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -184,6 +185,25 @@ export function InlineQris({
     }
   }
 
+  const handleCopyQrUrl = async () => {
+    const textToCopy = qrUrl || qrString || ''
+    if (!textToCopy) return
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2500)
+    } catch {
+      const input = document.createElement('textarea')
+      input.value = textToCopy
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2500)
+    }
+  }
+
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
   const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
@@ -290,35 +310,61 @@ export function InlineQris({
         </span>
       </div>
 
-      {/* Notice jika fallback ke QRIS Sandbox simulator */}
-      {isFallback && (
-        <div className="w-full max-w-xs rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-left text-[11px] text-amber-900 dark:text-amber-200">
-          <div className="flex items-start gap-1.5 font-bold">
-            <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-            <span>Mode Uji Coba (QRIS Sandbox)</span>
+      {/* Panel Simulasi / Uji Coba QRIS (Sandbox Simulator) */}
+      {(!isProduction || isFallback || qrUrl) && (
+        <div className="w-full max-w-xs rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-left space-y-2.5 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <div className="flex items-center justify-between">
+            <span className="font-bold flex items-center gap-1.5 text-xs text-amber-900 dark:text-amber-200">
+              <AlertCircle className="size-3.5 text-amber-600 dark:text-amber-400" />
+              Simulasi QRIS (Midtrans Sandbox)
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-200/70 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
+              Sandbox
+            </span>
           </div>
-          <p className="mt-1 text-[10.5px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
-            {notice || 'Channel QRIS Production di Midtrans masih menunggu aktivasi approval. Aplikasi GoPay asli di HP akan menolak kode sandbox.'}
+
+          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+            {notice || 'Salin URL QR di bawah, lalu paste di form Simulator Midtrans untuk simulasi scan bayar:'}
           </p>
-          <div className="mt-2.5 flex items-center gap-2">
-            <a
-              href="https://simulator.sandbox.midtrans.com/qris/index"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-[10.5px] font-bold text-white shadow-xs hover:bg-amber-700 transition"
-            >
-              Buka Simulator Midtrans <ExternalLink className="size-3" />
-            </a>
+
+          <div className="flex flex-col gap-1.5 pt-0.5">
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              onClick={handleCopyQrString}
-              className="h-7 px-2 text-[10.5px] font-medium border-amber-500/40 bg-background/50 hover:bg-background"
+              onClick={handleCopyQrUrl}
+              className={`h-9 w-full text-xs font-bold gap-1.5 transition-all ${
+                copiedUrl
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-amber-600 text-white hover:bg-amber-700 shadow-xs'
+              }`}
             >
-              {copied ? <Check className="size-3 mr-1 text-emerald-600" /> : <Copy className="size-3 mr-1" />}
-              {copied ? 'Tersalin' : 'Salin Kode'}
+              {copiedUrl ? <Check className="size-3.5 text-white" /> : <Copy className="size-3.5 text-white" />}
+              {copiedUrl ? 'URL QR Berhasil Disalin!' : 'Salin URL QR Simulator'}
             </Button>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <a
+                href="https://simulator.sandbox.midtrans.com/qris/index"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-background/80 px-2 text-[11px] font-semibold text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 transition"
+              >
+                Buka Simulator <ExternalLink className="size-3" />
+              </a>
+
+              {qrString && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyQrString}
+                  className="h-8 text-[11px] font-medium border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10"
+                >
+                  {copied ? <Check className="size-3 mr-1 text-emerald-600" /> : <Copy className="size-3 mr-1" />}
+                  {copied ? 'Tersalin' : 'Salin Kode QR'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -329,32 +375,55 @@ export function InlineQris({
       </p>
 
       {/* Aksi Inline */}
-      <div className="grid w-full max-w-xs grid-cols-2 gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadQr}
-          className="h-10 text-xs font-semibold"
-        >
-          <Download className="mr-1.5 size-3.5" /> Simpan QR
-        </Button>
+      <div className="flex w-full max-w-xs flex-col gap-2 pt-1">
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadQr}
+            className="h-10 text-xs font-semibold"
+          >
+            <Download className="mr-1.5 size-3.5" /> Simpan QR
+          </Button>
 
-        <Button
-          type="button"
-          size="sm"
-          disabled={checking}
-          onClick={handleManualCheck}
-          className="h-10 text-xs font-semibold"
-        >
-          {checking ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <>
-              <RefreshCw className="mr-1.5 size-3.5" /> Cek Status
-            </>
-          )}
-        </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={checking}
+            onClick={handleManualCheck}
+            className="h-10 text-xs font-semibold"
+          >
+            {checking ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <>
+                <RefreshCw className="mr-1.5 size-3.5" /> Cek Status
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Tombol Salin URL QR Simulator di toolbar utama */}
+        {(!isProduction || isFallback || qrUrl) && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCopyQrUrl}
+            className="h-9 w-full text-xs font-semibold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10"
+          >
+            {copiedUrl ? (
+              <>
+                <Check className="mr-1.5 size-3.5 text-emerald-600" /> URL QR Berhasil Disalin!
+              </>
+            ) : (
+              <>
+                <Copy className="mr-1.5 size-3.5" /> Salin URL QR (Simulator)
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <button

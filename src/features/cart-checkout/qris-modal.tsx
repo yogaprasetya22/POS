@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { CheckCircle2, Clock, Download, Loader2, RefreshCw, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { rupiah } from '@shared/lib/utils'
 import { checkMidtransStatus } from '@shared/lib/midtrans'
@@ -33,6 +33,7 @@ export function QrisModal({
   const [qrDataUrl, setQrDataUrl] = useState<string>(qrUrl || '')
   const [checking, setChecking] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(900) // 15 menit
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
@@ -128,6 +129,25 @@ export function QrisModal({
     document.body.removeChild(a)
   }
 
+  const handleCopyQrUrl = async () => {
+    const textToCopy = qrUrl || qrString || ''
+    if (!textToCopy) return
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2500)
+    } catch {
+      const input = document.createElement('textarea')
+      input.value = textToCopy
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2500)
+    }
+  }
+
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
   const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
@@ -215,32 +235,64 @@ export function QrisModal({
               </p>
 
               {/* Tombol Aksi */}
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadQr}
-                  className="h-10 text-xs font-semibold"
-                >
-                  <Download className="mr-1.5 size-3.5" /> Simpan QR
-                </Button>
+              <div className="mt-5 flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadQr}
+                    className="h-10 text-xs font-semibold"
+                  >
+                    <Download className="mr-1.5 size-3.5" /> Simpan QR
+                  </Button>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={checking}
-                  onClick={handleManualCheck}
-                  className="h-10 text-xs font-semibold"
-                >
-                  {checking ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-1.5 size-3.5" /> Cek Status
-                    </>
-                  )}
-                </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={checking}
+                    onClick={handleManualCheck}
+                    className="h-10 text-xs font-semibold"
+                  >
+                    {checking ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-1.5 size-3.5" /> Cek Status
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Tombol Salin URL QR Simulator */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyQrUrl}
+                    className="h-8.5 text-[11px] font-semibold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10"
+                  >
+                    {copiedUrl ? (
+                      <>
+                        <Check className="mr-1 size-3 text-emerald-600" /> Tersalin!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-1 size-3" /> Salin URL QR
+                      </>
+                    )}
+                  </Button>
+
+                  <a
+                    href="https://simulator.sandbox.midtrans.com/qris/index"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-8.5 items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-background/80 px-2 text-[11px] font-semibold text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 transition"
+                  >
+                    Simulator <ExternalLink className="size-3" />
+                  </a>
+                </div>
               </div>
 
               {onManualConfirm && (

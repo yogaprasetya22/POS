@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { rpc } from '@shared/lib/api'
 
 /** Pesanan pembeli disimpan di HP-nya sendiri supaya kode antrean tidak hilang saat halaman di-refresh. */
 const Saved = z.object({
@@ -14,12 +15,19 @@ const Saved = z.object({
 export type SavedOrder = z.infer<typeof Saved>
 
 const KEEP_MS = 12 * 60 * 60_000 // 12 jam: cukup untuk satu kunjungan
+const UNPAID_COOLDOWN_MS = 5 * 60_000 // 5 menit: cooldown pesanan belum dibayar
 const key = (storeId: string) => `pos:pesanan-saya:${storeId}`
 
 export function loadMyOrders(storeId: string): SavedOrder[] {
   try {
     const parsed = z.array(Saved).safeParse(JSON.parse(localStorage.getItem(key(storeId)) ?? '[]'))
-    return parsed.success ? parsed.data.filter((o) => Date.now() - o.at < KEEP_MS) : []
+    if (!parsed.success) return []
+    const now = Date.now()
+    return parsed.data.filter((o) => {
+      // Pesanan belum dibayar yang sudah melewati cooldown 5 menit langsung dihilangkan dari antrean
+      if (o.is_unpaid && now - o.at >= UNPAID_COOLDOWN_MS) return false
+      return now - o.at < KEEP_MS
+    })
   } catch {
     return []
   }
@@ -59,3 +67,9 @@ export const updateMyOrder = (storeId: string, id: string, patch: Partial<Omit<S
 }
 
 export const forgetMyOrder = (storeId: string, id: string) => write(storeId, loadMyOrders(storeId).filter((x) => x.id !== id))
+
+/** Membatalkan pesanan publik: langsung dihilangkan dari antrean lokal dan di-cancel di database Supabase */
+export const cancelMyOrder = (storeId: string, id: string) => {
+  forgetMyOrder(storeId, id)
+  void rpc('public_cancel_order', { p_id: id }, { asPublic: true }).catch(() => {})
+}
