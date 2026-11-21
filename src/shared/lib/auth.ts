@@ -12,11 +12,12 @@ const storeNameOf = (rel: unknown): string | null => {
   return row?.name ?? null
 }
 
+// ponytail: In-memory + sessionStorage + localStorage agar role & toko staf instan (0ms) saat buka tab/rekam video.
 const STAFF_CACHE_KEY = 'pos_staff_session'
 
 function getCachedStaff(): Staff | null {
   try {
-    const raw = sessionStorage.getItem(STAFF_CACHE_KEY)
+    const raw = sessionStorage.getItem(STAFF_CACHE_KEY) || localStorage.getItem(STAFF_CACHE_KEY)
     return raw ? (JSON.parse(raw) as Staff) : null
   } catch {
     return null
@@ -27,8 +28,11 @@ function setCachedStaff(staff: Staff | null) {
   try {
     if (!staff) {
       sessionStorage.removeItem(STAFF_CACHE_KEY)
+      localStorage.removeItem(STAFF_CACHE_KEY)
     } else {
-      sessionStorage.setItem(STAFF_CACHE_KEY, JSON.stringify(staff))
+      const str = JSON.stringify(staff)
+      sessionStorage.setItem(STAFF_CACHE_KEY, str)
+      localStorage.setItem(STAFF_CACHE_KEY, str)
     }
   } catch {
     // Abaikan jika quota error
@@ -37,10 +41,17 @@ function setCachedStaff(staff: Staff | null) {
 
 function clearPosSessionCaches() {
   try {
+    localStorage.removeItem(STAFF_CACHE_KEY)
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
       const key = sessionStorage.key(i)
       if (key?.startsWith('pos_')) {
         sessionStorage.removeItem(key)
+      }
+    }
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('pos_')) {
+        localStorage.removeItem(key)
       }
     }
   } catch {

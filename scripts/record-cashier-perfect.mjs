@@ -163,3 +163,4 @@ recordCashierFlow().catch((err) => {
   console.error('Recording error:', err);
   process.exit(1);
 });
+

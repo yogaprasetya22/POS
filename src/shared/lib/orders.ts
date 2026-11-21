@@ -21,15 +21,18 @@ export function applyOrderChange(list: Order[], change: Change, statuses: string
   return next
 }
 
+// ponytail: In-memory cache daftar pesanan aktif agar transisi antar layar kasir/dapur/antrean instan (0ms).
+const memoryOrderCache = new Map<string, Order[]>()
+
 /**
  * Daftar order live untuk status tertentu (Kasir & KDS).
  * Dimuat penuh sekali, lalu tiap perubahan hanya memperbarui satu pesanan, jadi tetap ringan saat ramai.
  * Muat ulang penuh hanya setelah koneksi realtime sempat putus, supaya perubahan yang terlewat selama putus tetap masuk.
  */
 export function useLiveOrders(statuses: OrderStatus[]) {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
   const key = statuses.join(',')
+  const [orders, setOrders] = useState<Order[]>(() => memoryOrderCache.get(key) ?? [])
+  const [loading, setLoading] = useState(() => !memoryOrderCache.has(key))
 
   useEffect(() => {
     if (!key) {
@@ -47,7 +50,9 @@ export function useLiveOrders(statuses: OrderStatus[]) {
         setLoading(false)
         return
       }
-      setOrders(z.array(OrderSchema).parse(data))
+      const parsed = z.array(OrderSchema).parse(data)
+      memoryOrderCache.set(key, parsed)
+      setOrders(parsed)
       setLoading(false)
     }
 
@@ -60,7 +65,11 @@ export function useLiveOrders(statuses: OrderStatus[]) {
         const change = payload as unknown as Change
         // Baris yang tidak bisa dibaca: muat ulang penuh daripada menampilkan data setengah.
         if (change.eventType !== 'DELETE' && !OrderSchema.safeParse(change.new).success) return void load()
-        setOrders((list) => applyOrderChange(list, change, wanted) ?? list)
+        setOrders((list) => {
+          const next = applyOrderChange(list, change, wanted) ?? list
+          memoryOrderCache.set(key, next)
+          return next
+        })
       })
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') dropped = true
