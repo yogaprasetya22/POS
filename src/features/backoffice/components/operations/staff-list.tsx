@@ -177,7 +177,7 @@ export function StaffList() {
                             variant="outline"
                             size="sm"
                             className={`h-9 gap-1.5 rounded-xl text-xs ${pins.has(s.user_id) ? '' : 'border-amber-400 text-amber-800 dark:text-amber-300'}`}
-                            onClick={() => setPinFor({ id: s.user_id, name: s.display_name || s.email })}
+                            onClick={() => setPinFor({ id: s.user_id, name: s.display_name || s.email || 'Staf' })}
                             title={pins.has(s.user_id) ? 'Reset PIN masuk perangkat kasir' : 'Belum punya PIN: belum bisa masuk di perangkat kasir'}
                           >
                             <KeyRound className="size-3.5" /> {pins.has(s.user_id) ? 'Reset PIN' : 'Atur PIN'}

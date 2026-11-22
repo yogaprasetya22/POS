@@ -84,8 +84,9 @@ PIN supervisor demo Warung Kopi Nusantara: `1234`. Database yang sudah pernah di
 | `VITE_APP_NAME` | browser | nama brand di beranda & halaman legal |
 | `VITE_CONTACT_EMAIL` | browser | kontak di Kebijakan Privasi (opsional) |
 | `VITE_DEFAULT_STORE_SLUG` | browser | tujuan link QR lama `/?meja=5` (opsional) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **server saja** (kunci `sb_secret_…`, jangan diawali `VITE_`) | login kasir pakai PIN di perangkat terikat (`api/device.js`) |
 
-Jangan isi `service_role` / `sb_secret_…` di Vercel: aplikasi ini tidak memakainya.
+`SUPABASE_SERVICE_ROLE_KEY` melewati RLS: hanya dipakai `api/device.js` untuk membuat sesi kasir setelah token perangkat + PIN dicek di database. Jangan pernah diawali `VITE_` (akan terkirim ke browser).
 
 ## Deploy ke Vercel
 
