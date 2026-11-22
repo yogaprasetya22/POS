@@ -18,12 +18,14 @@ import { StaffList } from './components/staff-list'
 import { InventoryPage } from './components/inventory/inventory-page'
 import { StoreTab } from './components/store-tab'
 import { TablesTab } from './components/tables-tab'
+import { FinancePageView } from './components/finance-page'
 
 // Tautan lama /admin?tab=... tetap bekerja dan diarahkan ke route barunya.
 const LEGACY_TAB: Record<string, string> = {
   menu: '/admin/menu',
   promo: '/admin/promo',
   penjualan: '/admin/laporan',
+  keuangan: '/admin/keuangan',
   stok: '/admin/stok',
   meja: '/admin/meja',
   member: '/admin/member',
@@ -94,6 +96,10 @@ export function ReportPage() {
   const { storeId } = useStaff()
   const { config } = useStoreConfig(storeId)
   return <ReportPageView storeName={data.store.name} config={config} />
+}
+
+export function FinancePage() {
+  return <FinancePageView />
 }
 
 export function ShiftPage() {

@@ -26,6 +26,7 @@ const PromoPage = bo('PromoPage')
 const MemberPage = bo('MemberPage')
 const StockPage = bo('StockPage')
 const PurchasePage = bo('PurchasePage')
+const FinancePage = bo('FinancePage')
 const ReportPage = bo('ReportPage')
 const ShiftPage = bo('ShiftPage')
 const TablesPage = bo('TablesPage')
@@ -80,7 +81,8 @@ const router = createBrowserRouter([
               { path: 'promo', element: page(<PromoPage />) },
               { path: 'member', element: page(<MemberPage />) },
               { path: 'stok', element: page(<StockPage />) },
-      { path: 'pembelian', element: page(<PurchasePage />) },
+              { path: 'pembelian', element: page(<PurchasePage />) },
+              { path: 'keuangan', element: page(<FinancePage />) },
               { path: 'laporan', element: page(<ReportPage />) },
               { path: 'shift', element: page(<ShiftPage />) },
               { path: 'meja', element: page(<TablesPage />) },

@@ -14,6 +14,7 @@ import { KpiCard, KpiGrid, Panel, Trend, addDays, longDay } from './analytics/ki
 import { HourlyChart } from './analytics/lazy'
 import { busiestHour, hourRange, hourTotals, hourlySeries, jakartaHour } from './analytics/series'
 import { clock, dayLabel, fetchReport, type Report } from './report-page'
+import { FinancialOverview } from './financial-overview'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
 const PaidSchema = z.object({ paid_at: z.string(), total: z.number() })
@@ -125,6 +126,9 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
           />
         </KpiGrid>
       )}
+
+      {/* Ringkasan Finansial Real-Time (Laba Kotor, Laba Bersih, Saldo Laci Kasir, Saldo Midtrans & Penarikan) */}
+      <FinancialOverview />
 
       <div className="grid gap-5">
         <Panel title="Penjualan per jam hari ini" description="Jam berapa paling ramai hari ini (garis tipis = kemarin di jam yang sama)">

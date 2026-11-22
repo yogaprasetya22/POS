@@ -7,6 +7,7 @@ export {
   OverviewPage,
   PromoPage,
   ReportPage,
+  FinancePage,
   ShiftPage,
   StaffPage,
   StockPage,

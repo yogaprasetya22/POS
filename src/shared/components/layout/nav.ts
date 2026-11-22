@@ -4,6 +4,7 @@ import {
   Building2,
   ChefHat,
   ClipboardList,
+  Coins,
   Ellipsis,
   Gift,
   Languages,
@@ -51,6 +52,7 @@ export const MORE_NAV: NavItem[] = [
 
 /** Fitur lanjutan, disembunyikan di balik "Fitur lanjutan" pada halaman Lainnya. */
 export const ADVANCED_NAV: NavItem[] = [
+  { to: '/admin/keuangan', label: 'Keuangan & Penarikan', hint: 'Laba bersih, laba kotor, saldo laci & Midtrans', icon: Coins, show: manage },
   { to: '/admin/laporan', label: 'Laporan lengkap', hint: 'Penjualan per hari, per menu, unduh', icon: BarChart3, show: manage },
   { to: '/admin/shift', label: 'Catatan laci kasir', hint: 'Uang laci saat buka dan tutup kasir', icon: ClipboardList, show: manage },
   { to: '/admin/meja', label: 'Meja & kode QR', hint: 'Pembeli pesan sendiri dari meja', icon: QrCode, show: manage },

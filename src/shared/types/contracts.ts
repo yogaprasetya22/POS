@@ -373,3 +373,46 @@ export const ShiftStatsSchema = z.object({
   by_cashier: z.array(z.object({ cashier: z.string(), shifts: z.number(), diff_sum: z.number(), short_sum: z.number(), with_diff: z.number() })),
 })
 export type ShiftStats = z.infer<typeof ShiftStatsSchema>
+
+// ---------- Keuangan, Saldo Laci & Midtrans, dan Penarikan Dana (Withdrawals) ----------
+export const FinancialSummarySchema = z.object({
+  today_date: z.string(),
+  today_orders_count: z.number(),
+  today_gross_sales: z.number(),
+  today_discounts: z.number(),
+  today_net_sales: z.number(),
+  today_cogs: z.number(),
+  today_gross_profit: z.number(),
+  today_waste: z.number(),
+  today_expenses: z.number(),
+  today_net_profit: z.number(),
+  gross_margin_percent: z.number(),
+  net_margin_percent: z.number(),
+  cash_drawer_balance: z.number(),
+  has_active_shift: z.boolean(),
+  midtrans_total_received: z.number(),
+  midtrans_total_withdrawn: z.number(),
+  midtrans_available_balance: z.number(),
+  bank_name: z.string().default(''),
+  account_number: z.string().default(''),
+  account_holder: z.string().default(''),
+})
+export type FinancialSummary = z.infer<typeof FinancialSummarySchema>
+
+export const WithdrawalSchema = z.object({
+  id: z.string(),
+  reference_no: z.string(),
+  amount: z.number(),
+  fee: z.number(),
+  net_amount: z.number(),
+  channel: z.string(),
+  bank_name: z.string(),
+  account_number: z.string(),
+  account_holder: z.string(),
+  status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REJECTED']),
+  note: z.string(),
+  created_at: z.string(),
+  processed_at: z.string().nullable().optional(),
+})
+export type Withdrawal = z.infer<typeof WithdrawalSchema>
+

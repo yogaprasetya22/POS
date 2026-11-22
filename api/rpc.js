@@ -12,6 +12,7 @@ const ALLOWED = new Set([
   'set_staff_name', 'set_my_pin', 'has_my_pin', 'verify_my_pin',
   'save_store_midtrans_settings', 'get_store_midtrans_client_config', 'pay_order_midtrans',
   'get_order_for_midtrans', 'update_order_midtrans_session',
+  'get_store_financial_summary', 'request_withdrawal', 'get_withdrawals', 'save_store_bank_account',
 ])
 
 // Pembatas laju sederhana untuk pesanan publik (tanpa login). Disimpan di memori instance serverless,
