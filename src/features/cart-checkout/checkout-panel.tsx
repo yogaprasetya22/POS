@@ -222,6 +222,10 @@ export function CheckoutPanel({
   const handlePayAtCashierInstead = () => {
     if (!qrisData) return
     updateMyOrder(storeId, qrisData.orderId, { pay_method: 'CASHIER' })
+    void rpc('update_order_midtrans_session', {
+      p_id: qrisData.orderId,
+      p_payment_type: 'cashier',
+    }, { asPublic: true }).catch(() => {})
     setDone({ queue_code: qrisData.queueCode, total: qrisData.total, isPaid: false })
     setQrisData(null)
   }

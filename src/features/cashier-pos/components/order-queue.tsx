@@ -1,4 +1,4 @@
-import { Check, ListFilter, Search, Store, TriangleAlert, UserRound } from 'lucide-react'
+import { Check, Clock, ListFilter, Search, Store, TriangleAlert, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ToneBadge } from '@shared/components/tone-badge'
 import { Button } from '@shared/components/ui/button'
@@ -15,6 +15,17 @@ export const STATUS = {
 
 /** Pesanan pelanggan (QR/link) tidak punya pembuat; pesanan kasir menyimpan id staf. */
 export const fromCustomer = (o: Order) => o.created_by === null
+
+/** Cek apakah pesanan berasal dari pembeli yang memilih pembayaran QRIS dan masih menunggu scan */
+export const isCustomerQrisPending = (o: Order) => {
+  if (o.status !== 'UNPAID') return false
+  if (!fromCustomer(o)) return false
+  return (
+    o.midtrans_payment_type === 'qris' ||
+    (Boolean(o.midtrans_snap_token) && o.midtrans_payment_type !== 'cashier') ||
+    o.midtrans_status === 'pending'
+  )
+}
 
 // Saat ramai yang paling perlu ditangani kasir: yang menunggu bayar (paling lama dulu), lalu yang siap diambil.
 const RANK: Record<string, number> = { UNPAID: 0, READY: 1, IN_KITCHEN: 2 }
@@ -87,7 +98,26 @@ function OrderRow({ o, now, act }: { o: Order; now: number; act: QueueActions })
       <div className="flex shrink-0 flex-col items-end gap-2">
         <span className="text-lg font-bold tabular-nums">{rupiah(o.total)}</span>
         {unpaid ? (
-          <Button className="h-11 px-5 text-base font-bold" aria-label={`Terima bayar ${o.queue_code}`} onClick={() => act.onPay(o.id)}>Terima bayar</Button>
+          isCustomerQrisPending(o) ? (
+            <div className="flex flex-col items-end gap-1">
+              <ToneBadge tone="amber" className="h-10 px-3.5 text-sm font-bold flex items-center gap-1.5 shadow-xs">
+                <Clock className="size-3.5 animate-pulse" />
+                Menunggu pembayaran
+              </ToneBadge>
+              <button
+                type="button"
+                onClick={() => act.onPay(o.id)}
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors pt-0.5"
+                title="Buka kasir jika pelanggan ingin beralih bayar tunai"
+              >
+                Bayar di kasir
+              </button>
+            </div>
+          ) : (
+            <Button className="h-11 px-5 text-base font-bold" aria-label={`Terima bayar ${o.queue_code}`} onClick={() => act.onPay(o.id)}>
+              Terima bayar
+            </Button>
+          )
         ) : cooking ? (
           <Button
             variant="default"

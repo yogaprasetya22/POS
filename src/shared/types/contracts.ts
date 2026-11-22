@@ -276,6 +276,9 @@ export const OrderSchema = z.object({
   paid_at: z.string().nullable(),
   /** Nomor urut baris `items` yang sudah jadi (centang per menu). */
   items_done: z.array(z.number().int()).default([]),
+  midtrans_snap_token: z.string().nullable().default(null),
+  midtrans_payment_type: z.string().nullable().default(null),
+  midtrans_status: z.string().nullable().default(null),
 })
 
 export type OrderStatus = z.infer<typeof OrderStatusSchema>
