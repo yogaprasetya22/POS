@@ -49,9 +49,27 @@ async function getMidtransConfig(sb, storeId) {
   }
 
   const envIsProd = String(env.MIDTRANS_IS_PRODUCTION ?? env.VITE_MIDTRANS_IS_PRODUCTION).toLowerCase() === 'true'
-  const isProduction = envIsProd && Boolean(storeConfig?.midtrans_is_production ?? true)
-  const serverKey = (isProduction ? storeConfig?.midtrans_server_key : null) || env.MIDTRANS_SERVER_KEY || ''
-  const clientKey = (isProduction ? storeConfig?.midtrans_client_key : null) || env.MIDTRANS_CLIENT_KEY || env.VITE_MIDTRANS_CLIENT_KEY || ''
+  
+  // Ambil server key: utamakan custom key toko di DB, jika kosong fallback ke ENV
+  const serverKey = storeConfig?.midtrans_server_key || env.MIDTRANS_SERVER_KEY || ''
+  const clientKey = storeConfig?.midtrans_client_key || env.MIDTRANS_CLIENT_KEY || env.VITE_MIDTRANS_CLIENT_KEY || ''
+
+  // Tentukan mode Production vs Sandbox secara cerdas & tahan banting:
+  // 1. Jika key berawalan 'SB-', PASTI Sandbox.
+  // 2. Jika key berawalan 'Mid-', PASTI Production.
+  // 3. Jika toko memiliki custom key di DB, ikuti storeConfig.midtrans_is_production.
+  // 4. Fallback ke env (MIDTRANS_IS_PRODUCTION).
+  let isProduction = false
+  if (serverKey.startsWith('SB-') || clientKey.startsWith('SB-')) {
+    isProduction = false
+  } else if (serverKey.startsWith('Mid-') || clientKey.startsWith('Mid-')) {
+    isProduction = true
+  } else if (storeConfig?.midtrans_server_key) {
+    isProduction = Boolean(storeConfig.midtrans_is_production)
+  } else {
+    isProduction = envIsProd
+  }
+
   const isEnabled = storeConfig?.midtrans_enabled ?? Boolean(serverKey && clientKey)
 
   return {
@@ -395,9 +413,16 @@ export default async function handler(req, res) {
       }
 
       if (!response.ok || !chargeData?.qr_string) {
-        let msg = chargeData?.error_messages ? chargeData.error_messages.join(', ') : (chargeData?.status_message || chargeData?.message || 'Gagal membuat QRIS Midtrans')
+        let msg = (Array.isArray(chargeData?.error_messages) ? chargeData.error_messages.join(', ') : null)
+          || chargeData?.status_message
+          || chargeData?.message
+          || (typeof chargeData?.error === 'string' ? chargeData.error : null)
+          || 'Gagal membuat QRIS Midtrans'
+
         if (msg.toLowerCase().includes('payment channel is not activated')) {
           msg = 'Channel QRIS belum diaktifkan di akun Midtrans Production kamu. Silakan aktifkan metode QRIS di Dashboard Midtrans (Settings > Payment Methods > QRIS).'
+        } else if (msg.toLowerCase().includes('unauthorized') || chargeData?.status_code === '401') {
+          msg = 'Otorisasi Midtrans gagal (401 Unauthorized). Pastikan Server Key cocok dengan mode (Sandbox vs Production).'
         }
         return res.status(400).json({ success: false, error: msg })
       }

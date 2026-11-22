@@ -156,3 +156,4 @@ begin
 end $$;
 
 grant execute on function get_store_financial_summary() to authenticated;
+
