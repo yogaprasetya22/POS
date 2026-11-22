@@ -26,30 +26,31 @@ export function Receipt({ order, store, onClose }: { order: Order; store: Receip
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent id="receipt" showCloseButton={false} className="max-h-[92%] gap-5 overflow-y-auto bg-muted p-7 font-mono sm:max-w-sm">
+      <DialogContent id="receipt" showCloseButton={false} className="max-h-[92%] gap-5 overflow-y-auto bg-card p-6 sm:max-w-sm print:bg-white print:font-mono">
         <div className="text-center">
-          <CheckCircle2 className="mx-auto size-16 text-green-500 print:hidden" aria-hidden />
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-500/10 print:hidden"><CheckCircle2 className="size-10 text-emerald-600" aria-hidden /></span>
           <p className="hidden font-bold print:block">{store.name}</p>
           {store.address && <p className="hidden text-xs print:block">{store.address}</p>}
           <DialogTitle className="mt-3 text-xl font-bold print:hidden">Pembayaran Berhasil</DialogTitle>
           <DialogDescription className="sr-only">Struk pesanan {order.queue_code}</DialogDescription>
-          <p className="mt-1 text-3xl font-extrabold text-primary print:text-black">{order.queue_code}</p>
+          <p className="mt-2 text-sm text-muted-foreground print:hidden">Nomor antrean</p>
+          <p className="font-mono text-4xl font-black tracking-wider text-primary print:text-black">{order.queue_code}</p>
         </div>
 
         <div className="space-y-2 text-sm">
           <Row label="Nama">{order.customer_name}</Row>
-          <Row label="Meja">{order.order_type === 'DINE_IN' ? order.table_no : 'Bawa pulang'}</Row>
+          <Row label="Pesanan">{order.order_type === 'DINE_IN' ? `Makan di sini · Meja ${order.table_no}` : 'Bawa pulang'}</Row>
           <Row label="Waktu">
-            {order.business_day} {order.paid_at && timeJakarta(order.paid_at)}
+            {new Date(`${order.business_day}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}{order.paid_at && `, ${timeJakarta(order.paid_at)}`}
           </Row>
           {order.payment_method && <Row label="Pembayaran">{PAYMENT_LABEL[order.payment_method]}</Row>}
 
           <Dash />
-          <Row label="Total item" strong>{count} item</Row>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{count} item</p>
           {order.items.map((i, n) => (
-            <div key={n} className="flex justify-between gap-4 text-muted-foreground">
+            <div key={n} className="flex justify-between gap-4">
               <span>
-                +{i.qty} {i.name}
+                <span className="font-semibold">{i.qty}×</span> {i.name}
                 {i.choices.length > 0 && <span className="block text-xs">{i.choices.map((c) => c.option).join(', ')}</span>}
               </span>
               <span>{rupiah(i.subtotal)}</span>
@@ -66,14 +67,17 @@ export function Receipt({ order, store, onClose }: { order: Order; store: Receip
           {order.service_amount > 0 && <Row label="Service">{rupiah(order.service_amount)}</Row>}
           {order.tax_amount > 0 && <Row label="Pajak">{rupiah(order.tax_amount)}</Row>}
           {order.rounding_amount !== 0 && <Row label="Pembulatan">{order.rounding_amount < 0 ? '-' : ''}{rupiah(Math.abs(order.rounding_amount))}</Row>}
-          <div className="flex justify-between text-lg font-bold">
+          <div className="flex justify-between text-lg font-bold tabular-nums">
             <span>Total</span>
             <span>{rupiah(order.total)}</span>
           </div>
           {order.payment_method === 'CASH' && (
             <>
-              <Row label="Tunai">{rupiah(paid)}</Row>
-              <Row label="Kembalian" strong>{rupiah(paid - order.total)}</Row>
+              <Row label="Uang diterima">{rupiah(paid)}</Row>
+              <div className="mt-2 flex items-center justify-between rounded-2xl bg-emerald-500/10 px-4 py-3 text-emerald-800 dark:text-emerald-200 print:bg-transparent print:p-0 print:text-black">
+                <span className="font-semibold">Kembalian</span>
+                <span className="text-2xl font-black tabular-nums">{rupiah(paid - order.total)}</span>
+              </div>
             </>
           )}
           {order.points_earned > 0 && <Row label="Poin didapat">+{order.points_earned}</Row>}
@@ -81,13 +85,13 @@ export function Receipt({ order, store, onClose }: { order: Order; store: Receip
         </div>
 
         <div className="grid grid-cols-2 gap-3 print:hidden">
-          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => window.print()}>
-            <Printer /> Cetak
-          </Button>
           <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => setPreviewOpen(true)}>
-            <ReceiptIcon /> Pratinjau printer
+            <Printer /> Cetak struk
           </Button>
-          <Button size="lg" className="col-span-2 h-12" onClick={onClose}>Selesai</Button>
+          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => window.print()} title="Cetak lewat printer biasa / simpan PDF">
+            <ReceiptIcon /> Cetak via browser
+          </Button>
+          <Button size="lg" className="col-span-2 h-12 text-base font-bold" onClick={onClose}>Selesai · Pesanan baru</Button>
         </div>
         {previewOpen && <PrintPanel order={order} store={store} onClose={() => setPreviewOpen(false)} />}
       </DialogContent>

@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { allow, supabaseFor } from '../server/supabase.js'
+import { amountMatches, isPaidStatus, verifySignature } from '../server/midtrans-calc.js'
 
 /**
  * Muat variabel env terkini langsung dari file .env (jika ada)
@@ -512,7 +513,7 @@ export default async function handler(req, res) {
 
       if (isPaid) {
         // Validasi nominal ketat jika ada gross_amount di respons
-        if (statusData.gross_amount && Math.round(Number(statusData.gross_amount)) !== Math.round(order.total)) {
+        if (!amountMatches(statusData.gross_amount, order.total)) {
           console.warn(`Midtrans check-status: Gross amount mismatch. Midtrans: ${statusData.gross_amount}, Order: ${order.total}`)
           return res.status(400).json({ success: false, error: 'Nominal transaksi tidak sesuai dengan nilai pesanan' })
         }
@@ -587,33 +588,17 @@ export default async function handler(req, res) {
     }
 
     const cfg = await getMidtransConfig(sb, order?.store_id)
-    const serverKey = cfg.serverKey || process.env.MIDTRANS_SERVER_KEY
-    if (serverKey) {
-      // Verifikasi signature: SHA512(order_id + status_code + gross_amount + server_key)
-      const expectedSignature = crypto
-        .createHash('sha512')
-        .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
-        .digest('hex')
-
-      if (expectedSignature !== signature_key) {
-        // Cek juga kemungkinan fallback sandbox server key
-        const sbKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
-        const sbExpected = crypto
-          .createHash('sha512')
-          .update(`${order_id}${status_code}${gross_amount}${sbKey}`)
-          .digest('hex')
-
-        if (sbExpected !== signature_key) {
-          console.warn('Midtrans webhook: signature verification failed')
-          return res.status(403).json({ success: false, error: 'Invalid signature key' })
-        }
-      }
+    // Signature WAJIB valid. Dulu jika server key kosong, verifikasi dilewati -> siapa pun bisa menandai pesanan lunas.
+    const sandboxKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || 'SB-Mid-server-dW1aSFZSWCRytBjZrsRTvJqZ'
+    if (!verifySignature(notif, [cfg.serverKey, process.env.MIDTRANS_SERVER_KEY, sandboxKey])) {
+      console.warn('Midtrans webhook: signature verification failed')
+      return res.status(403).json({ success: false, error: 'Invalid signature key' })
     }
 
-    const isPaid = (transaction_status === 'capture' && fraud_status === 'accept') || transaction_status === 'settlement'
+    const isPaid = isPaidStatus(transaction_status, fraud_status)
 
     // Validasi ketat nominal dengan nilai pesanan di web POS
-    if (gross_amount && order && Math.round(Number(gross_amount)) !== Math.round(order.total)) {
+    if (order && !amountMatches(gross_amount, order.total)) {
       console.warn(`Midtrans webhook: Gross amount mismatch. Midtrans: ${gross_amount}, Order: ${order.total}`)
       return res.status(400).json({ success: false, error: 'Gross amount mismatch' })
     }
@@ -668,6 +653,7 @@ export default async function handler(req, res) {
     let checkedCount = 0
     let settledCount = 0
     let expiredCount = 0
+    let mismatchCount = 0
 
     for (const ord of (pendingOrders || [])) {
       checkedCount++
@@ -680,9 +666,12 @@ export default async function handler(req, res) {
         if (response.ok && statusData?.transaction_status) {
           const txStatus = statusData.transaction_status
           const fraudStatus = statusData.fraud_status
-          const isPaid = (txStatus === 'capture' && fraudStatus === 'accept') || txStatus === 'settlement'
+          const isPaid = isPaidStatus(txStatus, fraudStatus)
 
-          if (isPaid) {
+          if (isPaid && !amountMatches(statusData.gross_amount, ord.total)) {
+            console.warn(`Midtrans sync: nominal beda untuk ${ord.id}. Midtrans ${statusData.gross_amount}, POS ${ord.total}`)
+            mismatchCount++
+          } else if (isPaid) {
             await sb.rpc('pay_order_midtrans', {
               p_order_id: ord.id,
               p_transaction_id: statusData.transaction_id || null,
@@ -709,6 +698,7 @@ export default async function handler(req, res) {
       checked_count: checkedCount,
       settled_count: settledCount,
       expired_count: expiredCount,
+      mismatch_count: mismatchCount,
     })
   }
 
@@ -730,7 +720,8 @@ export default async function handler(req, res) {
       p_order_id: orderId,
       p_transaction_id: txId,
       p_payment_type: 'qris',
-      p_status: 'settlement',
+      // Simulasi lokal TIDAK tercatat di Midtrans, jadi tidak boleh menambah saldo siap tarik.
+      p_status: 'simulated',
     })
 
     if (payErr) {

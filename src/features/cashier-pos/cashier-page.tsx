@@ -271,6 +271,15 @@ export function CashierPage() {
     void reloadShift()
   }
 
+  const showPaidOrder = async (orderId: string) => {
+    const { data, error } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle()
+    if (error) throw error
+    if (!data || data.status === 'UNPAID') throw new Error('Pembayaran QRIS belum terkonfirmasi Midtrans. Coba cek status lagi.')
+    setReceipt(OrderSchema.parse(data))
+    reset()
+    void reloadShift()
+  }
+
   const submit = async () => {
     setBusy(true)
     setError('')
@@ -874,7 +883,9 @@ export function CashierPage() {
             setQrisModal(null)
             setBusy(true)
             try {
-              await finishPayment(id, 'MIDTRANS')
+              // Midtrans (check-status/webhook) SUDAH menandai lunas via pay_order_midtrans.
+              // Jangan panggil pay_order lagi (akan ditolak "sudah dibayar"); cukup ambil pesanan & tampilkan struk.
+              await showPaidOrder(id)
             } catch (err) {
               setError(err instanceof Error ? err.message : String(err))
             } finally {

@@ -119,7 +119,7 @@ export function Dashboard({ products, run }: { products: Product[]; run: (p: Pro
             index={3}
             label="Perlu dicek"
             value={low === null ? '…' : String(attention)}
-            tone={attention > 0 ? 'bad' : 'good'}
+            tone={attention > 0 ? 'warn' : 'good'}
             title={attention ? `${soldOut.length} menu habis · ${low?.length ?? 0} bahan hampir habis` : 'Semua aman'}
             hint={attention ? 'Lihat daftar di bawah' : 'Tidak ada menu habis atau bahan menipis'}
             onClick={attention ? () => document.getElementById('perlu-dicek')?.scrollIntoView({ behavior: 'smooth' }) : undefined}

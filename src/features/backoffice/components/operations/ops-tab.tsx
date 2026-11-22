@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Download, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
@@ -139,6 +139,21 @@ export function OpsTab() {
   const [auditGroup, setAuditGroup] = useState<AuditGroup>('all')
   const [stats, setStats] = useState<ShiftStats | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [openShifts, setOpenShifts] = useState<ShiftRow[] | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Shift yang sedang berjalan (tidak tergantung periode): ditampilkan paling atas
+  const loadOpen = useCallback(async () => {
+    const { data } = await supabase.from('shifts').select('*').is('closed_at', null).order('opened_at', { ascending: false }).limit(10)
+    setOpenShifts(z.array(ShiftRowSchema).safeParse(data ?? []).data ?? [])
+  }, [])
+  useEffect(() => {
+    void loadOpen()
+  }, [loadOpen])
 
   const loadStats = useCallback(async () => {
     const { data } = await rpc('shift_stats', { p_from: from, p_to: to })
@@ -233,6 +248,7 @@ export function OpsTab() {
   const canReview = can.manage(role)
   const refreshAll = () => {
     shifts.reload()
+    void loadOpen()
     void loadStats()
     void loadDaily()
   }
@@ -241,30 +257,97 @@ export function OpsTab() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Catatan laci kasir</h1>
-          <p className="mt-1 text-lg text-muted-foreground">{rangeText(from, to)} · uang laci tiap shift, selisihnya, dan siapa yang memegang laci.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Shift & laci kasir</h1>
+          <p className="mt-1 text-lg text-muted-foreground">Siapa yang memegang laci, berapa uang yang seharusnya ada, dan apakah hasil hitungnya cocok.</p>
         </div>
         <Button variant="outline" className="h-11 border-2 text-base" disabled={exporting} onClick={() => void exportShifts()}>
           <Download /> {exporting ? 'Menyiapkan…' : 'Unduh catatan shift'}
         </Button>
       </div>
 
-      <RangePicker value={period} presets={['7d', '30d', 'month', 'custom']} from={from} to={to} label="Periode" onChange={(p, r) => { setPeriod(p); setRange(r) }} />
+      {/* 1. Shift yang sedang berjalan */}
+      <section className="rounded-3xl border-2 bg-card p-5 shadow-xs">
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">
+          <span className="size-2.5 animate-pulse rounded-full bg-sky-500" aria-hidden /> Sedang berjalan sekarang
+        </h2>
+        {openShifts === null ? (
+          <RowsSkeleton rows={1} />
+        ) : openShifts.length === 0 ? (
+          <p className="mt-2 text-muted-foreground">Tidak ada shift yang terbuka. Laci kasir sedang tidak dipegang siapa pun.</p>
+        ) : (
+          <ul className="mt-3 grid gap-3 md:grid-cols-2">
+            {openShifts.map((o) => {
+              const handoverDiff = o.opening_expected != null && o.opening_cash !== o.opening_expected ? o.opening_cash - o.opening_expected : 0
+              return (
+                <li key={o.id}>
+                  <button type="button" onClick={() => setDetailId(o.id)} className="flex w-full flex-wrap items-center gap-4 rounded-2xl border-2 border-sky-200 bg-sky-50/60 p-4 text-left transition-colors hover:bg-sky-50 dark:border-sky-500/30 dark:bg-sky-500/10">
+                    <Person email={name(o.opened_by)} />
+                    <div className="flex flex-1 flex-wrap gap-x-6 gap-y-1 text-sm">
+                      <span className="flex items-center gap-1.5"><Clock className="size-4 text-muted-foreground" /> Mulai {clock(o.opened_at)} · {duration(o.opened_at, new Date(now).toISOString())}</span>
+                      <span className="flex items-center gap-1.5"><Wallet className="size-4 text-muted-foreground" /> Modal awal <strong>{rupiah(o.opening_cash)}</strong></span>
+                      {o.shift_name && <span className="font-bold">Shift {o.shift_name}</span>}
+                    </div>
+                    <span className="text-sm font-semibold text-primary">Lihat rincian →</span>
+                    {handoverDiff !== 0 && (
+                      <p className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                        <strong>Catatan:</strong> modal awal tidak sama dengan uang yang diserahkan shift sebelumnya ({rupiah(o.opening_expected ?? 0)}), beda {signed(handoverDiff)}. Tanyakan ke kasir sebelumnya.
+                      </p>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* 2. Ringkasan "perlu perhatian" dalam kalimat biasa */}
+      {stats && (() => {
+        const issues: { text: string; action?: () => void; cta?: string }[] = []
+        if (stats.unreviewed > 0) issues.push({ text: `${stats.unreviewed} shift punya selisih uang yang belum dicek manager.`, cta: 'Tinjau sekarang', action: () => { setTab('shift'); setShiftFilter('review') } })
+        if (stats.handover_mismatch > 0) issues.push({ text: `${stats.handover_mismatch} kali modal awal shift tidak sama dengan uang yang diserahkan shift sebelumnya.` })
+        if (stats.forced > 0) issues.push({ text: `${stats.forced} shift ditutup paksa (tanpa hitung uang oleh kasir).` })
+        return issues.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+            <CheckCircle2 className="size-6 shrink-0" />
+            <p><strong>Semua beres.</strong> Tidak ada selisih atau serah terima yang perlu dicek di periode ini.</p>
+          </div>
+        ) : (
+          <div className="space-y-2 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <p className="flex items-center gap-2 font-extrabold"><AlertTriangle className="size-5 text-amber-600" /> Perlu perhatian</p>
+            <ul className="space-y-1.5 pl-7">
+              {issues.map((i) => (
+                <li key={i.text} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="list-item list-disc">{i.text}</span>
+                  {i.action && <Button size="sm" variant="outline" className="h-8 border-amber-400 bg-white/60" onClick={i.action}>{i.cta}</Button>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })()}
+
+      <div className="flex flex-wrap items-center gap-3 border-t pt-5">
+        <h2 className="text-lg font-extrabold">Rekap periode <span className="font-semibold text-muted-foreground">· {rangeText(from, to)}</span></h2>
+        <div className="ml-auto">
+          <RangePicker value={period} presets={['today', '7d', '30d', 'month', 'custom']} from={from} to={to} label="Periode" onChange={(p, r) => { setPeriod(p); setRange(r) }} />
+        </div>
+      </div>
 
       {stats ? (
         <KpiGrid>
           <KpiCard
             index={0}
-            label="Total selisih kas"
+            label="Total selisih uang laci"
             value={stats.diff_total === 0 ? 'Rp0' : signed(stats.diff_total)}
             tone={stats.diff_total < 0 ? 'bad' : stats.diff_total === 0 ? 'good' : undefined}
             title={stats.with_diff === 0 ? 'Semua shift pas' : `Kurang ${rupiah(-stats.short_total)} · lebih ${rupiah(stats.over_total)}`}
             hint={`${stats.closed} shift ditutup`}
           />
-          <KpiCard index={1} label="Shift dengan selisih" value={`${stats.with_diff} dari ${stats.closed}`} tone={stats.with_diff > 0 ? 'bad' : undefined} title={stats.closed ? `${Math.round((stats.with_diff / stats.closed) * 100)}% shift tidak pas` : 'Belum ada shift ditutup'} hint="Ketuk “Rincian” di daftar untuk melihat sebabnya" />
+          <KpiCard index={1} label="Shift yang tidak pas" value={`${stats.with_diff} dari ${stats.closed}`} tone={stats.with_diff > 0 ? 'bad' : undefined} title={stats.closed ? `${Math.round((stats.with_diff / stats.closed) * 100)}% shift tidak pas` : 'Belum ada shift ditutup'} hint="Ketuk “Rincian” di daftar untuk melihat sebabnya" />
           <KpiCard
             index={2}
-            label="Perlu ditinjau"
+            label="Belum dicek manager"
             value={String(stats.unreviewed)}
             tone={stats.unreviewed > 0 ? 'bad' : 'good'}
             title={stats.unreviewed ? 'Selisih belum dicek manager' : 'Semua selisih sudah ditinjau'}
@@ -273,10 +356,10 @@ export function OpsTab() {
           />
           <KpiCard
             index={3}
-            label="Serah terima bermasalah"
+            label="Masalah serah terima"
             value={String(stats.handover_mismatch + stats.forced)}
-            tone={stats.handover_mismatch + stats.forced > 0 ? 'bad' : undefined}
-            title={`${stats.handover_mismatch} modal awal beda`}
+            tone={undefined}
+            title={`${stats.handover_mismatch} modal awal tidak sama`}
             hint={`${stats.forced} shift ditutup paksa`}
           />
         </KpiGrid>
@@ -284,13 +367,17 @@ export function OpsTab() {
         <StatTilesSkeleton count={4} className="grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" />
       )}
 
-      <Panel title="Selisih kas per hari" description="Batang merah = uang kurang, hijau = uang lebih. Kosong berarti pas atau tidak ada shift.">
-        {daily === null ? <ChartSkeleton /> : daily.every((d) => d.short === 0 && d.over === 0) ? (
-          <EmptyState title="Tidak ada selisih" hint="Semua shift di periode ini pas, atau belum ada shift yang ditutup." />
-        ) : (
+      {daily === null ? (
+        <ChartSkeleton />
+      ) : daily.every((d) => d.short === 0 && d.over === 0) ? (
+        <p className="flex items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-3 text-sm text-muted-foreground">
+          <CheckCircle2 className="size-4 text-emerald-600" /> Grafik selisih per hari tidak ditampilkan karena semua shift di periode ini pas.
+        </p>
+      ) : (
+        <Panel title="Selisih uang per hari" description="Batang merah = uang kurang, hijau = uang lebih.">
           <CashDiffChart data={daily} />
-        )}
-      </Panel>
+        </Panel>
+      )}
 
       <StatusLegend
         title="Arti setiap status & cara membaca selisih"
@@ -327,8 +414,8 @@ export function OpsTab() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className={TH}>Kasir</TableHead>
                   <TableHead className={TH}>Waktu</TableHead>
-                  <TableHead className={`${TH} hidden text-right lg:table-cell`}>Diharapkan</TableHead>
-                  <TableHead className={`${TH} hidden text-right lg:table-cell`}>Dihitung</TableHead>
+                  <TableHead className={`${TH} hidden text-right lg:table-cell`}>Seharusnya ada</TableHead>
+                  <TableHead className={`${TH} hidden text-right lg:table-cell`}>Dihitung kasir</TableHead>
                   <TableHead className={`${TH} text-right`}>Selisih</TableHead>
                   <TableHead className={TH}>Tinjauan</TableHead>
                   <TableHead className={`${TH} text-right`}><span className="sr-only">Aksi</span></TableHead>
@@ -342,7 +429,7 @@ export function OpsTab() {
                       <p className="mt-0.5 flex flex-wrap gap-x-2 pl-[2.625rem] text-xs text-muted-foreground">
                         {s.shift_name && <span className="font-bold text-foreground">Shift {s.shift_name}</span>}
                         {s.forced && <span className="text-amber-700 dark:text-amber-400">ditutup paksa</span>}
-                        {s.opening_expected != null && s.opening_cash !== s.opening_expected && <span className="text-destructive">modal awal beda {signed(s.opening_cash - s.opening_expected)}</span>}
+                        {s.opening_expected != null && s.opening_cash !== s.opening_expected && <span className="text-amber-700 dark:text-amber-400" title="Modal awal shift ini tidak sama dengan uang yang diserahkan shift sebelumnya">modal awal tidak sama ({signed(s.opening_cash - s.opening_expected)})</span>}
                         {s.note && <span className="max-w-56 truncate" title={s.note}>“{s.note}”</span>}
                       </p>
                     </TableCell>

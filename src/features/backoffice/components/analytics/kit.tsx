@@ -99,7 +99,7 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
   badge?: ReactNode
   title?: ReactNode
   hint?: ReactNode
-  tone?: 'bad' | 'good'
+  tone?: 'bad' | 'good' | 'warn'
   index?: number
   onClick?: () => void
 }) {
@@ -110,7 +110,7 @@ export function KpiCard({ label, value, badge, title, hint, tone, index = 0, onC
         <p className="line-clamp-2 min-w-0 text-base leading-6 font-medium text-muted-foreground" title={label}>{label}</p>
         <span className="shrink-0">{badge}</span>
       </div>
-      <p className={cn('mt-1 whitespace-nowrap font-extrabold leading-tight tabular-nums tracking-tight', 'text-[clamp(1.2rem,13cqw,1.85rem)]', tone === 'bad' && 'text-destructive', tone === 'good' && 'text-emerald-700 dark:text-emerald-400')}>{value}</p>
+      <p className={cn('mt-1 whitespace-nowrap font-extrabold leading-tight tabular-nums tracking-tight', 'text-[clamp(1.2rem,13cqw,1.85rem)]', tone === 'bad' && 'text-destructive', tone === 'warn' && 'text-amber-600 dark:text-amber-400', tone === 'good' && 'text-emerald-700 dark:text-emerald-400')}>{value}</p>
       {(title || hint) && (
         <div className="mt-auto space-y-0.5 border-t pt-3 text-base">
           {title && <p className="line-clamp-2 font-semibold">{title}</p>}

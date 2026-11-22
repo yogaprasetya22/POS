@@ -17,16 +17,38 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('id-ID', { timeZ
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${rupiah(Math.abs(n))}`
 
 function Step({ sign, label, hint, value, strong }: { sign?: '+' | '−' | '='; label: string; hint?: string; value: number; strong?: boolean }) {
+  const dim = !strong && value === 0 && sign !== undefined
+  const signCls = sign === '+' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' : sign === '−' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-muted text-muted-foreground'
   return (
-    <div className={`flex items-start justify-between gap-3 py-2 ${strong ? 'border-t font-semibold' : ''}`}>
+    <div className={`flex items-start justify-between gap-3 py-2.5 ${strong ? 'border-t-2 text-base font-bold' : ''} ${dim ? 'opacity-50' : ''}`}>
       <span className="flex gap-2.5">
-        <span className="w-4 shrink-0 text-center text-muted-foreground">{sign}</span>
+        <span className={`grid size-5 shrink-0 place-items-center rounded-full text-xs font-bold ${sign ? signCls : ''}`}>{sign}</span>
         <span>
           {label}
           {hint && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
         </span>
       </span>
       <span className="shrink-0 tabular-nums">{rupiah(value)}</span>
+    </div>
+  )
+}
+
+function Tile({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' | 'warn' }) {
+  const cls = tone === 'good' ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200' : tone === 'bad' ? 'border-red-300 bg-red-50 text-red-800 dark:bg-red-500/10 dark:text-red-200' : tone === 'warn' ? 'border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-100' : 'bg-card'
+  return (
+    <div className={`rounded-2xl border-2 p-3 ${cls}`}>
+      <p className="text-xs font-semibold opacity-80">{label}</p>
+      <p className="text-xl font-black tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+function Mini({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-xl border bg-muted/30 px-3 py-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-bold tabular-nums">{value}</p>
+      <p className="truncate text-xs text-muted-foreground" title={sub}>{sub}</p>
     </div>
   )
 }
@@ -39,9 +61,7 @@ function StockLines({ title, note, rows, total }: { title: string; note: string;
   return (
     <section>
       <H note={note}>{title} · {rupiah(total)}</H>
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Tidak ada.</p>
-      ) : (
+      {rows.length === 0 ? null : (
         <ul className="divide-y rounded-lg border">
           {rows.map((r) => (
             <li key={r.name} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
@@ -58,7 +78,7 @@ function StockLines({ title, note, rows, total }: { title: string; note: string;
 
 const H = ({ children, note }: { children: React.ReactNode; note?: string }) => (
   <div className="mb-2">
-    <h3 className="text-sm font-semibold">{children}</h3>
+    <h3 className="text-base font-bold">{children}</h3>
     {note && <p className="text-xs text-muted-foreground">{note}</p>}
   </div>
 )
@@ -132,14 +152,47 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
               <RowsSkeleton rows={6} className="-mx-4" />
             ) : (
               <>
+                {/* Ringkasan: jawaban utama dulu */}
+                {closed ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <Tile label="Seharusnya ada" value={rupiah(t.expected)} />
+                    <Tile label="Dihitung kasir" value={rupiah(sh.counted_cash ?? 0)} />
+                    <Tile
+                      label="Selisih"
+                      value={diff === 0 ? 'Pas' : signed(diff ?? 0)}
+                      tone={diff === 0 ? 'good' : (diff ?? 0) < 0 ? 'bad' : 'warn'}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border-2 border-sky-200 bg-sky-50/70 p-4 dark:border-sky-500/30 dark:bg-sky-500/10">
+                    <p className="text-sm font-semibold text-muted-foreground">Uang yang seharusnya ada di laci sekarang</p>
+                    <p className="text-3xl font-black tabular-nums">{rupiah(t.expected)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Selisih baru diketahui saat kasir menutup shift dan menghitung uangnya.</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                  <Mini label="Penjualan tunai" value={rupiah(t.cash_sales)} sub={`${cashOrders.filter((o) => o.counted).length} pesanan`} />
+                  <Mini label="Non-tunai" value={rupiah(otherMethods.reduce((a, [, v]) => a + v.total, 0))} sub={otherMethods.length ? otherMethods.map(([m, v]) => `${PAYMENT_LABEL[m as keyof typeof PAYMENT_LABEL] ?? m} ${v.count}×`).join(', ') : 'tidak ada'} />
+                  <Mini label="Kas masuk" value={rupiah(t.cash_in)} sub={`${detail.movements.filter((m) => m.kind === 'IN').length} catatan`} />
+                  <Mini label="Kas keluar" value={rupiah(t.cash_out)} sub={`${detail.movements.filter((m) => m.kind === 'OUT').length} catatan`} />
+                </div>
+
+                {handoverDiff !== 0 && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    <strong>Catatan serah terima:</strong> modal awal {rupiah(sh.opening_cash)}, padahal shift sebelumnya{sh.handover_from ? ` (${sh.handover_from})` : ''} menyerahkan {rupiah(sh.opening_expected ?? 0)}. Beda {signed(handoverDiff)}.
+                    {sh.opening_note && <span className="block">Alasan dari kasir: “{sh.opening_note}”</span>}
+                  </p>
+                )}
+
                 <section>
-                  <H note="Selisih = uang yang dihitung di laci − uang yang seharusnya ada. Minus berarti uang kurang.">Bagaimana selisih dihitung</H>
+                  <H note="Uang yang seharusnya ada = modal awal + uang masuk − uang keluar. Baris Rp0 dibuat samar.">Cara menghitung uang laci</H>
                   <div className="divide-y rounded-lg border px-3 text-sm">
                     <Step
                       label="Modal awal"
                       hint={
                         sh.handover_from
-                          ? `Serah terima dari ${sh.handover_from}${handoverDiff !== 0 ? ` · seharusnya ${rupiah(sh.opening_expected ?? 0)}, beda ${signed(handoverDiff)}${sh.opening_note ? ` (“${sh.opening_note}”)` : ''}` : ' · sama dengan uang yang diserahkan'}`
+                          ? `Diterima dari ${sh.handover_from}${handoverDiff !== 0 ? ' · lihat catatan di atas' : ' · sama dengan yang diserahkan'}`
                           : 'Shift pertama, tanpa serah terima'
                       }
                       value={t.opening}
@@ -147,9 +200,9 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                     <Step sign="+" label="Penjualan tunai" hint={`${cashOrders.filter((o) => o.counted).length} pesanan tunai`} value={t.cash_sales} />
                     <Step sign="+" label="Kas masuk" hint={`${detail.movements.filter((m) => m.kind === 'IN').length} catatan`} value={t.cash_in} />
                     <Step sign="−" label="Kas keluar" hint={`${detail.movements.filter((m) => m.kind === 'OUT').length} catatan`} value={t.cash_out} />
-                    <Step sign="−" label="Uang dikembalikan / dibatalkan (tunai) dari shift lain" hint={`${detail.reversals.length} pesanan`} value={t.cash_reversals} />
+                    <Step sign="−" label="Refund tunai pesanan shift lain" hint={`${detail.reversals.length} pesanan`} value={t.cash_reversals} />
                     <Step sign="=" label="Uang yang seharusnya ada" value={t.expected} strong />
-                    {closed && <Step label="Uang yang dihitung di laci" value={sh.counted_cash ?? 0} />}
+                    {closed && <Step label="Uang yang dihitung kasir" value={sh.counted_cash ?? 0} />}
                   </div>
                   {closed && diff !== null && (
                     <p className={`mt-2 rounded-lg px-3 py-2 text-sm font-medium ${diff === 0 ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100' : diff < 0 ? 'bg-red-50 text-red-900 dark:bg-red-500/15 dark:text-red-100' : 'bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100'}`}>
@@ -160,9 +213,9 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                 </section>
 
                 <section>
-                  <H note="Pelanggan yang memesan lewat QR tanpa login tercatat sebagai “Pelanggan”. Uangnya baru masuk laci saat kasir menerima pembayaran, dan nama kasir itu tersimpan.">Pesanan tunai di shift ini ({cashOrders.length})</H>
+                  <H note={cashOrders.length ? 'Siapa yang membuat pesanan dan siapa yang menerima uangnya.' : undefined}>Pesanan tunai ({cashOrders.length})</H>
                   {cashOrders.length === 0 ? (
-                    <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">Tidak ada pembayaran tunai.</p>
+                    <p className="text-sm text-muted-foreground">Belum ada pembayaran tunai di shift ini.</p>
                   ) : (
                     <ul className="divide-y rounded-lg border">
                       {cashOrders.map((o) => (
@@ -188,17 +241,13 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                       ))}
                     </ul>
                   )}
-                  {otherMethods.length > 0 && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Non-tunai (tidak masuk laci): {otherMethods.map(([m, v]) => `${PAYMENT_LABEL[m as keyof typeof PAYMENT_LABEL] ?? m} ${v.count}× ${rupiah(v.total)}`).join(' · ')}
-                    </p>
-                  )}
+                  {otherMethods.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Pembayaran non-tunai (QRIS/kartu) tidak masuk laci, jadi tidak ikut dihitung.</p>}
                 </section>
 
                 <section>
                   <H>Kas masuk &amp; keluar ({detail.movements.length})</H>
                   {detail.movements.length === 0 ? (
-                    <p className="rounded-lg border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">Tidak ada.</p>
+                    <p className="text-sm text-muted-foreground">Tidak ada uang yang dimasukkan atau diambil dari laci.</p>
                   ) : (
                     <ul className="divide-y rounded-lg border">
                       {detail.movements.map((m) => (
@@ -231,7 +280,10 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
                   </section>
                 )}
 
-                {stock && (
+                {stock && stock.used.length + stock.wasted.length === 0 && (
+                  <p className="text-sm text-muted-foreground"><strong className="text-foreground">Bahan baku:</strong> belum ada bahan terpakai atau terbuang di shift ini.</p>
+                )}
+                {stock && stock.used.length + stock.wasted.length > 0 && (
                   <>
                     <StockLines title="Bahan terpakai" note="Dari menu yang terjual selama shift ini, dihitung dari resep dan harga beli sekarang." rows={stock.used} total={stock.used_value} />
                     <StockLines title="Bahan terbuang" note="Yang dicatat terbuang selama shift ini." rows={stock.wasted} total={stock.wasted_value} />
@@ -266,10 +318,10 @@ export function ShiftDetailDrawer({ shiftId, canReview, onClose, onChanged }: { 
           </div>
 
           <DrawerFooter className="flex-row border-t pt-3">
-            <DrawerClose render={<Button variant="outline" className="h-11 flex-1">Tutup</Button>} />
+            <DrawerClose render={<Button variant="outline" className="h-11 flex-1">Kembali</Button>} />
             {canReview && sh && !closed && (
               <Button variant="destructive" className="h-11 flex-1" onClick={() => setForce(true)}>
-                <Lock /> Tutup paksa
+                <Lock /> Tutup paksa shift
               </Button>
             )}
           </DrawerFooter>
