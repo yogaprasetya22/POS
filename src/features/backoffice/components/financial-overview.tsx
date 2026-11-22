@@ -3,6 +3,7 @@ import {
   ArrowDownToLine,
   Coins,
   RefreshCw,
+  RotateCcw,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
@@ -12,12 +13,13 @@ import { Button } from '@shared/components/ui/button'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import type { FinancialSummary } from '@shared/types/contracts'
-import { WithdrawalModal } from './withdrawal-modal'
+import { WithdrawalDrawer } from './withdrawal-drawer'
 
 export function FinancialOverview({ className = '' }: { className?: string }) {
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -43,6 +45,27 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
       setRefreshing(false)
     }
   }, [])
+
+  const handleSyncMidtrans = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/midtrans?action=sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal sinkronisasi dengan Midtrans')
+      }
+      toast.success(
+        `Sinkronisasi Midtrans (${data.mode}) selesai: ${data.checked_count} transaksi dicek, ${data.settled_count} lunas, ${data.expired_count} kadaluwarsa.`
+      )
+      void fetchSummary(true)
+    } catch (err: unknown) {
+      toast.error('Gagal sinkronisasi Midtrans', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
     void fetchSummary(false)
@@ -133,7 +156,7 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -144,6 +167,18 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
           >
             <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Perbarui</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSyncMidtrans}
+            disabled={syncing}
+            className="h-9 gap-1.5 rounded-xl border-2 border-primary/30 text-sm font-semibold hover:bg-primary/5"
+            title="Sinkronkan status transaksi langsung dengan server Midtrans"
+          >
+            <RotateCcw className={`size-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            <span>Sinkronkan Midtrans</span>
           </Button>
 
           <Button
@@ -260,9 +295,14 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Midtrans (QRIS)</span>
-              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
-                Tersedia
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                  Sandbox
+                </span>
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                  Tersedia
+                </span>
+              </div>
             </div>
             <p className="text-2xl font-black tracking-tight text-primary">
               {rupiah(s.midtrans_available_balance)}
@@ -284,8 +324,8 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
         </div>
       </div>
 
-      {/* Modal Penarikan Dana (Withdrawal Modal) */}
-      <WithdrawalModal
+      {/* Drawer Penarikan Dana (Withdrawal Drawer) */}
+      <WithdrawalDrawer
         open={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}
         summary={summary}

@@ -11,3 +11,4 @@ alter table stores
   drop column if exists account_number,
   drop column if exists account_holder,
   drop column if exists midtrans_iris_api_key;
+

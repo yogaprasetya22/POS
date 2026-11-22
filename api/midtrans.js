@@ -486,6 +486,12 @@ export default async function handler(req, res) {
       const isPaid = (txStatus === 'capture' && fraudStatus === 'accept') || txStatus === 'settlement'
 
       if (isPaid) {
+        // Validasi nominal ketat jika ada gross_amount di respons
+        if (statusData.gross_amount && Math.round(Number(statusData.gross_amount)) !== Math.round(order.total)) {
+          console.warn(`Midtrans check-status: Gross amount mismatch. Midtrans: ${statusData.gross_amount}, Order: ${order.total}`)
+          return res.status(400).json({ success: false, error: 'Nominal transaksi tidak sesuai dengan nilai pesanan' })
+        }
+
         // Tandai pesanan lunas di database lewat RPC pay_order_midtrans
         const { error: payErr } = await sb.rpc('pay_order_midtrans', {
           p_order_id: order.id,
@@ -494,6 +500,11 @@ export default async function handler(req, res) {
           p_status: txStatus,
         })
         if (payErr) console.error('Error pay_order_midtrans:', payErr)
+      } else if (['expire', 'cancel', 'deny'].includes(txStatus)) {
+        await sb.from('orders').update({
+          status: 'CANCELLED',
+          midtrans_status: txStatus,
+        }).eq('id', order.id).eq('status', 'UNPAID')
       }
 
       return res.status(200).json({
@@ -576,6 +587,12 @@ export default async function handler(req, res) {
 
     const isPaid = (transaction_status === 'capture' && fraud_status === 'accept') || transaction_status === 'settlement'
 
+    // Validasi ketat nominal dengan nilai pesanan di web POS
+    if (gross_amount && order && Math.round(Number(gross_amount)) !== Math.round(order.total)) {
+      console.warn(`Midtrans webhook: Gross amount mismatch. Midtrans: ${gross_amount}, Order: ${order.total}`)
+      return res.status(400).json({ success: false, error: 'Gross amount mismatch' })
+    }
+
     if (order && isPaid && order.status === 'UNPAID') {
       await sb.rpc('pay_order_midtrans', {
         p_order_id: order.id,
@@ -583,9 +600,91 @@ export default async function handler(req, res) {
         p_payment_type: payment_type || null,
         p_status: transaction_status,
       })
+    } else if (order && ['expire', 'cancel', 'deny'].includes(transaction_status) && order.status === 'UNPAID') {
+      await sb.from('orders').update({
+        status: 'CANCELLED',
+        midtrans_status: transaction_status,
+      }).eq('id', order.id).eq('status', 'UNPAID')
     }
 
     return res.status(200).json({ success: true, message: 'Notification received' })
+  }
+
+  // ─── 6. SINKRONISASI SEMUA TRANSAKSI MIDTRANS SECARA KETAT ───
+  if (action === 'sync') {
+    if (!allow(req, res, 'POST')) return
+    const { storeId } = req.body || req.query || {}
+    const cfg = await getMidtransConfig(sb, storeId)
+    if (!cfg.serverKey) {
+      return res.status(400).json({ success: false, error: 'Server key Midtrans belum dikonfigurasi' })
+    }
+
+    const authHeader = 'Basic ' + Buffer.from(`${cfg.serverKey}:`).toString('base64')
+    const coreUrl = getCoreApiUrl(cfg.isProduction)
+
+    // Cari pesanan UNPAID yang memiliki sesi Midtrans
+    let query = sb
+      .from('orders')
+      .select('id, queue_code, total, status, midtrans_transaction_id, midtrans_snap_token, created_at')
+      .eq('status', 'UNPAID')
+      .or('midtrans_transaction_id.not.is.null,midtrans_snap_token.not.is.null')
+      .order('created_at', { ascending: false })
+      .limit(30)
+
+    if (storeId) {
+      query = query.eq('store_id', storeId)
+    }
+
+    const { data: pendingOrders, error: fetchErr } = await query
+    if (fetchErr) {
+      return res.status(500).json({ success: false, error: fetchErr.message })
+    }
+
+    let checkedCount = 0
+    let settledCount = 0
+    let expiredCount = 0
+
+    for (const ord of (pendingOrders || [])) {
+      checkedCount++
+      const targetId = ord.midtrans_transaction_id || ord.id
+      try {
+        const response = await fetch(`${coreUrl}/v2/${targetId}/status`, {
+          headers: { Accept: 'application/json', Authorization: authHeader },
+        })
+        const statusData = await response.json()
+        if (response.ok && statusData?.transaction_status) {
+          const txStatus = statusData.transaction_status
+          const fraudStatus = statusData.fraud_status
+          const isPaid = (txStatus === 'capture' && fraudStatus === 'accept') || txStatus === 'settlement'
+
+          if (isPaid) {
+            await sb.rpc('pay_order_midtrans', {
+              p_order_id: ord.id,
+              p_transaction_id: statusData.transaction_id || null,
+              p_payment_type: statusData.payment_type || null,
+              p_status: txStatus,
+            })
+            settledCount++
+          } else if (['expire', 'cancel', 'deny'].includes(txStatus)) {
+            await sb.from('orders').update({
+              status: 'CANCELLED',
+              midtrans_status: txStatus,
+            }).eq('id', ord.id).eq('status', 'UNPAID')
+            expiredCount++
+          }
+        }
+      } catch (err) {
+        console.warn(`Sync error for order ${ord.id}:`, err.message)
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      mode: cfg.isProduction ? 'Production' : 'Sandbox',
+      checked_count: checkedCount,
+      settled_count: settledCount,
+      expired_count: expiredCount,
+    })
   }
 
   return res.status(400).json({ success: false, error: `Action '${action}' tidak dikenal` })

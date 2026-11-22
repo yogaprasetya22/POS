@@ -9,6 +9,7 @@ import {
   LineChart,
   Loader2,
   RefreshCw,
+  RotateCcw,
   Save,
   ShieldCheck,
   TrendingDown,
@@ -26,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
 import type { FinancialSummary, Withdrawal } from '@shared/types/contracts'
-import { POPULAR_BANKS, WithdrawalModal } from './withdrawal-modal'
+import { POPULAR_BANKS, WithdrawalDrawer } from './withdrawal-drawer'
 
 export function FinancePageView() {
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
@@ -34,6 +35,7 @@ export function FinancePageView() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   // Edit Bank Form State
   const [bankName, setBankName] = useState('BCA')
@@ -86,6 +88,27 @@ export function FinancePageView() {
   useEffect(() => {
     void fetchData(false)
   }, [fetchData])
+
+  const handleSyncMidtrans = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/midtrans?action=sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal sinkronisasi dengan Midtrans')
+      }
+      toast.success(
+        `Sinkronisasi Midtrans (${data.mode}) selesai: ${data.checked_count} transaksi dicek, ${data.settled_count} lunas, ${data.expired_count} kadaluwarsa.`
+      )
+      void fetchData(true)
+    } catch (err: unknown) {
+      toast.error('Gagal sinkronisasi Midtrans', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleSaveBank = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,7 +198,7 @@ export function FinancePageView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button
             variant="outline"
             onClick={() => void fetchData(true)}
@@ -184,6 +207,17 @@ export function FinancePageView() {
           >
             <RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
             Perbarui
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleSyncMidtrans}
+            disabled={syncing}
+            className="h-11 rounded-2xl border-2 border-primary/30 px-4 text-base font-bold gap-2 hover:bg-primary/5"
+            title="Sinkronkan status transaksi langsung dengan server Midtrans"
+          >
+            <RotateCcw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
+            Sinkronkan Midtrans
           </Button>
 
           <Button
@@ -284,9 +318,14 @@ export function FinancePageView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Midtrans (QRIS)</span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
-                Tersedia
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                  Sandbox
+                </span>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                  Tersedia
+                </span>
+              </div>
             </div>
             <CardTitle className="text-2xl font-black text-primary">
               {rupiah(s.midtrans_available_balance)}
@@ -579,8 +618,8 @@ export function FinancePageView() {
         </div>
       </div>
 
-      {/* Modal Penarikan Dana (Withdrawal Modal) */}
-      <WithdrawalModal
+      {/* Drawer Penarikan Dana (Withdrawal Drawer) */}
+      <WithdrawalDrawer
         open={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}
         summary={summary}

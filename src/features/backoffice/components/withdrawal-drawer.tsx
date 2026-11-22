@@ -11,12 +11,20 @@ import {
   RefreshCw,
   ShieldCheck,
   Wallet,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
 import { Label } from '@shared/components/ui/label'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@shared/components/ui/dialog'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@shared/components/ui/drawer'
 import { Tabs, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
@@ -36,7 +44,7 @@ export const POPULAR_BANKS = [
   { code: 'OTHER', name: 'Bank Lainnya' },
 ]
 
-export function WithdrawalModal({
+export function WithdrawalDrawer({
   open,
   onClose,
   summary,
@@ -185,23 +193,36 @@ export function WithdrawalModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden rounded-3xl border-2">
-        <DialogHeader className="px-6 pt-6 pb-3 border-b bg-muted/20">
+    <Drawer open={open} onOpenChange={(v) => !v && onClose()} swipeDirection="right">
+      <DrawerContent size="md" className="flex flex-col h-full rounded-l-3xl border-l">
+        <DrawerHeader className="px-6 pt-6 pb-4 border-b bg-muted/20 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid size-10 place-items-center rounded-2xl bg-primary/10 text-primary">
                 <Landmark className="size-5" />
               </span>
               <div>
-                <DialogTitle className="text-xl font-extrabold tracking-tight">
+                <DrawerTitle className="text-xl font-extrabold tracking-tight">
                   Tarik Saldo Midtrans
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                </DrawerTitle>
+                <DrawerDescription className="text-xs text-muted-foreground">
                   Pencairan dana penjualan digital (QRIS) ke rekening bank toko
-                </DialogDescription>
+                </DrawerDescription>
               </div>
             </div>
+            <DrawerClose
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="rounded-full"
+                  aria-label="Tutup drawer"
+                >
+                  <X className="size-4" />
+                </Button>
+              }
+            />
           </div>
 
           {/* Kartu Status Saldo Tersedia */}
@@ -234,9 +255,9 @@ export function WithdrawalModal({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </DialogHeader>
+        </DrawerHeader>
 
-        <div className="p-6 max-h-[75vh] overflow-y-auto">
+        <div className="p-6 flex-1 overflow-y-auto">
           {tab === 'withdraw' && !successReceipt && (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Jumlah Penarikan */}
@@ -628,7 +649,10 @@ export function WithdrawalModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   )
 }
+
+export const WithdrawalModal = WithdrawalDrawer
+
