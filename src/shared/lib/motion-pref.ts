@@ -1,11 +1,14 @@
 const KEY = 'pos_motion'
 
-/** "full" = animasi selalu aktif walau sistem meminta gerakan dikurangi; selain itu mengikuti setelan sistem. */
+/**
+ * "full" (bawaan) = animasi selalu aktif walau sistem meminta gerakan dikurangi.
+ * "system" = mengikuti setelan sistem; hanya bila pengguna memilihnya sendiri.
+ */
 export function getMotionPref(): 'system' | 'full' {
   try {
-    return localStorage.getItem(KEY) === 'full' ? 'full' : 'system'
+    return localStorage.getItem(KEY) === 'system' ? 'system' : 'full'
   } catch {
-    return 'system'
+    return 'full'
   }
 }
 

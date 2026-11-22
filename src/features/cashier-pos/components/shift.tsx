@@ -1,3 +1,4 @@
+import { getDevice, lockDevice } from '@shared/lib/device-binding'
 import { Banknote, CheckCircle2, Lock, LockOpen, Moon, Sun, TriangleAlert } from 'lucide-react'
 import { useShiftNames } from '@shared/lib/shift-names'
 import { useI18n } from '@shared/i18n'
@@ -338,9 +339,10 @@ function ShiftPanel({ shift, onClose, onChange }: { shift: ShiftSummary; onClose
   }
 
   if (closedInfo) {
-    const done = () => { onChange(); onClose() }
+    // Perangkat kasir terikat: setelah tutup shift langsung kembali ke layar PIN untuk kasir berikutnya
+    const done = () => { onChange(); onClose(); if (getDevice()) void lockDevice() }
     return (
-      <Panel onClose={done} title="Shift ditutup" description={t('shift.ui.closed_hint')} footer={<Button size="lg" className="h-12 w-full" onClick={done}>Selesai</Button>}>
+      <Panel onClose={done} title="Shift ditutup" description={t('shift.ui.closed_hint')} footer={<Button size="lg" className="h-12 w-full" onClick={done}>{getDevice() ? 'Selesai & ganti kasir' : 'Selesai'}</Button>}>
         <div className="space-y-2 text-sm">
           <Line label="Kas diharapkan" value={closedInfo.expected} />
           <Line label="Uang dihitung di laci" value={closedInfo.counted} />

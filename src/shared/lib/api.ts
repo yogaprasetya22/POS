@@ -8,8 +8,9 @@ type Result = { data: unknown; error: Error | null }
  * `asPublic`: kirim tanpa sesi login. Dipakai halaman pembeli supaya pesanan tetap tercatat "dari pelanggan"
  * walau browsernya sedang login sebagai staf (mis. pemilik mencoba pesan lewat QR).
  */
-export async function rpc(name: string, args?: Record<string, unknown>, opts?: { asPublic?: boolean }): Promise<Result> {
-  const token = opts?.asPublic ? undefined : (await supabase.auth.getSession()).data.session?.access_token
+export async function rpc(name: string, args?: Record<string, unknown>, opts?: { asPublic?: boolean; token?: string }): Promise<Result> {
+  // `token`: pakai sesi lain (mis. sesi member di HP pelanggan) alih-alih sesi staf
+  const token = opts?.token ?? (opts?.asPublic ? undefined : (await supabase.auth.getSession()).data.session?.access_token)
   try {
     const res = await fetch('/api/rpc', {
       method: 'POST',

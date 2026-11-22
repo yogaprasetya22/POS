@@ -1,3 +1,4 @@
+import { useLandingTheme } from '@shared/lib/landing-theme'
 import { ArrowLeft, Boxes, ChefHat, Check, QrCode, Receipt } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
@@ -13,6 +14,7 @@ const POINTS = [
 
 /** Bingkai dua kolom layar penuh untuk halaman login / register / menunggu aktivasi. */
 export function AuthShell({ children }: { children: ReactNode }) {
+  useLandingTheme()
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">

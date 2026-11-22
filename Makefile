@@ -1,4 +1,4 @@
-.PHONY: reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos seed-inventory
+.PHONY: migrate-mark reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos seed-inventory
 
 # Default target
 help:
@@ -11,7 +11,9 @@ help:
 	@echo "  make test                  - Run unit tests (Vitest)"
 	@echo "  make clean                 - Remove dist and cache artifacts"
 	@echo "  make migrate-status        - Cek status migrasi Supabase (pending / applied)"
-	@echo "  make migrate               - Jalankan semua migrasi pending ke Supabase remote"
+	@echo "  make migrate               - Jalankan migrasi pending (ditolak bila ada yang menghapus data)"
+	@echo "  make migrate DESTRUCTIVE=1 - Izinkan migrasi yang menghapus data (minta konfirmasi 'ya')"
+	@echo "  make migrate-mark FILE=... - Catat migrasi sudah diterapkan TANPA menjalankan isinya"
 	@echo "  make migrate-fresh         - HAPUS semua data public lalu jalankan ulang semua migrasi"
 	@echo "  make migrate-reset         - HAPUS semua tabel/fungsi/enum di schema public"
 	@echo "  make migrate-down FILE=... - Jalankan rollback migrasi (.down.sql)"
@@ -50,8 +52,19 @@ clean:
 migrate-status:
 	bun scripts/supabase-migrate.js status
 
+# Selalu tampilkan status dulu. Migrasi yang menghapus data ditolak skrip kecuali DESTRUCTIVE=1 + ketik 'ya'.
 migrate:
-	bun scripts/supabase-migrate.js up
+	@bun scripts/supabase-migrate.js status
+	@if [ -n "$(DESTRUCTIVE)" ]; then \
+		read -p "⚠️  Migrasi yang MENGHAPUS DATA akan dijalankan. Ketik 'ya' untuk lanjut: " ok && [ "$$ok" = "ya" ] && \
+		ALLOW_DESTRUCTIVE=1 bun scripts/supabase-migrate.js up; \
+	else \
+		bun scripts/supabase-migrate.js up; \
+	fi
+
+migrate-mark:
+	@[ -n "$(FILE)" ] || (echo "Contoh: make migrate-mark FILE=20261016000034_xxx.sql" && exit 1)
+	bun scripts/supabase-migrate.js mark $(FILE)
 
 migrate-fresh:
 	@read -p "⚠️  Semua data di schema public akan DIHAPUS. Ketik 'ya' untuk lanjut: " ok && [ "$$ok" = "ya" ]
@@ -77,6 +90,8 @@ db-check:
 	bun scripts/db-check.mjs
 
 migrate-down:
+	@[ -n "$(FILE)" ] || (echo "Contoh: make migrate-down FILE=20261016000037_xxx.sql" && exit 1)
+	@read -p "⚠️  Rollback $(FILE) (bisa menghapus kolom/tabel & datanya). Ketik 'ya' untuk lanjut: " ok && [ "$$ok" = "ya" ]
 	bun scripts/supabase-migrate.js down $(FILE)
 
 migrate-info:

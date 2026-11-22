@@ -15,6 +15,9 @@ applySavedTheme()
 // Setiap halaman jadi file JS sendiri: HP pelanggan tidak mengunduh kode kasir/admin.
 const MenuPage = lazy(() => import('@features/menu-catalog').then((m) => ({ default: m.MenuPage })))
 const CashierPage = lazy(() => import('@features/cashier-pos').then((m) => ({ default: m.CashierPage })))
+const MemberCardPage = lazy(() => import('@features/member').then((m) => ({ default: m.MemberPage })))
+const LockScreen = lazy(() => import('@features/device').then((m) => ({ default: m.LockScreen })))
+const DeviceSetupPage = lazy(() => import('@features/device').then((m) => ({ default: m.DeviceSetupPage })))
 const QueuePage = lazy(() => import('@features/cashier-pos').then((m) => ({ default: m.QueuePage })))
 const KitchenPage = lazy(() => import('@features/kitchen-kds').then((m) => ({ default: m.KitchenPage })))
 // Satu bundel backoffice, satu route per halaman
@@ -61,6 +64,9 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <RootRoute /> },
       { path: '/s/:slug', element: page(<MenuPage />, <MenuSkeleton />) },
+      { path: '/kunci', element: page(<LockScreen />) },
+      { path: '/perangkat', element: page(<DeviceSetupPage />) },
+      { path: '/member', element: page(<MemberCardPage />) },
       { path: '/privasi', element: page(<PrivacyPage />) },
       { path: '/syarat', element: page(<TermsPage />) },
       { path: '/login', element: page(<LoginPage />) },

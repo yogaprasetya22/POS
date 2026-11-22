@@ -17,8 +17,11 @@ export const swatch = (k: ThemeKey) => `oklch(0.58 ${THEMES[k].c} ${THEMES[k].h}
 
 const KEY = 'pos_theme'
 
-/** Pasang warna ke variabel CSS; disimpan di browser supaya halaman berikutnya langsung berwarna benar. */
-export function applyTheme(k: string | null | undefined) {
+/**
+ * Pasang warna ke variabel CSS; disimpan di browser supaya halaman berikutnya langsung berwarna benar.
+ * `persist: false` untuk halaman publik (landing/masuk) agar warna toko tersimpan tidak tertimpa.
+ */
+export function applyTheme(k: string | null | undefined, opts: { persist?: boolean } = {}) {
   const key = (k && k in THEMES ? k : 'biru') as ThemeKey
   const { h, c } = THEMES[key]
   const s = document.documentElement.style
@@ -26,6 +29,7 @@ export function applyTheme(k: string | null | undefined) {
   for (const v of ['--primary', '--ring', '--sidebar-primary', '--sidebar-ring', '--chart-1']) s.setProperty(v, main)
   for (const v of ['--secondary', '--accent', '--sidebar-accent']) s.setProperty(v, `oklch(0.95 0.03 ${h})`)
   for (const v of ['--secondary-foreground', '--accent-foreground', '--sidebar-accent-foreground']) s.setProperty(v, `oklch(0.42 ${c} ${h})`)
+  if (opts.persist === false) return
   try {
     localStorage.setItem(KEY, key)
   } catch {

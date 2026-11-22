@@ -1,4 +1,5 @@
-import { Gift, Plus, Ticket, Trash2, UserPlus } from 'lucide-react'
+import { Gift, Plus, QrCode, Ticket, Trash2, UserPlus } from 'lucide-react'
+import { MemberQrDialog } from '@shared/components/member-qr-dialog'
 import { CurrencyInput } from '@shared/components/currency-input'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { useState } from 'react'
@@ -14,7 +15,7 @@ import { Label } from '@shared/components/ui/label'
 import { rpc } from '@shared/lib/api'
 import { usePaged } from '@shared/lib/use-paged'
 import { supabase } from '@shared/lib/supabase'
-import { rupiah } from '@shared/lib/utils'
+import { formatPhone, rupiah } from '@shared/lib/utils'
 import { MemberSchema, type Member, type StoreConfig } from '@shared/types/contracts'
 
 const VoucherSchema = z.object({
@@ -35,6 +36,7 @@ const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(
 export function MembersTab({ config }: { config: StoreConfig | null }) {
   const [error, setError] = useState('')
   const [adjusting, setAdjusting] = useState<Member | null>(null)
+  const [qrFor, setQrFor] = useState<Member | null>(null)
   const [newMember, setNewMember] = useState({ phone: '', name: '' })
   const [v, setV] = useState({ code: '', kind: 'AMOUNT' as 'AMOUNT' | 'PERCENT', value: '', days: '30', note: '' })
 
@@ -45,7 +47,7 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
       const safe = term.replace(/[%,()]/g, '')
       const digits = safe.replace(/\D/g, '')
       const phone = digits ? (digits.startsWith('0') ? '62' + digits.slice(1) : digits) : safe
-      q = q.or(`phone.ilike.%${phone}%,name.ilike.%${safe}%`)
+      q = q.ilike('phone', `%${phone}%`)
     }
     const r = await q
     return { ...r, data: z.array(MemberSchema).safeParse(r.data ?? []).data ?? [] }
@@ -93,20 +95,22 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
               <Input aria-label="Nomor HP" placeholder="Nomor HP" inputMode="numeric" value={newMember.phone} onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })} className="h-11" />
-              <Input aria-label="Nama" placeholder="Nama" value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} className="h-11" maxLength={60} />
-              <Button className="h-11" disabled={!newMember.phone || !newMember.name.trim()} onClick={async () => { if (await act(rpc('upsert_member', { p_phone: newMember.phone, p_name: newMember.name }).then((r) => ({ error: r.error })))) setNewMember({ phone: '', name: '' }) }}>
+              <Button className="h-11" disabled={!newMember.phone} onClick={async () => { if (await act(rpc('upsert_member', { p_phone: newMember.phone }).then((r) => ({ error: r.error })))) setNewMember({ phone: '', name: '' }) }}>
                 <UserPlus /> Tambah
               </Button>
             </div>
-            <SearchBox value={members.search} onChange={members.setSearch} placeholder="Cari nama / nomor HP" />
+            <SearchBox value={members.search} onChange={members.setSearch} placeholder="Cari nomor HP" />
             <ul className="divide-y">
               {members.rows.map((m) => (
                 <li key={m.id} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{m.name}</p>
-                    <p className="text-sm text-muted-foreground">{m.phone} · {m.visits}× datang · {rupiah(m.total_spent)}</p>
+                    <p className="truncate font-mono font-semibold">{formatPhone(m.phone)}</p>
+                    <p className="text-sm text-muted-foreground">{m.visits}× datang · {rupiah(m.total_spent)}</p>
                   </div>
                   <Badge variant="secondary" className="tabular-nums">{m.points} poin</Badge>
+                  <Button variant="outline" size="sm" className="h-10 gap-1.5" onClick={() => setQrFor(m)} title="Tampilkan QR agar pelanggan bisa melihat poin di HP-nya">
+                    <QrCode className="size-4" /> QR
+                  </Button>
                   <Button variant="outline" size="sm" className="h-10" onClick={() => setAdjusting(m)}>Atur poin</Button>
                 </li>
               ))}
@@ -207,6 +211,7 @@ export function MembersTab({ config }: { config: StoreConfig | null }) {
           }}
         />
       )}
+      {qrFor && <MemberQrDialog memberId={qrFor.id} memberName={formatPhone(qrFor.phone)} onClose={() => setQrFor(null)} />}
     </div>
   )
 }
@@ -220,7 +225,7 @@ function AdjustPoints({ member, onClose, onSave }: { member: Member; onClose: ()
     <Panel
       onClose={onClose}
       title="Atur poin"
-      description={`${member.name} · saldo ${member.points} poin`}
+      description={`${formatPhone(member.phone)} · saldo ${member.points} poin`}
       footer={<Button size="lg" className="h-12 w-full" disabled={n === 0 || reason.trim().length < 3} onClick={() => onSave(n, reason)}>Simpan</Button>}
     >
       <div className="grid grid-cols-2 gap-2">

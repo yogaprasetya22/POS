@@ -1,3 +1,4 @@
+import { getDevice } from '@shared/lib/device-binding'
 import { Suspense } from 'react'
 import { I18nBoot } from './i18n-boot'
 import { Navigate, Outlet, useLocation } from 'react-router'
@@ -54,6 +55,7 @@ export function StaffShell() {
     )
   }
 
+  if (!staff.userId && getDevice()) return <Navigate to="/kunci" replace />
   if (!staff.userId) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />
 
   const ok = route ? allowed(route, staff) : false

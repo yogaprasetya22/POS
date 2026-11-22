@@ -18,3 +18,21 @@ export function allow(req, res, method) {
   res.status(405).json({ success: false, error: 'Method tidak diizinkan' })
   return false
 }
+
+/**
+ * Klien service role: HANYA untuk server (api/device.js) — melewati RLS.
+ * Wajib SUPABASE_SERVICE_ROLE_KEY di env server (jangan pernah diawali VITE_).
+ */
+export function supabaseAdmin() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  if (!key) return null
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
+/** Klien anon tanpa sesi tersimpan (untuk menukar token jadi sesi di server). */
+export function supabaseAnon() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
+  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}

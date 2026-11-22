@@ -1,3 +1,4 @@
+import { useLandingTheme } from '@shared/lib/landing-theme'
 import {
   ArrowRight,
   Boxes,
@@ -520,6 +521,7 @@ function ShowcaseMedia({
 }
 
 export function LandingPage() {
+  useLandingTheme()
   const [activeTab, setActiveTab] = useState('kasir')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
   const [settingsMediaMode, setSettingsMediaMode] = useState<'video' | 'image'>('video')

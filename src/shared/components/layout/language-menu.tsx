@@ -29,7 +29,7 @@ export function LanguageMenu() {
           Selalu animasi penuh
           {motion === 'full' && <Check className="size-4" aria-hidden />}
         </DropdownMenuItem>
-        <p className="px-2 pb-1.5 text-xs text-muted-foreground">Default mengikuti setelan “kurangi gerakan” di perangkat.</p>
+        <p className="px-2 pb-1.5 text-xs text-muted-foreground">Aktif secara bawaan. Matikan bila ingin mengikuti setelan “kurangi gerakan” di perangkat.</p>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
     </>

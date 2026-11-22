@@ -85,25 +85,65 @@ async function status() {
   console.log('------------------------------------------------------------');
 }
 
+// Perintah yang bisa MENGHAPUS DATA. Migrasi berisi ini tidak dijalankan tanpa izin eksplisit.
+const DESTRUCTIVE = /\b(delete\s+from|truncate|drop\s+table|drop\s+schema|drop\s+column)\b/i;
+
+/** Baris berbahaya di file SQL (komentar `--` diabaikan). */
+function destructiveLines(sql) {
+  return sql
+    .split('\n')
+    .map((line, i) => ({ n: i + 1, text: line.replace(/--.*$/, '').trim() }))
+    .filter((l) => l.text && DESTRUCTIVE.test(l.text));
+}
+
 async function up(targetFile = null) {
+  const allowDestructive = env.ALLOW_DESTRUCTIVE === '1';
+  const force = env.FORCE === '1';
   console.log(`🚀 Menjalankan migrasi UP ke Supabase (${PROJECT_REF}) ...\n`);
   const applied = await getAppliedMigrations();
-  const files = targetFile ? [targetFile] : getMigrationFiles();
+  let files = targetFile ? [targetFile] : getMigrationFiles().filter((f) => !applied.has(f));
 
-  let count = 0;
+  if (targetFile && applied.has(targetFile) && !force) {
+    console.error(`⛔ ${targetFile} sudah pernah diterapkan. Jalankan ulang hanya bila yakin: FORCE=1`);
+    process.exit(1);
+  }
+  if (files.length === 0) return console.log('✨ Semua migrasi sudah up to date!');
+
+  // 1. Periksa SEMUA file dulu, sebelum satu pun dijalankan
+  const risky = [];
   for (const file of files) {
-    if (!targetFile && applied.has(file)) continue;
-
     const filePath = path.join(MIGRATIONS_DIR, file);
     if (!fs.existsSync(filePath)) {
       console.error(`❌ File tidak ditemukan: ${filePath}`);
       process.exit(1);
     }
+    const lines = destructiveLines(fs.readFileSync(filePath, 'utf8'));
+    if (lines.length) risky.push({ file, lines });
+  }
 
+  console.log('Akan diterapkan:');
+  for (const f of files) console.log(`  • ${f}${risky.some((r) => r.file === f) ? '  ⚠️  MENGHAPUS DATA' : ''}`);
+  console.log('');
+
+  if (risky.length && !allowDestructive) {
+    console.error('⛔ Dibatalkan: ada migrasi yang bisa MENGHAPUS DATA.\n');
+    for (const r of risky) {
+      console.error(`  ${r.file}`);
+      for (const l of r.lines.slice(0, 8)) console.error(`    baris ${l.n}: ${l.text}`);
+    }
+    console.error('\nPilihan:');
+    console.error('  • Sudah diterapkan manual / tidak perlu dijalankan  -> make migrate-mark FILE=<file.sql>');
+    console.error('  • Memang ingin menjalankannya (data AKAN terhapus)  -> make migrate DESTRUCTIVE=1');
+    process.exit(1);
+  }
+
+  // 2. Jalankan satu per satu, masing-masing dalam satu transaksi
+  let count = 0;
+  for (const file of files) {
     console.log(`⚡ Menerapkan: ${file} ...`);
     try {
       // satu transaksi: kalau gagal di tengah, tidak ada skema setengah jadi
-      await executeSql(`BEGIN;\n${fs.readFileSync(filePath, 'utf8')}\n;INSERT INTO public._schema_migrations (version) VALUES (${quote(file)}) ON CONFLICT (version) DO NOTHING;\nCOMMIT;`);
+      await executeSql(`BEGIN;\n${fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')}\n;INSERT INTO public._schema_migrations (version) VALUES (${quote(file)}) ON CONFLICT (version) DO NOTHING;\nCOMMIT;`);
       console.log('   ✓ Berhasil diterapkan!');
       count++;
     } catch (err) {
@@ -112,7 +152,22 @@ async function up(targetFile = null) {
     }
   }
 
-  console.log(count === 0 ? '✨ Semua migrasi sudah up to date!' : `\n🎉 Selesai! Sebanyak ${count} file migrasi berhasil diterapkan.`);
+  console.log(`\n🎉 Selesai! Sebanyak ${count} file migrasi berhasil diterapkan.`);
+}
+
+/** Catat migrasi sebagai sudah diterapkan TANPA menjalankan isinya (mis. sudah dijalankan manual). */
+async function mark(targetFile) {
+  if (!targetFile) {
+    console.error('❌ Sebutkan file: make migrate-mark FILE=20261016000034_xxx.sql');
+    process.exit(1);
+  }
+  if (!fs.existsSync(path.join(MIGRATIONS_DIR, targetFile))) {
+    console.error(`❌ File tidak ditemukan: ${targetFile}`);
+    process.exit(1);
+  }
+  await getAppliedMigrations();
+  await executeSql(`INSERT INTO public._schema_migrations (version) VALUES (${quote(targetFile)}) ON CONFLICT (version) DO NOTHING;`);
+  console.log(`✅ ${targetFile} dicatat sebagai sudah diterapkan (isinya TIDAK dijalankan).`);
 }
 
 async function down(targetFile) {
@@ -164,6 +219,7 @@ async function reset() {
 async function fresh() {
   console.log('🔄 Menjalankan Migrate Fresh (Reset & Apply All Migrations)...\n');
   await reset();
+  env.ALLOW_DESTRUCTIVE = '1'; // database sudah dikosongkan, DELETE di migrasi tidak berdampak
   await up();
 }
 
@@ -208,6 +264,7 @@ async function main() {
   switch (command) {
     case 'status': return status();
     case 'up': return up(param);
+    case 'mark': return mark(param);
     case 'down': return down(param);
     case 'reset': return reset();
     case 'fresh': return fresh();
@@ -221,7 +278,9 @@ async function main() {
 Penggunaan:
   bun scripts/supabase-migrate.js status          - Cek status migrasi
   bun scripts/supabase-migrate.js up              - Jalankan semua migrasi pending
-  bun scripts/supabase-migrate.js up <file.sql>   - Jalankan file tertentu
+  bun scripts/supabase-migrate.js up <file.sql>   - Jalankan file tertentu (FORCE=1 bila sudah pernah)
+  bun scripts/supabase-migrate.js mark <file.sql> - Catat sudah diterapkan tanpa menjalankan isinya
+  (migrasi yang menghapus data butuh ALLOW_DESTRUCTIVE=1)
   bun scripts/supabase-migrate.js down <file.sql> - Jalankan file <file.down.sql>
   bun scripts/supabase-migrate.js reset           - Hapus semua tabel/fungsi/enum di schema public
   bun scripts/supabase-migrate.js fresh           - Reset & jalankan ulang semua migrasi dari awal

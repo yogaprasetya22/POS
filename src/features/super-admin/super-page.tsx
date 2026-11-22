@@ -1,3 +1,4 @@
+import { LandingThemeCard } from './landing-theme-card'
 import {
   Building2,
   CheckCircle2,
@@ -175,6 +176,8 @@ export function SuperPage() {
       </div>
 
       <ErrorAlert message={error} />
+
+      <LandingThemeCard />
 
       {/* Global KPI Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

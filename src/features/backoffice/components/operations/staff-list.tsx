@@ -1,4 +1,5 @@
-import { ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { KeyRound, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { DevicesCard, StaffPinDialog } from './devices-card'
 import { m } from 'motion/react'
 import { appear } from '@shared/components/motion'
 import { LoadMore } from '@shared/components/pagination'
@@ -49,6 +50,14 @@ export function StaffList() {
   const [newRole, setNewRole] = useState('cashier')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pins, setPins] = useState<Set<string>>(new Set())
+  const [pinFor, setPinFor] = useState<{ id: string; name: string } | null>(null)
+  const loadPins = useCallback(async () => {
+    const { data } = await rpc('staff_pin_status')
+    const rows = (data as { user_id: string; has_pin: boolean }[] | null) ?? []
+    setPins(new Set(rows.filter((r) => r.has_pin).map((r) => r.user_id)))
+  }, [])
+  useEffect(() => void loadPins(), [loadPins])
 
   const paged = useClientPaged(staff, { pageSize: 10, append: true })
 
@@ -162,6 +171,18 @@ export function StaffList() {
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        {s.role && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className={`h-9 gap-1.5 rounded-xl text-xs ${pins.has(s.user_id) ? '' : 'border-amber-400 text-amber-800 dark:text-amber-300'}`}
+                            onClick={() => setPinFor({ id: s.user_id, name: s.display_name || s.email })}
+                            title={pins.has(s.user_id) ? 'Reset PIN masuk perangkat kasir' : 'Belum punya PIN: belum bisa masuk di perangkat kasir'}
+                          >
+                            <KeyRound className="size-3.5" /> {pins.has(s.user_id) ? 'Reset PIN' : 'Atur PIN'}
+                          </Button>
+                        )}
                         <Select
                           value={s.role ?? 'cashier'}
                           disabled={isCurrentUser || loading}
@@ -198,8 +219,10 @@ export function StaffList() {
               <div className="border-t px-4 pb-3">
                 <LoadMore shown={paged.rows.length} total={paged.total} pageSize={paged.pageSize} onMore={paged.more} noun="karyawan" />
               </div>
+              {pinFor && <StaffPinDialog userId={pinFor.id} name={pinFor.name} hasPin={pins.has(pinFor.id)} onClose={() => setPinFor(null)} onSaved={() => void loadPins()} />}
             </CardContent>
           </Card>
+          <DevicesCard />
         </div>
 
         {/* Right Column: Add Staff & Role Guidance (5 cols) */}

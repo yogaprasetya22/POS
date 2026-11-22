@@ -1,5 +1,7 @@
-import { KeyRound, LogOut, Users } from 'lucide-react'
-import { MyProfileDialog, SwitchUserDialog } from '@shared/components/switch-user'
+import { KeyRound, Lock, LogOut, MonitorSmartphone } from 'lucide-react'
+import { BindDeviceDialog } from '@shared/components/bind-device-dialog'
+import { getDevice, lockDevice } from '@shared/lib/device-binding'
+import { MyProfileDialog } from '@shared/components/switch-user'
 import { forgetAccount } from '@shared/lib/device-accounts'
 import { LanguageMenu } from './language-menu'
 import { useEffect, useState } from 'react'
@@ -72,10 +74,17 @@ export function StatusBanners({ staff, config }: { staff: Staff; config: StoreCo
 }
 
 export function AccountMenu({ staff }: { staff: Staff }) {
-  const [dialog, setDialog] = useState<'switch' | 'me' | null>(null)
+  const [dialog, setDialog] = useState<'bind' | 'me' | null>(null)
   const who = displayName(staff)
+  // Perangkat kasir terikat: ganti orang = kunci layar -> layar PIN (perangkat tetap terikat)
+  const bound = Boolean(getDevice()) && Boolean(staff.role)
   return (
     <>
+    {bound && (
+      <Button variant="outline" className="h-10 gap-1.5 rounded-full border-2 px-3 font-semibold" onClick={() => void lockDevice()} title="Kunci layar. Kasir berikutnya masuk dengan PIN.">
+        <Lock className="size-4" /> <span className="hidden sm:inline">Kunci / Ganti kasir</span>
+      </Button>
+    )}
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" className="h-auto gap-2 rounded-full py-1 pr-3 pl-1" aria-label="Menu akun" />}>
         <Avatar className="size-8">
@@ -97,9 +106,15 @@ export function AccountMenu({ staff }: { staff: Staff }) {
         <DropdownMenuSeparator />
         {staff.role && (
           <>
-            <DropdownMenuItem className="min-h-11 text-base" onClick={() => setDialog('switch')}>
-              <Users /> Ganti orang
-            </DropdownMenuItem>
+            {bound ? (
+              <DropdownMenuItem className="min-h-11 text-base" onClick={() => void lockDevice()}>
+                <Lock /> Kunci layar / Ganti kasir
+              </DropdownMenuItem>
+            ) : (staff.role === 'owner' || staff.role === 'manager') ? (
+              <DropdownMenuItem className="min-h-11 text-base" onClick={() => setDialog('bind')}>
+                <MonitorSmartphone /> Jadikan perangkat kasir
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem className="min-h-11 text-base" onClick={() => setDialog('me')}>
               <KeyRound /> Nama & PIN saya
             </DropdownMenuItem>
@@ -109,16 +124,17 @@ export function AccountMenu({ staff }: { staff: Staff }) {
         <DropdownMenuItem
           className="min-h-11 text-destructive focus:text-destructive"
           onClick={() => {
+            if (bound) return void lockDevice() // perangkat kasir: keluar = kunci, binding tetap
             // keluar penuh: akun ini juga dilupakan dari daftar "Ganti orang" di perangkat ini
             forgetAccount(staff.userId)
             void supabase.auth.signOut()
           }}
         >
-          <LogOut /> Keluar
+          <LogOut /> {bound ? 'Keluar (kunci layar)' : 'Keluar'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-    <SwitchUserDialog open={dialog === 'switch'} onOpenChange={(v) => setDialog(v ? 'switch' : null)} staff={staff} />
+    {dialog === 'bind' && <BindDeviceDialog onClose={() => setDialog(null)} />}
     <MyProfileDialog open={dialog === 'me'} onOpenChange={(v) => setDialog(v ? 'me' : null)} staff={staff} />
     </>
   )

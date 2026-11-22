@@ -1,4 +1,5 @@
-import { Gift, Search, Ticket, UserPlus, X } from 'lucide-react'
+import { Gift, QrCode, Search, Ticket, UserPlus, X } from 'lucide-react'
+import { MemberQrDialog } from '@shared/components/member-qr-dialog'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@shared/components/ui/button'
@@ -6,7 +7,7 @@ import { Input } from '@shared/components/ui/input'
 import { rpc } from '@shared/lib/api'
 import { loyaltyOn } from '@shared/lib/store-config'
 import { supabase } from '@shared/lib/supabase'
-import { rupiah } from '@shared/lib/utils'
+import { formatPhone, rupiah } from '@shared/lib/utils'
 import { MemberSchema, type Member, type Quote, type StoreConfig } from '@shared/types/contracts'
 
 type Props = {
@@ -27,7 +28,7 @@ export function ExtrasBox({ config, code, onCode, member, onMember, redeem, onRe
   const [draftCode, setDraftCode] = useState('')
   const [q, setQ] = useState('')
   const [found, setFound] = useState<Member[]>([])
-  const [newName, setNewName] = useState('')
+  const [qrOpen, setQrOpen] = useState(false)
   const [error, setError] = useState('')
   const loyalty = loyaltyOn(config)
   const looksLikePhone = /^[0-9+\s-]{8,}$/.test(q.trim())
@@ -39,7 +40,7 @@ export function ExtrasBox({ config, code, onCode, member, onMember, redeem, onRe
       const safe = term.replace(/[%,()]/g, '')
       const digits = safe.replace(/\D/g, '')
       const phone = digits ? (digits.startsWith('0') ? '62' + digits.slice(1) : digits) : safe
-      const { data } = await supabase.from('members').select('*').or(`phone.ilike.%${phone}%,name.ilike.%${safe}%`).limit(5)
+      const { data } = await supabase.from('members').select('*').ilike('phone', `%${phone}%`).limit(5)
       const parsed = z.array(MemberSchema).safeParse(data ?? [])
       setFound(parsed.success ? parsed.data : [])
     }, 250)
@@ -47,13 +48,12 @@ export function ExtrasBox({ config, code, onCode, member, onMember, redeem, onRe
   }, [q, loyalty, member])
 
   const register = async () => {
-    const { data, error: err } = await rpc('upsert_member', { p_phone: q, p_name: newName })
+    const { data, error: err } = await rpc('upsert_member', { p_phone: q })
     if (err) return setError(err.message)
     const parsed = MemberSchema.safeParse(data)
     if (parsed.success) {
       onMember(parsed.data)
       setQ('')
-      setNewName('')
       setError('')
     }
   }
@@ -100,13 +100,19 @@ export function ExtrasBox({ config, code, onCode, member, onMember, redeem, onRe
             <div className="space-y-2 rounded-lg border p-3 text-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{member.name}</p>
-                  <p className="text-muted-foreground">{member.phone} · {member.points} poin</p>
+                  <p className="truncate font-mono font-semibold">{formatPhone(member.phone)}</p>
+                  <p className="text-muted-foreground">{member.points} poin</p>
                 </div>
-                <button type="button" aria-label="Lepas member" className="grid size-9 place-items-center text-muted-foreground" onClick={() => { onMember(null); onRedeem(0) }}>
-                  <X className="size-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button type="button" variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setQrOpen(true)} title="Pelanggan scan untuk melihat poin di HP-nya">
+                    <QrCode className="size-4" /> QR member
+                  </Button>
+                  <button type="button" aria-label="Lepas member" className="grid size-9 place-items-center text-muted-foreground" onClick={() => { onMember(null); onRedeem(0) }}>
+                    <X className="size-4" />
+                  </button>
+                </div>
               </div>
+              {qrOpen && <MemberQrDialog memberId={member.id} memberName={formatPhone(member.phone)} onClose={() => setQrOpen(false)} />}
               {config && config.points_value > 0 && member.points > 0 && (
                 <Button
                   type="button"
@@ -124,21 +130,18 @@ export function ExtrasBox({ config, code, onCode, member, onMember, redeem, onRe
             <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nomor HP / nama member" aria-label="Cari member" className="h-11 pl-9" />
+                <Input value={q} inputMode="tel" onChange={(e) => setQ(e.target.value)} placeholder="Nomor HP member (08…)" aria-label="Cari member" className="h-11 pl-9" />
               </div>
               {found.map((m) => (
                 <button key={m.id} type="button" onClick={() => { onMember(m); setQ('') }} className="flex min-h-11 w-full items-center justify-between rounded-lg border px-3 text-left text-sm hover:bg-muted">
-                  <span className="font-medium">{m.name}</span>
+                  <span className="font-mono font-medium">{formatPhone(m.phone)}</span>
                   <span className="text-muted-foreground">{m.points} poin</span>
                 </button>
               ))}
               {q.trim().length >= 2 && found.length === 0 && looksLikePhone && (
-                <div className="flex gap-2">
-                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nama member baru" aria-label="Nama member baru" className="h-11 flex-1" maxLength={60} />
-                  <Button type="button" variant="outline" className="h-11" disabled={newName.trim() === ''} onClick={register}>
-                    <UserPlus /> Daftar
-                  </Button>
-                </div>
+                <Button type="button" variant="outline" className="h-11 w-full" onClick={register}>
+                  <UserPlus /> Daftarkan {q.trim()} jadi member
+                </Button>
               )}
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
