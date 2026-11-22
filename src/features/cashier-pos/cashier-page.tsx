@@ -35,6 +35,7 @@ import { rupiah } from '@shared/lib/utils'
 import { calculatePromo } from '@shared/lib/promo'
 import { createMidtransQris } from '@shared/lib/midtrans'
 import { QrisModal } from '@features/cart-checkout/qris-modal'
+import { InlineQris } from '@features/cart-checkout/inline-qris'
 import {
   CreatedOrderSchema,
   MemberSchema,
@@ -106,7 +107,7 @@ export function CashierPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [midtransConfig, setMidtransConfig] = useState<{ enabled: boolean; clientKey: string; isProduction: boolean } | null>(null)
-  const [qrisModal, setQrisModal] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string; isProduction?: boolean } | null>(null)
+  const [qrisModal, setQrisModal] = useState<{ orderId: string; queueCode: string; total: number; qrString: string; qrUrl?: string; snapToken?: string; clientKey?: string; isProduction?: boolean } | null>(null)
   const { config } = useStoreConfig(storeId)
   const payer = can.pay(role)
   const { shift, status: shiftStatus, loading: shiftLoading, reload: reloadShift } = useShift(payer)
@@ -302,18 +303,22 @@ export function CashierPage() {
         const targetOrder = orders.find((o) => o.id === orderId) || selected
         const queueCode = targetOrder?.queue_code || 'QRIS'
         const qrisRes = await createMidtransQris(orderId, storeId || undefined)
-        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url)) {
+        if (qrisRes.success && (qrisRes.qr_string || qrisRes.qr_url || qrisRes.snap_token)) {
           setQrisModal({
             orderId,
             queueCode,
             total,
             qrString: qrisRes.qr_string || '',
             qrUrl: qrisRes.qr_url,
+            snapToken: qrisRes.snap_token,
+            clientKey: qrisRes.client_key || midtransConfig?.clientKey,
             isProduction: qrisRes.is_production ?? midtransConfig?.isProduction,
           })
           setBusy(false)
           return
         }
+        // Jangan pernah tandai lunas tanpa konfirmasi Midtrans
+        throw new Error(qrisRes.error || 'Gagal membuat QRIS Midtrans. Pesanan belum dibayar, coba lagi.')
       }
 
       await finishPayment(orderId, method)
@@ -856,7 +861,32 @@ export function CashierPage() {
         products={catalog?.products ?? []}
         onToggleAvailability={handleToggleAvailability}
       />
-      {qrisModal && (
+      {qrisModal?.snapToken && (
+        // Mode Production: QRIS lewat Snap Midtrans; lunas hanya bila Midtrans konfirmasi
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="max-h-[95vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card p-4 shadow-2xl">
+            <InlineQris
+              orderId={qrisModal.orderId}
+              queueCode={qrisModal.queueCode}
+              total={qrisModal.total}
+              qrString={qrisModal.qrString}
+              qrUrl={qrisModal.qrUrl}
+              snapToken={qrisModal.snapToken}
+              clientKey={qrisModal.clientKey}
+              isProduction={qrisModal.isProduction ?? midtransConfig?.isProduction}
+              storeId={storeId || undefined}
+              initialSeconds={900}
+              onSuccess={() => {
+                const id = qrisModal.orderId
+                setQrisModal(null)
+                void showPaidOrder(id).catch((err) => setError(err instanceof Error ? err.message : String(err)))
+              }}
+              onBack={() => setQrisModal(null)}
+            />
+          </div>
+        </div>
+      )}
+      {qrisModal && !qrisModal.snapToken && (
         <QrisModal
           orderId={qrisModal.orderId}
           queueCode={qrisModal.queueCode}
