@@ -44,6 +44,13 @@ export function FinancePageView() {
   const [accountHolder, setAccountHolder] = useState('')
   const [savingBank, setSavingBank] = useState(false)
 
+  // Edit Midtrans Settings State
+  const [autoPayout, setAutoPayout] = useState(true)
+  const [qrisMdr, setQrisMdr] = useState('0.7')
+  const [taxRate, setTaxRate] = useState(11.0)
+  const [payoutFee, setPayoutFee] = useState('5000')
+  const [savingSettings, setSavingSettings] = useState(false)
+
   const fetchData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true)
     try {
@@ -66,6 +73,10 @@ export function FinancePageView() {
         }
         if (s.account_number) setAccountNumber(s.account_number)
         if (s.account_holder) setAccountHolder(s.account_holder)
+        if (s.midtrans_auto_payout !== undefined) setAutoPayout(s.midtrans_auto_payout)
+        if (s.midtrans_qris_mdr !== undefined) setQrisMdr(String(s.midtrans_qris_mdr))
+        if (s.midtrans_tax_rate !== undefined) setTaxRate(s.midtrans_tax_rate)
+        if (s.midtrans_payout_fee !== undefined) setPayoutFee(String(s.midtrans_payout_fee))
       }
 
       if (wdRes.data && Array.isArray(wdRes.data)) {
@@ -146,6 +157,35 @@ export function FinancePageView() {
     }
   }
 
+  const handleSaveMidtransSettings = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const mdrNum = parseFloat(qrisMdr) || 0.7
+    const taxNum = Number(taxRate) || 11.0
+    const feeNum = parseInt(payoutFee, 10) || 5000
+
+    setSavingSettings(true)
+    try {
+      const { error } = await rpc('save_midtrans_payout_tax_settings', {
+        p_auto_payout: autoPayout,
+        p_qris_mdr: mdrNum,
+        p_tax_rate: taxNum,
+        p_payout_fee: feeNum,
+      })
+      if (error) {
+        toast.error('Gagal menyimpan pengaturan Midtrans', { description: error.message })
+        return
+      }
+      toast.success('Pengaturan pajak & payout Midtrans berhasil disimpan')
+      void fetchData(false)
+    } catch (err: unknown) {
+      toast.error('Gagal menyimpan pengaturan Midtrans', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
   const s: FinancialSummary = summary || {
     today_date: '',
     today_orders_count: 0,
@@ -162,8 +202,16 @@ export function FinancePageView() {
     cash_drawer_balance: 0,
     has_active_shift: false,
     midtrans_total_received: 0,
+    midtrans_gross_amount: 0,
+    midtrans_total_fee: 0,
+    midtrans_total_tax: 0,
+    midtrans_net_received: 0,
     midtrans_total_withdrawn: 0,
     midtrans_available_balance: 0,
+    midtrans_qris_mdr: 0.7,
+    midtrans_tax_rate: 11.0,
+    midtrans_payout_fee: 5000,
+    midtrans_auto_payout: true,
     bank_name: '',
     account_number: '',
     account_holder: '',
@@ -317,11 +365,16 @@ export function FinancePageView() {
         <Card className="rounded-3xl border-2 border-primary/30 bg-gradient-to-b from-primary/[0.05] to-card shadow-xs">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Midtrans (QRIS)</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Bersih Midtrans</span>
               <div className="flex items-center gap-1">
                 <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
                   Sandbox
                 </span>
+                {s.midtrans_auto_payout && (
+                  <span className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+                    Auto-WD
+                  </span>
+                )}
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   Tersedia
                 </span>
@@ -333,7 +386,7 @@ export function FinancePageView() {
           </CardHeader>
           <CardContent className="pt-0 text-xs flex items-center justify-between text-muted-foreground">
             <span>
-              Masuk: <strong className="text-foreground">{rupiah(s.midtrans_total_received)}</strong>
+              Nett: <strong className="text-foreground">{rupiah(s.midtrans_total_received)}</strong>
             </span>
             <button
               type="button"
@@ -414,30 +467,53 @@ export function FinancePageView() {
                 </div>
               </div>
 
-              {/* Rincian Arus Kas Midtrans */}
+              {/* Rincian Arus Kas Midtrans & Potongan Pajak/MDR */}
               <div className="rounded-2xl border p-4 bg-primary/[0.03] space-y-3">
-                <div className="flex items-center justify-between font-bold">
+                <div className="flex flex-wrap items-center justify-between gap-2 font-bold">
                   <span className="text-sm flex items-center gap-1.5">
-                    <ShieldCheck className="size-4 text-primary" /> Rekonsiliasi Saldo Midtrans QRIS
+                    <ShieldCheck className="size-4 text-primary" /> Rekonsiliasi Saldo Midtrans QRIS & Potongan Pajak
                   </span>
-                  <Badge variant="outline" className="font-semibold">
-                    Midtrans Iris / Settlement
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="rounded-xl border bg-card p-3">
-                    <p className="text-muted-foreground">Total Penjualan QRIS</p>
-                    <p className="text-base font-bold text-foreground mt-0.5">{rupiah(s.midtrans_total_received)}</p>
+                  <div className="flex items-center gap-1.5">
+                    {s.midtrans_auto_payout && (
+                      <Badge variant="outline" className="text-sky-700 bg-sky-500/10 border-sky-300 font-semibold text-[11px]">
+                        Auto-Payout Harian Aktif
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="font-semibold text-[11px]">
+                      Net Settlement
+                    </Badge>
                   </div>
-                  <div className="rounded-xl border bg-card p-3">
-                    <p className="text-muted-foreground">Total Sudah Ditarik</p>
-                    <p className="text-base font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+                  <div className="rounded-xl border bg-card p-2.5">
+                    <p className="text-muted-foreground text-[11px]">1. Omzet Kotor QRIS</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{rupiah(s.midtrans_gross_amount)}</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-2.5">
+                    <p className="text-muted-foreground text-[11px]">2. MDR ({s.midtrans_qris_mdr}%)</p>
+                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                      − {rupiah(s.midtrans_total_fee)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-2.5">
+                    <p className="text-muted-foreground text-[11px]">3. PPN 11% MDR</p>
+                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                      − {rupiah(s.midtrans_total_tax)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-2.5">
+                    <p className="text-muted-foreground text-[11px]">4. Net Settlement</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{rupiah(s.midtrans_net_received)}</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-2.5">
+                    <p className="text-muted-foreground text-[11px]">5. Sudah Dicairkan</p>
+                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400 mt-0.5">
                       − {rupiah(s.midtrans_total_withdrawn)}
                     </p>
                   </div>
-                  <div className="rounded-xl border bg-card p-3 bg-primary/5 border-primary/20">
-                    <p className="text-primary font-bold">Saldo Siap Dicairkan</p>
-                    <p className="text-base font-black text-primary mt-0.5">{rupiah(s.midtrans_available_balance)}</p>
+                  <div className="rounded-xl border bg-primary/10 border-primary/30 p-2.5">
+                    <p className="text-primary font-bold text-[11px]">6. Saldo Siap WD</p>
+                    <p className="text-sm font-black text-primary mt-0.5">{rupiah(s.midtrans_available_balance)}</p>
                   </div>
                 </div>
               </div>
@@ -600,7 +676,7 @@ export function FinancePageView() {
                 <div className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground flex items-start gap-2">
                   <ShieldCheck className="size-4 shrink-0 text-primary mt-0.5" />
                   <span>
-                    Pastikan nama dan nomor rekening sesuai dengan identitas pemilik/badan usaha toko demi keamanan transaksi.
+                    Pastikan nomor rekening ini sama persis dengan yang telah diverifikasi di <strong>Portal Midtrans (Settings &gt; Billing)</strong> agar kliring penarikan tidak tertolak.
                   </span>
                 </div>
 
@@ -611,6 +687,108 @@ export function FinancePageView() {
                 >
                   {savingBank ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                   Simpan Rekening Bank
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Card Pengaturan Pajak & Auto-Payout Midtrans */}
+          <Card className="rounded-3xl border-2 shadow-xs mt-6">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Coins className="size-5 text-primary" /> Pajak & Auto-Payout Midtrans
+              </CardTitle>
+              <CardDescription>
+                Sesuaikan skema MDR QRIS, PPN jasa Midtrans, dan jadwal pencairan otomatis.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveMidtransSettings} className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">Mode Pencairan Dana (Payout)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAutoPayout(true)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all ${
+                        autoPayout ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground'
+                      }`}
+                    >
+                      <CheckCircle2 className={`size-4 mb-1 ${autoPayout ? 'text-primary' : 'text-muted-foreground'}`} />
+                      Auto-Payout
+                      <span className="text-[10px] font-normal opacity-80 mt-0.5">Otomatis Harian Midtrans</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAutoPayout(false)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all ${
+                        !autoPayout ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground'
+                      }`}
+                    >
+                      <ArrowDownToLine className={`size-4 mb-1 ${!autoPayout ? 'text-primary' : 'text-muted-foreground'}`} />
+                      Manual WD
+                      <span className="text-[10px] font-normal opacity-80 mt-0.5">Tarik Sesuai Kebutuhan</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mdr-rate" className="text-xs font-bold">MDR QRIS (%)</Label>
+                    <Input
+                      id="mdr-rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      value={qrisMdr}
+                      onChange={(e) => setQrisMdr(e.target.value)}
+                      className="h-10 text-sm font-semibold rounded-xl"
+                      placeholder="0.7"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Standar BI: 0.7%</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tax-rate" className="text-xs font-bold">PPN atas MDR (%)</Label>
+                    <Input
+                      id="tax-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="30"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(Number(e.target.value))}
+                      className="h-10 text-sm font-semibold rounded-xl"
+                      placeholder="11.0"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Regulasi PMK: 11%</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="payout-fee" className="text-xs font-bold">Biaya Payout Bank (Rp)</Label>
+                  <Input
+                    id="payout-fee"
+                    type="number"
+                    step="500"
+                    min="0"
+                    value={payoutFee}
+                    onChange={(e) => setPayoutFee(e.target.value)}
+                    className="h-10 text-sm font-semibold rounded-xl"
+                    placeholder="5000"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Biaya transfer Midtrans: Rp5.000</p>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={savingSettings}
+                  variant="outline"
+                  className="w-full h-10 rounded-xl text-xs font-bold gap-2 border-primary/30 text-primary hover:bg-primary/5"
+                >
+                  {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                  Simpan Pengaturan Midtrans & Pajak
                 </Button>
               </form>
             </CardContent>

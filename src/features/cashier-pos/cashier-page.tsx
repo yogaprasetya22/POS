@@ -874,7 +874,7 @@ export function CashierPage() {
             setQrisModal(null)
             setBusy(true)
             try {
-              await finishPayment(id, 'QRIS_STATIC')
+              await finishPayment(id, 'MIDTRANS')
             } catch (err) {
               setError(err instanceof Error ? err.message : String(err))
             } finally {

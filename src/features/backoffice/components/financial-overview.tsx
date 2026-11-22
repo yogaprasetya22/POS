@@ -121,8 +121,16 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
     cash_drawer_balance: 0,
     has_active_shift: false,
     midtrans_total_received: 0,
+    midtrans_gross_amount: 0,
+    midtrans_total_fee: 0,
+    midtrans_total_tax: 0,
+    midtrans_net_received: 0,
     midtrans_total_withdrawn: 0,
     midtrans_available_balance: 0,
+    midtrans_qris_mdr: 0.7,
+    midtrans_tax_rate: 11.0,
+    midtrans_payout_fee: 5000,
+    midtrans_auto_payout: true,
     bank_name: '',
     account_number: '',
     account_holder: '',
@@ -294,11 +302,16 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
         <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border-2 border-primary/30 bg-gradient-to-b from-primary/[0.05] to-card p-4 transition-all hover:border-primary/60 hover:shadow-md">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Midtrans (QRIS)</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Saldo Bersih Midtrans</span>
               <div className="flex items-center gap-1">
                 <span className="inline-flex items-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
                   Sandbox
                 </span>
+                {s.midtrans_auto_payout && (
+                  <span className="inline-flex items-center rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+                    Auto-WD
+                  </span>
+                )}
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   Tersedia
                 </span>
@@ -307,11 +320,14 @@ export function FinancialOverview({ className = '' }: { className?: string }) {
             <p className="text-2xl font-black tracking-tight text-primary">
               {rupiah(s.midtrans_available_balance)}
             </p>
+            <p className="text-[11px] text-muted-foreground">
+              Nett setelah dipotong MDR ({s.midtrans_qris_mdr}%) & PPN 11%
+            </p>
           </div>
 
           <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5 text-xs">
             <span className="text-muted-foreground">
-              Masuk: <strong className="font-semibold text-foreground">{rupiah(s.midtrans_total_received)}</strong>
+              Nett: <strong className="font-semibold text-foreground">{rupiah(s.midtrans_total_received)}</strong>
             </span>
             <button
               type="button"

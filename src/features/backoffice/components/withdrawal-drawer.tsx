@@ -422,6 +422,23 @@ export function WithdrawalDrawer({
                 />
               </div>
 
+              {/* Info Rekening Midtrans & Auto-Payout */}
+              <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-3 text-xs space-y-1.5 text-sky-950 dark:text-sky-200">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <ShieldCheck className="size-4 text-sky-600 dark:text-sky-400" />
+                  <span>Sinkronisasi Rekening Midtrans</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Pencairan dana akan ditransfer ke rekening di atas. Pastikan data rekening sama persis dengan yang diverifikasi di <strong>Portal Midtrans (Settings &gt; Billing)</strong>.
+                </p>
+                {summary?.midtrans_auto_payout && (
+                  <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Jadwal Auto-Payout Midtrans Aktif (Pencairan Otomatis Harian)</span>
+                  </div>
+                )}
+              </div>
+
               {/* Ringkasan Penarikan Standar Industri */}
               <div className="rounded-2xl border bg-muted/30 p-3.5 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-muted-foreground">
@@ -429,12 +446,16 @@ export function WithdrawalDrawer({
                   <span className="font-bold tabular-nums text-foreground">{rupiah(parsedAmount || 0)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Biaya Transfer Antar Bank</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Gratis (Rp0)</span>
+                  <span>Biaya Transfer Payout Midtrans</span>
+                  <span className="font-bold text-muted-foreground tabular-nums">
+                    {summary?.midtrans_payout_fee ? rupiah(summary.midtrans_payout_fee) : 'Rp5.000'}
+                  </span>
                 </div>
                 <div className="border-t pt-2 flex items-center justify-between font-extrabold text-sm text-foreground">
-                  <span>Dana Bersih Diterima</span>
-                  <span className="text-base text-primary tabular-nums">{rupiah(parsedAmount || 0)}</span>
+                  <span>Estimasi Masuk Rekening</span>
+                  <span className="text-base text-primary tabular-nums">
+                    {rupiah(Math.max(0, (parsedAmount || 0) - (summary?.midtrans_payout_fee ?? 5000)))}
+                  </span>
                 </div>
               </div>
 
