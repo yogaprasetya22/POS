@@ -10,11 +10,11 @@ import { Switch } from '@shared/components/ui/switch'
 import { supabase } from '@shared/lib/supabase'
 import { rupiah, todayJakarta } from '@shared/lib/utils'
 import { OrderSchema, PAYMENT_LABEL, isSellable, type Order, type Product } from '@shared/types/contracts'
-import { KpiCard, KpiGrid, Panel, Trend, addDays, longDay } from './analytics/kit'
-import { HourlyChart } from './analytics/lazy'
-import { busiestHour, hourRange, hourTotals, hourlySeries, jakartaHour } from './analytics/series'
+import { KpiCard, KpiGrid, Panel, Trend, addDays, longDay } from '../analytics/kit'
+import { HourlyChart } from '../analytics/lazy'
+import { busiestHour, hourRange, hourTotals, hourlySeries, jakartaHour } from '../analytics/series'
 import { clock, dayLabel, fetchReport, type Report } from './report-page'
-import { FinancialOverview } from './financial-overview'
+import { FinancialOverview } from '../finance/financial-overview'
 
 const IngredientSchema = z.object({ id: z.uuid(), name: z.string(), unit: z.string(), stock: z.coerce.number(), min_stock: z.coerce.number(), is_active: z.boolean() })
 const PaidSchema = z.object({ paid_at: z.string(), total: z.number() })

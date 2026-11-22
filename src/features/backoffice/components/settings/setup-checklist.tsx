@@ -8,7 +8,7 @@ import { Button } from '@shared/components/ui/button'
 import { useStaff } from '@shared/lib/auth'
 import { supabase } from '@shared/lib/supabase'
 import { can, type Product, type Store } from '@shared/types/contracts'
-import { StarterMenuPicker } from './starter-menu-picker'
+import { StarterMenuPicker } from '../menu/starter-menu-picker'
 
 type Step = { key: string; title: string; hint: string; to: string; action: string; done: boolean }
 

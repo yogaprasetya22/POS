@@ -5,7 +5,7 @@ import { ErrorAlert } from '@shared/components/error-alert'
 import { RowsSkeleton } from '@shared/components/skeletons'
 import { rpc } from '@shared/lib/api'
 import { rupiah } from '@shared/lib/utils'
-import { KpiCard, KpiGrid, Panel } from './analytics/kit'
+import { KpiCard, KpiGrid, Panel } from '../analytics/kit'
 
 type Item = { name: string; qty: number; revenue: number; cogs: number; has_recipe: boolean }
 type Profit = { revenue: number; cogs: number; waste_value: number; items: Item[] }

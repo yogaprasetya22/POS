@@ -216,3 +216,29 @@ export async function openMidtransSnapPay(
 
   window.snap.pay(token, callbacks)
 }
+
+/**
+ * Simulasikan pembayaran lunas di mode Sandbox tanpa bergantung pada simulator web Midtrans
+ */
+export async function simulateSandboxPayment(
+  orderId: string,
+  storeId?: string,
+): Promise<{ success: boolean; paid?: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/midtrans?action=simulate-sandbox-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, storeId }),
+    })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Gagal simulasi pembayaran' }
+    }
+    return { success: true, paid: true }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}

@@ -712,5 +712,38 @@ export default async function handler(req, res) {
     })
   }
 
+  // ─── 7. SIMULASI PEMBAYARAN SANDBOX LANGSUNG (ANTI-500 SIMULATOR MIDTRANS) ───
+  if (action === 'simulate-sandbox-payment') {
+    if (!allow(req, res, 'POST')) return
+    const { orderId, storeId } = req.body || req.query || {}
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'orderId wajib diisi' })
+    }
+
+    const cfg = await getMidtransConfig(sb, storeId)
+    if (cfg.isProduction) {
+      return res.status(403).json({ success: false, error: 'Simulasi instan hanya tersedia pada mode Sandbox' })
+    }
+
+    const txId = 'SB-SIM-' + Date.now()
+    const { error: payErr } = await sb.rpc('pay_order_midtrans', {
+      p_order_id: orderId,
+      p_transaction_id: txId,
+      p_payment_type: 'qris',
+      p_status: 'settlement',
+    })
+
+    if (payErr) {
+      return res.status(500).json({ success: false, error: payErr.message })
+    }
+
+    return res.status(200).json({
+      success: true,
+      paid: true,
+      transaction_id: txId,
+      message: 'Simulasi pembayaran Sandbox berhasil. Pesanan dinyatakan lunas.',
+    })
+  }
+
   return res.status(400).json({ success: false, error: `Action '${action}' tidak dikenal` })
 }

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { rupiah } from '@shared/lib/utils'
-import { checkMidtransStatus, loadMidtransSnap } from '@shared/lib/midtrans'
+import { checkMidtransStatus, loadMidtransSnap, simulateSandboxPayment } from '@shared/lib/midtrans'
+import { toast } from 'sonner'
 
 export function InlineQris({
   orderId,
@@ -38,6 +39,7 @@ export function InlineQris({
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string>(qrUrl || '')
   const [checking, setChecking] = useState(false)
+  const [simulating, setSimulating] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState(false)
@@ -164,6 +166,24 @@ export function InlineQris({
     }
   }
 
+  const handleSimulateSandboxPay = async () => {
+    setSimulating(true)
+    try {
+      const res = await simulateSandboxPayment(orderId, storeId)
+      if (res.success && res.paid) {
+        setIsPaid(true)
+        toast.success('Simulasi pembayaran Sandbox berhasil! Pesanan lunas.')
+        setTimeout(() => {
+          onSuccess()
+        }, 1200)
+      } else {
+        toast.error(res.error || 'Gagal simulasi pembayaran Sandbox')
+      }
+    } finally {
+      setSimulating(false)
+    }
+  }
+
   const handleDownloadQr = () => {
     if (!qrDataUrl) return
     const a = document.createElement('a')
@@ -239,6 +259,31 @@ export function InlineQris({
   if (snapToken) {
     return (
       <div className="flex flex-col items-center text-center space-y-3 pb-4">
+        {/* Tombol simulasi Sandbox untuk Snap */}
+        {(!isProduction || isFallback) && (
+          <div className="w-full max-w-xs rounded-xl border border-amber-500/40 bg-amber-500/10 p-2.5 text-left space-y-2 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <div className="flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1 text-xs text-amber-900 dark:text-amber-200">
+                <AlertCircle className="size-3 text-amber-600 dark:text-amber-400" />
+                Simulasi Sandbox
+              </span>
+              <span className="text-[9px] font-bold uppercase text-amber-700 bg-amber-200/70 px-1 py-0.5 rounded">
+                Sandbox
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={simulating}
+              onClick={handleSimulateSandboxPay}
+              className="h-9 w-full text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+            >
+              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 fill-amber-300 text-amber-300" />}
+              <span>{simulating ? 'Memproses Simulasi…' : '⚡ Simulasikan Bayar Lunas (Instan)'}</span>
+            </Button>
+          </div>
+        )}
+
         <div className="relative w-full overflow-hidden rounded-2xl border bg-white shadow-xs min-h-[520px]">
           {!snapLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/80 p-4 text-center">
@@ -327,18 +372,29 @@ export function InlineQris({
             {notice || 'Salin URL QR di bawah, lalu paste di form Simulator Midtrans untuk simulasi scan bayar (PIN uji coba: 123456):'}
           </p>
 
-          <div className="flex flex-col gap-1.5 pt-0.5">
+          <div className="flex flex-col gap-2 pt-0.5">
+            {/* Tombol Simulasi Pembayaran Langsung (Solusi Anti-Down / Error 500 Simulator Midtrans) */}
             <Button
               type="button"
               size="sm"
+              disabled={simulating}
+              onClick={handleSimulateSandboxPay}
+              className="h-10 w-full text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+            >
+              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 fill-amber-300 text-amber-300" />}
+              <span>{simulating ? 'Memproses Simulasi…' : '⚡ Simulasikan Bayar Lunas (Instan)'}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={handleCopyQrUrl}
-              className={`h-9 w-full text-xs font-bold gap-1.5 transition-all ${
-                copiedUrl
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-amber-600 text-white hover:bg-amber-700 shadow-xs'
+              className={`h-8 w-full text-[11px] font-semibold gap-1.5 transition-all border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 ${
+                copiedUrl ? 'bg-emerald-50 text-emerald-700 border-emerald-500/50' : ''
               }`}
             >
-              {copiedUrl ? <Check className="size-3.5 text-white" /> : <Copy className="size-3.5 text-white" />}
+              {copiedUrl ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
               {copiedUrl ? 'URL QR Berhasil Disalin!' : 'Salin URL QR Simulator'}
             </Button>
 

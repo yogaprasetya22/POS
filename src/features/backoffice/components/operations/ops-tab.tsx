@@ -16,8 +16,8 @@ import { usePaged } from '@shared/lib/use-paged'
 import { rupiah } from '@shared/lib/utils'
 import { ShiftStatsSchema, can, type ShiftStats } from '@shared/types/contracts'
 import { ShiftDetailDrawer } from './shift-detail'
-import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, addDays, downloadCsv, eachDay, rangeOf, rangeText, type Preset } from './analytics/kit'
-import { CashDiffChart } from './analytics/lazy'
+import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, addDays, downloadCsv, eachDay, rangeOf, rangeText, type Preset } from '../analytics/kit'
+import { CashDiffChart } from '../analytics/lazy'
 
 const ShiftRowSchema = z.object({
   id: z.uuid(),

@@ -1,24 +1,26 @@
 import { Navigate, useSearchParams } from 'react-router'
-import { PurchasingPage } from './components/purchasing/purchasing-page'
 import { useStaff } from '@shared/lib/auth'
 import { useStoreConfig } from '@shared/lib/store-config'
 import { can } from '@shared/types/contracts'
 import { useAdmin } from './backoffice-page'
-import { LanguageTab } from './components/language-tab'
-import { MembersTab } from './components/members-tab'
-import { MenuTab } from './components/menu-tab'
-import { MorePageView } from './components/more-page'
-import { SetupChecklist } from './components/setup-checklist'
-import { StarterMenuPicker } from './components/starter-menu-picker'
-import { OpsTab } from './components/ops-tab'
-import { Dashboard } from './components/dashboard'
-import { PromoTab } from './components/promo-tab'
-import { ReportPageView } from './components/report-page'
-import { StaffList } from './components/staff-list'
-import { InventoryPage } from './components/inventory/inventory-page'
-import { StoreTab } from './components/store-tab'
-import { TablesTab } from './components/tables-tab'
-import { FinancePageView } from './components/finance-page'
+import {
+  FinancePageView,
+  LanguageTab,
+  MembersTab,
+  MenuTab,
+  MorePageView,
+  SetupChecklist,
+  StarterMenuPicker,
+  OpsTab,
+  Dashboard,
+  PromoTab,
+  ReportPageView,
+  StaffList,
+  InventoryPage,
+  PurchasingPage,
+  StoreTab,
+  TablesTab,
+} from './components'
 
 // Tautan lama /admin?tab=... tetap bekerja dan diarahkan ke route barunya.
 const LEGACY_TAB: Record<string, string> = {

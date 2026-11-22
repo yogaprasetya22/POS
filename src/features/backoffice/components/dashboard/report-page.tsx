@@ -1,9 +1,9 @@
 import { Download, Printer, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
-import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, Trend, downloadCsv, addDays, previousRange, rangeOf, rangeText, dayLabel, type Preset } from './analytics/kit'
-import { MethodsChart, RankBars, SalesTrendChart } from './analytics/lazy'
-import { busiestHour, dailySeries, hourRange, hourlySeries, jakartaHour, type Paid } from './analytics/series'
-import { ProfitTab } from './profit-tab'
+import { KpiCard, KpiGrid, Panel, RangePicker, StatusLegend, TONE, Trend, downloadCsv, addDays, previousRange, rangeOf, rangeText, dayLabel, type Preset } from '../analytics/kit'
+import { MethodsChart, RankBars, SalesTrendChart } from '../analytics/lazy'
+import { busiestHour, dailySeries, hourRange, hourlySeries, jakartaHour, type Paid } from '../analytics/series'
+import { ProfitTab } from '../finance/profit-tab'
 import { ChartSkeleton, RowsSkeleton, StatTilesSkeleton } from '@shared/components/skeletons'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
@@ -32,7 +32,7 @@ const ReportSchema = z.object({
 export type Report = z.infer<typeof ReportSchema>
 
 // ---------- tanggal (dari analytics/kit; diekspor ulang untuk file lain) ----------
-export { addDays, daysBetween, dayLabel } from './analytics/kit'
+export { addDays, daysBetween, dayLabel } from '../analytics/kit'
 export const clock = (iso: string) => new Date(iso).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' })
 export const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt` : n >= 1e3 ? `${Math.round(n / 1e3)} rb` : String(n))
 
