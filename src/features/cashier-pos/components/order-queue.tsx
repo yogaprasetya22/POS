@@ -75,9 +75,16 @@ const COL: Record<St, { icon: typeof Store; head: string; dot: string; tile: str
 }
 
 /** Aksi di tiap pesanan. `useKitchen` false: kasir/pelayan yang menandai "Sudah siap". */
+async function cancelOrder(o: Order, act: QueueActions) {
+  if (!window.confirm(`Batalkan pesanan ${o.queue_code}${o.customer_name ? ` (${o.customer_name})` : ''}? Pesanan ini belum dibayar.`)) return
+  await act.onCancel?.(o)
+}
+
 export type QueueActions = {
   onPay: (id: string) => void
   onAdvance: (o: Order) => Promise<void>
+  /** batalkan pesanan yang belum dibayar */
+  onCancel?: (o: Order) => Promise<void>
   /** majukan banyak pesanan sekaligus (aksi massal); fallback: onAdvance satu per satu */
   onAdvanceMany?: (orders: Order[]) => Promise<void>
   /** centang satu menu sudah jadi (dipakai kasir bila layar dapur dimatikan) */
@@ -210,7 +217,8 @@ function OrderCard({
 
       <div className="mt-3">
         {unpaid ? (
-          isCustomerQrisPending(o) ? (
+          <>
+          {isCustomerQrisPending(o) ? (
             <div className="flex items-center justify-between gap-2">
               <ToneBadge tone="amber" className="flex h-10 items-center gap-1.5 px-3 text-sm font-bold">
                 <Clock className="size-3.5 animate-pulse" /> Menunggu QRIS
@@ -223,7 +231,17 @@ function OrderCard({
             <Button className="h-11 w-full text-base font-bold" aria-label={`Terima bayar ${o.queue_code}`} onClick={() => act.onPay(o.id)}>
               Terima bayar
             </Button>
-          )
+          )}
+          {act.onCancel && (
+            <button
+              type="button"
+              onClick={() => void cancelOrder(o, act)}
+              className="mt-2 w-full rounded-lg py-1.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              Batalkan pesanan
+            </button>
+          )}
+          </>
         ) : cooking ? (
           <Button
             disabled={busy}
@@ -673,9 +691,16 @@ function ListView({ rows, now, act, selected, onSelect }: { rows: Order[]; now: 
               <span className="w-24 text-right font-bold tabular-nums">{rupiah(o.total)}</span>
               <div className="w-36">
                 {st === 'UNPAID' ? (
-                  <Button size="sm" className="w-full font-bold" onClick={() => act.onPay(o.id)}>
-                    {isCustomerQrisPending(o) ? 'Menunggu QRIS' : 'Terima bayar'}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button size="sm" className="flex-1 font-bold" onClick={() => act.onPay(o.id)}>
+                      {isCustomerQrisPending(o) ? 'QRIS' : 'Bayar'}
+                    </Button>
+                    {act.onCancel && (
+                      <Button size="sm" variant="ghost" aria-label={`Batalkan ${o.queue_code}`} onClick={() => void cancelOrder(o, act)}>
+                        Batal
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <Button
                     size="sm"

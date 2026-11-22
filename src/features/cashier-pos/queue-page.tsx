@@ -50,6 +50,11 @@ export function QueuePage() {
           onPay: (id) => navigate(`/cashier?pesanan=${id}`),
           onAdvance,
           onAdvanceMany,
+          onCancel: async (o) => {
+            const { error } = await rpc('advance_order', { p_order_id: o.id, p_to: 'CANCELLED' })
+            if (error) toast.error(`${o.queue_code} belum dibatalkan`, { description: error.message })
+            else toast.success(`${o.queue_code} dibatalkan`)
+          },
           onItem: async (o, index, done) => {
             const { error } = await rpc('set_item_done', { p_order_id: o.id, p_index: index, p_done: done })
             if (error) toast.error('Centang belum tersimpan', { description: `${error.message} Coba lagi.` })
