@@ -233,21 +233,21 @@ function OrderStatusCard({
   const items = info?.items ?? []
 
   return (
-    <section aria-live="polite">
+    <section aria-live="polite" className="flex flex-col">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`flex min-h-18 w-full items-center gap-3 border-2 px-3.5 py-3 text-left transition-colors ${open ? 'rounded-t-2xl' : 'rounded-2xl'} ${t.card}`}
+        className={`flex min-h-18 w-full items-center gap-2.5 sm:gap-3 border-2 px-3 sm:px-3.5 py-3 text-left transition-colors ${open ? 'rounded-t-2xl' : 'rounded-2xl'} ${t.card}`}
       >
-        <span className={`grid size-10 shrink-0 place-items-center rounded-full ${t.icon}`}>
-          <Icon className="size-5" strokeWidth={2.5} aria-hidden />
+        <span className={`grid size-9 sm:size-10 shrink-0 place-items-center rounded-full ${t.icon}`}>
+          <Icon className="size-4 sm:size-5" strokeWidth={2.5} aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[17px] font-extrabold leading-snug">
+          <span className="block truncate text-[15px] sm:text-[17px] font-extrabold leading-snug">
             <span className="font-mono">{saved.queue_code}</span> · {v.title}
           </span>
-          <span className={`block truncate text-[15px] ${t.sub}`}>
+          <span className={`block truncate text-xs sm:text-[14px] ${t.sub}`}>
             {failed && !info
               ? 'Mengecek status…'
               : isUnpaid && secondsLeft > 0
@@ -255,10 +255,10 @@ function OrderStatusCard({
                 : v.text}
           </span>
         </span>
-        <span className="flex shrink-0 flex-col items-end">
-          <span className="text-base font-extrabold tabular-nums">{rupiah(info?.total ?? saved.total)}</span>
-          <span className={`flex items-center text-sm font-semibold ${t.sub}`}>
-            {open ? 'Tutup' : 'Rincian'} <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+        <span className="flex shrink-0 flex-col items-end pl-1">
+          <span className="text-sm sm:text-base font-extrabold tabular-nums">{rupiah(info?.total ?? saved.total)}</span>
+          <span className={`flex items-center text-xs sm:text-sm font-semibold ${t.sub}`}>
+            {open ? 'Tutup' : 'Rincian'} <ChevronDown className={`size-3.5 sm:size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
           </span>
         </span>
       </button>
@@ -430,9 +430,17 @@ export function MyOrders({ storeId, currentTable }: { storeId: string; currentTa
   })
 
   if (dedupedOrders.length === 0) return null
+
+  const gridLayout =
+    dedupedOrders.length === 1
+      ? 'grid-cols-1'
+      : dedupedOrders.length === 2
+        ? 'grid-cols-1 sm:grid-cols-2'
+        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+
   return (
-    <div className="mb-3 space-y-2">
-      {dedupedOrders.slice(0, 3).map((o) => (
+    <div className={`mb-3.5 grid gap-3 ${gridLayout}`}>
+      {dedupedOrders.slice(0, 6).map((o) => (
         <OrderStatusCard key={o.id} storeId={storeId} saved={o} currentTable={currentTable} />
       ))}
     </div>
