@@ -334,7 +334,7 @@ type StoreLink = { slug: string; name: string }
 
 function BrowserFrame({ children, isLive = true }: { children: ReactNode; isLive?: boolean }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl shadow-primary/10 ring-1 ring-black/5 dark:ring-white/10">
+    <div className="w-full overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl shadow-primary/10 ring-1 ring-black/5 dark:ring-white/10">
       <div className="flex items-center justify-between border-b bg-muted/70 px-3 py-2 sm:px-4 sm:py-2.5">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="size-2.5 sm:size-3 rounded-full bg-rose-500/80" />
@@ -394,6 +394,8 @@ function ShowcaseMedia({
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
+  const [ready, setReady] = useState(false)
+  useEffect(() => setReady(false), [videoSrc])
 
   useEffect(() => {
     if (videoRef.current) {
@@ -472,6 +474,11 @@ function ShowcaseMedia({
           <video
             ref={videoRef}
             src={videoSrc}
+            poster={imgSrc}
+            preload="auto"
+            onCanPlay={() => setReady(true)}
+            onWaiting={() => setReady(false)}
+            onPlaying={() => setReady(true)}
             autoPlay
             loop
             muted={isMuted}
@@ -479,9 +486,16 @@ function ShowcaseMedia({
             className={`block w-full ${
               phone
                 ? 'aspect-[390/844] object-contain bg-background'
-                : 'h-auto max-h-[520px] object-cover'
+                : 'aspect-[16/10] object-cover object-top bg-background'
             }`}
           />
+          {!ready && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-[1px]">
+              <span className="flex items-center gap-2 rounded-full bg-background/90 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground shadow-md">
+                <span className="size-3.5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" /> Memuat video demo…
+              </span>
+            </div>
+          )}
           {!phone && (
             <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
               {controls}
@@ -498,7 +512,7 @@ function ShowcaseMedia({
           className={`block w-full ${
             phone
               ? 'aspect-[390/844] object-contain bg-background'
-              : 'h-auto max-h-[520px] object-cover'
+              : 'aspect-[16/10] object-cover object-top bg-background'
           }`}
         />
       )}

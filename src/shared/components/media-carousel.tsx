@@ -1,3 +1,4 @@
+import { playableUrl } from '@shared/lib/media-url'
 import { SmartImage } from './smart-image'
 import { ChevronLeft, ChevronRight, UtensilsCrossed, Video } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
@@ -30,7 +31,7 @@ export function MediaCarousel({ images = [], imageUrl, videoUrl, alt = '', class
 
   // Tambahkan video jika ada
   if (videoUrl && videoUrl.trim()) {
-    mediaList.push({ type: 'video', url: videoUrl.trim() })
+    mediaList.push({ type: 'video', url: playableUrl(videoUrl) })
   }
 
   const containerRef = useRef<HTMLDivElement>(null)

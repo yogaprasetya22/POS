@@ -6,7 +6,7 @@ import { Input } from '@shared/components/ui/input'
 import { useStaff } from '@shared/lib/auth'
 import { uploadMedia } from '@shared/lib/media'
 import { rpc } from '@shared/lib/api'
-import { BUYER_TEMPLATES, BUYER_TEMPLATE_KEYS, asTemplate, type BuyerTemplate } from '@shared/lib/buyer-look'
+import { BUYER_TEMPLATES, BUYER_TEMPLATE_KEYS, DARK_TEMPLATES, asTemplate, type BuyerTemplate } from '@shared/lib/buyer-look'
 import { loadLogo, prepareLogo } from '@shared/lib/receipt-logo'
 import { THEMES, THEME_KEYS, applyTheme, swatch, type ThemeKey } from '@shared/lib/theme'
 import type { StoreConfig } from '@shared/types/contracts'
@@ -104,13 +104,17 @@ export function ThemePicker({ config, onSaved }: { config: StoreConfig | null; o
 
 /** Gambar kecil yang meniru susunan tiap template, supaya pemilik bisa membayangkan tanpa membuka halaman. */
 function Mock({ t, color }: { t: BuyerTemplate; color: string }) {
-  const dark = t === 'malam'
+  const dark = DARK_TEMPLATES.includes(t)
   const BG: Record<BuyerTemplate, string> = {
     segar: `color-mix(in oklch, ${color} 10%, white)`, ringkas: '#f4f5f8', galeri: '#f3f4f8', majalah: '#f6f0e4', kertas: '#f3ead7',
     malam: '#1f2128', bento: `color-mix(in oklch, ${color} 6%, white)`, pastel: `color-mix(in oklch, ${color} 18%, white)`, label: '#f3f4f8', minimalis: '#ffffff',
+    kaca: `radial-gradient(at 10% 0%, color-mix(in oklch, ${color} 45%, white), transparent 60%), radial-gradient(at 90% 100%, #f0c6ff, transparent 60%), #eef1fb`,
+    neo: '#fbf5d9', reel: '#f4f5f8', polaroid: '#f3ece2',
+    aurora: `radial-gradient(at 0% 0%, #ffd6a5, transparent 50%), radial-gradient(at 100% 0%, color-mix(in oklch, ${color} 50%, white), transparent 50%), radial-gradient(at 50% 100%, #b5f2ea, transparent 55%), #f7f7fb`,
+    mewah: '#15130f', sinema: '#f4f5f8', retro: '#f6e3c3', split: '#f5f6f9', swiss: '#ffffff',
   }
   const card = dark ? '#2e313a' : '#fff'
-  const photo = dark ? '#555a66' : '#cfd3dc'
+  const photo = dark ? (t === 'mewah' ? '#4a4334' : '#555a66') : '#cfd3dc'
   const ink = dark ? '#9aa0ad' : '#9aa0ad'
   const bar = (w: string, c = ink) => <div className="h-1.5 rounded" style={{ width: w, background: c }} />
   const dot = <div className="size-3 rounded-full" style={{ background: color }} />
@@ -142,6 +146,36 @@ function Mock({ t, color }: { t: BuyerTemplate; color: string }) {
       break
     case 'minimalis':
       body = <div className="grid h-full grid-cols-3 gap-2">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col items-center gap-1"><div className="w-full flex-1 rounded-xl" style={{ background: photo }} />{bar('60%')}{bar('30%')}</div>)}</div>
+      break
+    case 'kaca':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-xl border border-white/70 bg-white/50 p-1 backdrop-blur"><div className="flex-1 rounded-lg" style={{ background: photo }} /><div className="flex items-center justify-between">{bar('45%')}{dot}</div></div>)}</div>
+      break
+    case 'neo':
+      body = <div className="grid h-full grid-cols-3 gap-2">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-md border-2 border-black bg-white p-1 shadow-[2px_2px_0_#000]"><div className="flex-1 rounded border-2 border-black" style={{ background: photo }} /><div className="flex items-center justify-between"><div className="h-2 w-1/2 rounded-sm border border-black" style={{ background: color }} /><div className="size-3 rounded-sm border-2 border-black bg-amber-300" /></div></div>)}</div>
+      break
+    case 'reel':
+      body = <div className="grid h-full grid-cols-4 gap-1">{[0, 1, 2, 3].map((i) => <div key={i} className="relative overflow-hidden rounded-lg bg-neutral-800"><div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #000a, transparent), #8a8f9a' }} /><div className="absolute left-1 top-1 h-1.5 w-1/2 rounded-full bg-white/60" /><div className="absolute bottom-1 left-1 right-1 space-y-0.5">{bar('80%', '#fff')}{bar('45%', '#fff')}</div></div>)}</div>
+      break
+    case 'polaroid':
+      body = <div className="grid h-full grid-cols-3 gap-2 px-1">{[0, 1, 2].map((i) => <div key={i} className={`flex flex-col gap-1 bg-white p-1 pb-1.5 shadow ${i % 2 ? 'rotate-3' : '-rotate-3'}`}><div className="flex-1" style={{ background: photo }} />{bar('60%', '#777')}</div>)}</div>
+      break
+    case 'aurora':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-2xl bg-white/90 p-1 shadow"><div className="flex-1 rounded-xl" style={{ background: photo }} /><div className="flex items-center justify-between">{bar('40%', color)}<div className="size-3 rounded-full" style={{ background: `linear-gradient(135deg, ${color}, #d946ef)` }} /></div></div>)}</div>
+      break
+    case 'mewah':
+      body = <div className="flex h-full flex-col justify-center gap-2 px-1">{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-2 border-b border-[#c9a54c]/30 pb-1"><div className="size-6 ring-1 ring-[#c9a54c]/60" style={{ background: photo }} /><div className="flex-1 space-y-1">{bar('55%', '#d8d2c2')}{bar('25%', '#c9a54c')}</div></div>)}</div>
+      break
+    case 'sinema':
+      body = <div className="flex h-full flex-col gap-1.5">{[0, 1].map((i) => <div key={i} className="relative flex-1 overflow-hidden rounded-lg" style={{ background: photo }}><div className="absolute bottom-1 left-1.5 w-1/2 space-y-1">{bar('90%', '#fff')}</div><div className="absolute bottom-1 right-1.5">{dot}</div></div>)}</div>
+      break
+    case 'retro':
+      body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-2xl border-2 border-[#3b2a1a] bg-[#fff6e6] p-1"><div className="flex-1 rounded-xl border-2 border-[#3b2a1a]" style={{ background: photo }} /><div className="flex items-center justify-between">{bar('45%', '#3b2a1a')}<div className="size-3 rounded-full bg-[#ff6b35]" /></div></div>)}</div>
+      break
+    case 'split':
+      body = <div className="grid h-full grid-cols-2 gap-1.5">{[0, 1].map((i) => <div key={i} className="flex gap-1 overflow-hidden rounded-xl" style={{ background: card }}><div className="w-2/5" style={{ background: photo }} /><div className="flex-1 space-y-1 py-1.5 pr-1">{bar('80%', '#555')}{bar('60%')}{bar('40%', color)}</div></div>)}</div>
+      break
+    case 'swiss':
+      body = <div className="grid h-full grid-cols-4 gap-px bg-neutral-300">{[0, 1, 2, 3].map((i) => <div key={i} className="flex flex-col gap-1 bg-white p-1"><div className="h-1 w-2 bg-neutral-400" /><div className="flex-1" style={{ background: photo }} />{bar('80%', '#111')}</div>)}</div>
       break
     default:
       body = <div className="grid h-full grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex flex-col gap-1 rounded-xl p-1 shadow-sm" style={{ background: card }}><div className="flex-1 rounded-lg" style={{ background: photo }} /><div className="flex items-center justify-between">{bar('45%')}{dot}</div></div>)}</div>

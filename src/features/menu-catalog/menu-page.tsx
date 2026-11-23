@@ -53,6 +53,7 @@ export function MenuPage() {
   useEffect(() => {
     if (storeTheme) return applyBuyerLook(storeTheme, template)
   }, [storeTheme, template])
+  const glowBg = template === 'kaca' || template === 'aurora'
 
   if (error)
     return (
@@ -104,8 +105,8 @@ export function MenuPage() {
     toast.success(`${p.name} ditambahkan`, { duration: 1500 })
   }
   return (
-    <div className="min-h-dvh w-full bg-background pb-28">
-      <header className="sticky top-0 z-20 border-b bg-background">
+    <div className={`min-h-dvh w-full pb-28 ${glowBg ? 'bg-transparent' : 'bg-background'}`}>
+      <header className={`sticky top-0 z-20 border-b ${glowBg ? 'bg-background/60 backdrop-blur-xl' : 'bg-background'}`}>
         <div className="mx-auto max-w-6xl px-4 pt-3">
           <div className="flex items-center gap-3">
             {data.store.logo_url && <img src={data.store.logo_url} alt="" className="size-12 shrink-0 rounded-2xl border bg-white object-cover" />}
@@ -190,6 +191,7 @@ export function MenuPage() {
                     promo={promoLabel}
                     hero={hero}
                     priority={idx < 4}
+                    index={idx}
                     onOpen={() => setPicking(p)}
                     onAdd={() => quickAdd(p)}
                   />
