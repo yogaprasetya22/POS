@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
-  Sparkles,
+  MessagesSquare,
   Store,
   TrendingUp,
   UserCog,
@@ -46,7 +46,7 @@ const QUICK = [
   { icon: Smartphone, text: 'Bisa pakai HP, tablet, atau laptop yang ada' },
   { icon: Coins, text: '0% komisi — 100% omzet masuk ke rekening Anda' },
   { icon: Receipt, text: 'Cetak struk 58/80mm & tiket dapur otomatis' },
-  { icon: Sparkles, text: 'Tanya omzet & sisa stok lewat chat AI' },
+  { icon: MessagesSquare, text: 'Tanya omzet & sisa stok lewat chat AI' },
 ]
 
 const SHOWCASE_TABS = [
@@ -241,7 +241,7 @@ const FEATURES = [
   { icon: ClipboardList, title: 'Pajak PB1 & Service Charge', text: 'Hitungan pajak resto 10% dan servis otomatis tercatat di struk dan rekap bulanan.' },
   { icon: UserCog, title: 'Kunci Akses PIN Karyawan', text: 'Owner, Kasir, dan Koki memiliki wewenang berbeda. Hapus item nota terkunci PIN supervisor.' },
   { icon: Boxes, title: 'Multi-Outlet Satu Layar', text: 'Pantau dan kelola banyak cabang resto Anda dari satu akun pusat tanpa data tertukar.' },
-  { icon: Sparkles, title: 'Tanya Jawab Data via AI', text: 'Tanyakan omzet hari ini, menu paling laku, atau stok bahan yang menipis langsung lewat chat.' },
+  { icon: MessagesSquare, title: 'Tanya Jawab Data via AI', text: 'Tanyakan omzet hari ini, menu paling laku, atau stok bahan yang menipis langsung lewat chat.' },
 ]
 
 const COMPARISON = [

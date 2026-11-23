@@ -14,8 +14,7 @@ import {
   Trash2,
   UtensilsCrossed,
   X,
-  Zap,
-} from 'lucide-react'
+  } from 'lucide-react'
 import { useClientPaged } from '@shared/lib/use-client-paged'
 import { LoadMore } from '@shared/components/pagination'
 import { m } from 'motion/react'
@@ -290,7 +289,7 @@ export function PromoTab({ storeId, products, categories, reloadCatalog, run }: 
 
         <div className="rounded-2xl border bg-card p-4 flex items-center gap-3.5 shadow-2xs">
           <div className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-            <Zap className="size-5" />
+            <Percent className="size-5" />
           </div>
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Diskon & Potongan</p>

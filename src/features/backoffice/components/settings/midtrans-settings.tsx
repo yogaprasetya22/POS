@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Eye, EyeOff, KeyRound, Loader2, RefreshCw, ShieldCheck, Zap } from 'lucide-react'
+import { Check, Eye, EyeOff, KeyRound, Loader2, RefreshCw, ShieldCheck } from 'lucide-react'
 import { SectionCard } from '@shared/components/page'
 import { Button } from '@shared/components/ui/button'
 import { Input } from '@shared/components/ui/input'
@@ -218,7 +218,7 @@ export function MidtransSettings({ storeId }: { storeId: string }) {
               onClick={handleSave}
               className="h-10 text-xs font-semibold"
             >
-              {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Zap className="mr-2 size-4" />}
+              {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               Simpan Pengaturan Midtrans
             </Button>
           </div>

@@ -2,7 +2,7 @@ import { SmartImage } from '@shared/components/smart-image'
 import { LiquidPill } from '@shared/components/liquid-pill'
 import { cancelMyOrder, saveMyOrder, updateMyOrder } from './my-orders'
 import { AnimatedRupiah } from '@shared/components/animated-rupiah'
-import { CheckCircle2, Clock, CreditCard, QrCode, Send, Sparkles, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, CreditCard, QrCode, Send, Trash2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { ErrorAlert } from '@shared/components/error-alert'
@@ -202,8 +202,7 @@ export function CheckoutPanel({
           <p className="mt-1 font-mono text-5xl font-bold tracking-tight" data-testid="queue-code">{done.queue_code}</p>
           <p className="mt-4 text-lg font-semibold tabular-nums">Total {rupiah(done.total)}</p>
           {done.isPaid ? (
-            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-              <Sparkles className="size-3.5" /> Lunas via QRIS Dinamis · Langsung Diproses Dapur
+            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"> Lunas via QRIS Dinamis · Langsung Diproses Dapur
             </div>
           ) : (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200 max-w-xs">
@@ -426,7 +425,7 @@ export function CheckoutPanel({
           {orderType === 'DINE_IN' && (
             <div className="space-y-1.5">
               <Label htmlFor="co-table">Meja</Label>
-              <Input id="co-table" value={table} onChange={(e) => setTable(e.target.value)} maxLength={10} inputMode="numeric" className="h-11" required />
+              <Input id="co-table" value={table} onChange={(e) => setTable(e.target.value)} maxLength={10} className="h-11" required />
             </div>
           )}
         </div>
@@ -519,8 +518,7 @@ export function CheckoutPanel({
               </button>
             </div>
             {payMethod === 'QRIS' && (
-              <p className="text-[11px] text-primary flex items-center gap-1 font-medium pt-0.5">
-                <Sparkles className="size-3" /> Nominal harga otomatis terisi saat scan QRIS di HP kamu.
+              <p className="text-[11px] text-primary flex items-center gap-1 font-medium pt-0.5"> Nominal harga otomatis terisi saat scan QRIS di HP kamu.
               </p>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck, Sparkles, Zap } from 'lucide-react'
+import { AlertCircle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { rupiah } from '@shared/lib/utils'
 import { checkMidtransStatus, loadMidtransSnap, simulateSandboxPayment } from '@shared/lib/midtrans'
@@ -278,7 +278,7 @@ export function InlineQris({
               onClick={handleSimulateSandboxPay}
               className="h-9 w-full text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
             >
-              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 fill-amber-300 text-amber-300" />}
+              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : null}
               <span>{simulating ? 'Memproses Simulasi…' : '⚡ Simulasikan Bayar Lunas (Instan)'}</span>
             </Button>
           </div>
@@ -317,8 +317,7 @@ export function InlineQris({
 
       {/* Info Nominal Pas */}
       <div className="space-y-1">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-          <Sparkles className="size-3.5" /> Nominal Otomatis Terisi
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400"> Nominal Otomatis Terisi
         </span>
         <p className="text-3xl font-black tabular-nums tracking-tight text-foreground pt-1">
           {rupiah(total)}
@@ -381,7 +380,7 @@ export function InlineQris({
               onClick={handleSimulateSandboxPay}
               className="h-10 w-full text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
             >
-              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 fill-amber-300 text-amber-300" />}
+              {simulating ? <Loader2 className="size-3.5 animate-spin" /> : null}
               <span>{simulating ? 'Memproses Simulasi…' : '⚡ Simulasikan Bayar Lunas (Instan)'}</span>
             </Button>
 

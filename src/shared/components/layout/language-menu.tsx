@@ -1,4 +1,4 @@
-import { Check, Languages, Sparkles } from 'lucide-react'
+import { Check, Languages } from 'lucide-react'
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@shared/components/ui/dropdown-menu'
 import { LOCALES, useI18n } from '@shared/i18n'
 import { getMotionPref, setMotionPref } from '@shared/lib/motion-pref'
@@ -22,8 +22,7 @@ export function LanguageMenu() {
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
-        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
-          <Sparkles className="size-3.5" aria-hidden /> Animasi
+        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs"> Animasi
         </DropdownMenuLabel>
         <DropdownMenuItem className="min-h-10 justify-between" onClick={() => setMotionPref(motion === 'full' ? 'system' : 'full')}>
           Selalu animasi penuh

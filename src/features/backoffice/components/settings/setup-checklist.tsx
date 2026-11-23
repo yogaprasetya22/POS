@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Circle, Sparkles, X } from 'lucide-react'
+import { CheckCircle2, ChevronRight, Circle, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { m } from 'motion/react'
 import { Link } from 'react-router'
@@ -70,8 +70,7 @@ export function SetupChecklist({ store, products, onSeeded }: { store: Store; pr
     <m.section {...appear()} className="rounded-3xl border-2 border-primary/30 bg-primary/5 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-extrabold sm:text-2xl">
-            <Sparkles className="size-6 text-primary" /> Langkah awal
+          <h2 className="flex items-center gap-2 text-xl font-extrabold sm:text-2xl"> Langkah awal
           </h2>
           <p className="mt-1 text-base text-foreground/80">
             {done} dari {steps.length} selesai. Ikuti urutan ini supaya toko siap dipakai.
