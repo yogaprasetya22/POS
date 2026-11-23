@@ -1,4 +1,4 @@
-.PHONY: migrate-mark reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos seed-inventory
+.PHONY: migrate-mark reset-month sim-month e2e test-all help dev stop build preview lint test clean migrate-status migrate migrate-fresh migrate-reset migrate-down migrate-info seed seed-pos seed-inventory landing-video landing-media-upload
 
 # Default target
 help:
@@ -129,6 +129,14 @@ media-status: ## Hitung media per tempat penyimpanan
 
 media-to-drive: ## Pindahkan semua media yang belum di Google Drive
 	bun scripts/media-to-drive.js migrate
+
+landing-video: ## Rekam ulang video demo landing (butuh dev server + OPENAI_API_KEY), lalu unggah ke Google Drive
+	node scripts/generate-synced-showcase.mjs
+	bun scripts/landing-media-to-drive.js
+	rm -f public/landing/*.webm public/landing/audio/*.mp3
+
+landing-media-upload: ## Unggah video/audio di public/landing ke Google Drive & perbarui manifest
+	bun scripts/landing-media-to-drive.js
 
 seed-history: ## Data contoh 90 hari terakhir (pesanan per jam, shift, kas) untuk toko demo
 	bun scripts/supabase-migrate.js seed-history

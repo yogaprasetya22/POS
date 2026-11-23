@@ -18,3 +18,6 @@ docs/stitch
 docs/audio
 docs/error-*.png
 *graphify-out
+# video/audio landing disimpan di Google Drive (lihat src/features/landing/landing-media.ts)
+public/landing/*.webm
+public/landing/audio/

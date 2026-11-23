@@ -37,6 +37,7 @@ import { Reveal } from '@shared/components/reveal'
 import { PosLogo } from '@shared/components/pos-logo'
 import { buttonVariants } from '@shared/components/ui/button'
 import { fetchStores } from '@shared/lib/api'
+import { landingMedia } from './landing-media'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME || 'POS Resto'
 const WA_SALES_LINK = 'https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20tertarik%20konsultasi%20sewa%20sistem%20POS%20untuk%20restoran%2Fkafe%20saya.'
@@ -62,7 +63,7 @@ const SHOWCASE_TABS = [
       'Hapus item (void) dan diskon manual terkunci PIN supervisor',
     ],
     img: '/landing/kasir.webp',
-    video: '/landing/video-kasir.webm',
+    video: landingMedia('/landing/video-kasir.webm'),
     alt: 'Antarmuka layar kasir dengan keranjang dan katalog menu',
   },
   {
@@ -78,7 +79,7 @@ const SHOWCASE_TABS = [
       'Mengurangi antrean di meja kasir saat jam makan siang dan malam',
     ],
     img: '/landing/pelanggan.webp',
-    video: '/landing/video-qr.webm',
+    video: landingMedia('/landing/video-qr.webm'),
     alt: 'Tampilan menu pelanggan responsif di layar smartphone',
     phone: true,
   },
@@ -95,7 +96,7 @@ const SHOWCASE_TABS = [
       'Menghilangkan masalah salah baca tulisan tangan atau nota tercecer',
     ],
     img: '/landing/dapur.webp',
-    video: '/landing/video-dapur.webm',
+    video: landingMedia('/landing/video-dapur.webm'),
     alt: 'Layar monitor dapur KDS dengan antrean tiket memasak',
   },
   {
@@ -111,7 +112,7 @@ const SHOWCASE_TABS = [
       'Catatan selisih kas tiap kasir membuka dan menutup shift',
     ],
     img: '/landing/dashboard.webp',
-    video: '/landing/video-dashboard.webm',
+    video: landingMedia('/landing/video-dashboard.webm'),
     alt: 'Dashboard analitik penjualan dan grafik laba kotor',
   },
   {
@@ -127,7 +128,7 @@ const SHOWCASE_TABS = [
       'Mencegah kecurangan atau kebocoran bahan baku dapur',
     ],
     img: '/landing/stok.webp',
-    video: '/landing/video-stok.webm',
+    video: landingMedia('/landing/video-stok.webm'),
     alt: 'Manajemen resep dan bahan baku stok inventori',
   },
 ]
@@ -875,7 +876,7 @@ export function LandingPage() {
               </div>
 
               <ShowcaseMedia
-                videoSrc="/landing/video-pengaturan.webm"
+                videoSrc={landingMedia('/landing/video-pengaturan.webm')}
                 imgSrc="/landing/pengaturan.webp"
                 alt="Antarmuka workstation pengaturan toko, struk thermal, pajak PB1, dan meja"
                 mode={settingsMediaMode}
