@@ -290,10 +290,11 @@ export function CheckoutPanel({
         ) : (
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-lg font-bold tabular-nums">
+              <p className="truncate text-sm text-muted-foreground">
+                Total{totalDiscount > 0 && <span className="ml-1.5 tabular-nums line-through">{rupiah(grossSubtotal)}</span>}
+              </p>
+              <p className="whitespace-nowrap text-lg font-bold tabular-nums">
                 <AnimatedRupiah value={total} />
-                {totalDiscount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground line-through">{rupiah(grossSubtotal)}</span>}
               </p>
             </div>
             <Button form="checkout-form" size="lg" disabled={busy || items.length === 0} className="h-12 shrink-0 px-5 text-base font-semibold">
@@ -301,7 +302,7 @@ export function CheckoutPanel({
                 'Menghubungkan…'
               ) : payMethod === 'QRIS' && midtransConfig?.enabled ? (
                 <>
-                  <QrCode className="mr-1.5 size-4" /> Bayar QRIS ({rupiah(total)})
+                  <QrCode className="mr-1.5 size-4" /> Bayar QRIS
                 </>
               ) : (
                 <>
