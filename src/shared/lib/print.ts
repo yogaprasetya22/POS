@@ -1,7 +1,7 @@
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { PAYMENT_LABEL, type Order } from '@shared/types/contracts'
-import { toPreview } from './print-preview'
-import { logoAt } from './receipt-logo'
+import { toPreview, type PreviewLine } from './print-preview'
+import { loadLogo, logoAt, paperDots, type LogoPixels } from './receipt-logo'
 import { rupiah, timeJakarta } from './utils'
 
 /** Info toko untuk kepala/kaki struk. */
@@ -200,4 +200,67 @@ export async function pairPrinter(): Promise<PrintResult> {
 export const hasPairedPrinter = async () => {
   const serial = (navigator as unknown as { serial?: SerialLike }).serial
   return !!serial && (await serial.getPorts()).length > 0
+}
+
+// --- Cetak lewat browser (printer biasa / simpan PDF) ---
+
+/** Lebar kertas fisik (mm) untuk jumlah karakter per baris: 32 → 58 mm, 42+ → 80 mm. */
+export const paperMm = (chars: number) => (chars >= 42 ? 80 : 58)
+
+const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!)
+
+/** HTML struk selebar kertas thermal, dari baris pratinjau yang sama dengan yang dikirim ke printer. */
+export function receiptHtml(lines: PreviewLine[], chars: number, logo?: { src: string; widthPct: number }) {
+  const mm = paperMm(chars)
+  const inner = mm - 6 // sisa margin cetak kiri+kanan printer thermal
+  // huruf monospace ~0,6em per karakter: ukuran huruf agar `chars` karakter pas selebar area cetak
+  const font = (inner / chars / 0.6).toFixed(2)
+  const body = lines
+    .filter((l) => l.kind === 'text' || (l.kind === 'image' && logo))
+    .map((l) => l.kind === 'image' ? `<img src="${logo!.src}" alt="" style="display:block;margin:0 auto 1.5mm;width:${logo!.widthPct}%;image-rendering:pixelated">` : `<div style="${l.bold ? 'font-weight:700;' : ''}${l.scale > 1 ? `font-size:${l.scale}em;line-height:1.2;` : ''}">${esc(l.text) || '&nbsp;'}</div>`)
+    .join('')
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Struk</title><style>
+@page { size: ${mm}mm auto; margin: 0; }
+html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+body { width: ${mm}mm; padding: 3mm; box-sizing: border-box; font: ${font}mm/1.35 ui-monospace, 'Courier New', monospace; white-space: pre; overflow: hidden; }
+</style></head><body>${body}</body></html>`
+}
+
+/** Cetak struk lewat dialog cetak browser, ukuran kertas sudah 58/80 mm (tanpa ikut mencetak isi layar). */
+export async function printReceiptInBrowser(order: Order, store: ReceiptStore, chars: number = getPaperChars()) {
+  // logo sama persis dengan yang dikirim ke printer: piksel hitam-putih yang sama, lebar sebanding lebar kertas
+  await loadLogo(store.logo)
+  const px = logoAt(store.logo, getLogoPct(), chars)
+  const logo = px ? { src: pixelsToUrl(px), widthPct: (px.width / paperDots(chars)) * 100 } : undefined
+  const frame = document.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'
+  document.body.appendChild(frame)
+  const doc = frame.contentDocument!
+  doc.open()
+  doc.write(receiptHtml(previewReceipt(order, store, chars), chars, logo))
+  doc.close()
+  // tunggu logo termuat dulu supaya tinggi struk terukur benar
+  await Promise.all([...doc.images].map((im) => (im.complete ? null : new Promise((r) => (im.onload = im.onerror = r)))))
+  // Chrome mengabaikan tinggi "auto": ukur tinggi struk lalu tetapkan ukuran kertas persis (1 lembar, tanpa sisa kosong)
+  const mm = paperMm(chars)
+  const heightMm = Math.ceil((doc.body.scrollHeight * 25.4) / 96) + 2
+  const page = doc.createElement('style')
+  page.textContent = `@page { size: ${mm}mm ${heightMm}mm; margin: 0; }`
+  doc.head.appendChild(page)
+  const done = () => setTimeout(() => frame.remove(), 1000)
+  frame.contentWindow!.onafterprint = done
+  setTimeout(() => {
+    frame.contentWindow!.focus()
+    frame.contentWindow!.print()
+    done()
+  }, 50)
+}
+
+function pixelsToUrl(px: LogoPixels) {
+  const cv = document.createElement('canvas')
+  cv.width = px.width
+  cv.height = px.height
+  cv.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(px.data), px.width, px.height), 0, 0)
+  return cv.toDataURL('image/png')
 }

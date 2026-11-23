@@ -1,5 +1,5 @@
 import { CheckCircle2, RefreshCw, Smartphone } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@shared/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@shared/components/ui/dialog'
 import { rpc } from '@shared/lib/api'
@@ -14,15 +14,20 @@ export function MemberQrDialog({ memberId, memberName, onClose }: { memberId: st
   const [error, setError] = useState('')
   const [now, setNow] = useState(() => Date.now())
 
+  // QR baru membatalkan QR lama di server: hanya hasil permintaan terakhir yang boleh tampil
+  const seq = useRef(0)
   const make = useCallback(async () => {
+    const mine = ++seq.current
     setError('')
     setImg('')
     const { data, error: err } = await rpc('create_member_link', { p_member: memberId })
+    if (mine !== seq.current) return
     if (err) return setError(err.message)
     const l = data as Link
     setLink(l)
     const { default: QRCode } = await import('qrcode')
-    setImg(await QRCode.toDataURL(memberLinkUrl(l.token), { margin: 1, width: 320 }))
+    const url = await QRCode.toDataURL(memberLinkUrl(l.token), { margin: 1, width: 320 })
+    if (mine === seq.current) setImg(url)
   }, [memberId])
 
   useEffect(() => {

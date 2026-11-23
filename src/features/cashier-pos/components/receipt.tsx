@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Button } from '@shared/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@shared/components/ui/dialog'
 import { Separator } from '@shared/components/ui/separator'
-import type { ReceiptStore } from '@shared/lib/print'
+import { printReceiptInBrowser, type ReceiptStore } from '@shared/lib/print'
 import { rupiah, timeJakarta } from '@shared/lib/utils'
 import { PAYMENT_LABEL, type Order } from '@shared/types/contracts'
 import { PrintPanel } from './print-panel'
@@ -88,7 +88,7 @@ export function Receipt({ order, store, onClose }: { order: Order; store: Receip
           <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => setPreviewOpen(true)}>
             <Printer /> Cetak struk
           </Button>
-          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => window.print()} title="Cetak lewat printer biasa / simpan PDF">
+          <Button variant="outline" size="lg" className="h-12 px-2 text-sm" onClick={() => printReceiptInBrowser(order, store)} title="Cetak lewat printer biasa / simpan PDF">
             <ReceiptIcon /> Cetak via browser
           </Button>
           <Button size="lg" className="col-span-2 h-12 text-base font-bold" onClick={onClose}>Selesai · Pesanan baru</Button>

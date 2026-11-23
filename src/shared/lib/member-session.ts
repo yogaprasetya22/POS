@@ -46,10 +46,21 @@ async function ensureAccount(): Promise<string> {
   return data.session.access_token
 }
 
-export async function claimMemberLink(qrToken: string) {
-  const t = await ensureAccount()
-  const { error } = await rpc('claim_member_link', { p_token: qrToken }, { token: t })
-  if (error) throw error
+// Satu token QR hanya boleh ditukar sekali. Halaman bisa memanggil ini dua kali bersamaan
+// (React StrictMode / render ulang): panggilan kedua menunggu hasil yang pertama, bukan menukar lagi.
+const claims = new Map<string, Promise<void>>()
+
+export function claimMemberLink(qrToken: string) {
+  let p = claims.get(qrToken)
+  if (!p) {
+    p = (async () => {
+      const t = await ensureAccount()
+      const { error } = await rpc('claim_member_link', { p_token: qrToken }, { token: t })
+      if (error) throw error
+    })()
+    claims.set(qrToken, p)
+  }
+  return p
 }
 
 export async function hasMemberSession() {
