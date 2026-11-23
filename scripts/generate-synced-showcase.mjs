@@ -16,6 +16,10 @@ fs.mkdirSync(TMP_DIR, { recursive: true });
 if (fs.existsSync(AUTH_DIR)) fs.rmSync(AUTH_DIR, { recursive: true, force: true });
 fs.mkdirSync(AUTH_DIR, { recursive: true });
 
+const BASE = process.env.SHOWCASE_BASE || 'http://localhost:5173';
+// Suara narasi: gpt-4o-mini-tts (lebih natural untuk Bahasa Indonesia). Ganti via SHOWCASE_VOICE.
+const VOICE = process.env.SHOWCASE_VOICE || 'coral';
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function getOpenAIKey() {
@@ -45,7 +49,7 @@ function getDuration(filePath) {
   }
 }
 
-async function generateBeatAudio(text, outFile, voice = 'onyx') {
+async function generateBeatAudio(text, outFile, voice = VOICE) {
   const key = getOpenAIKey();
   if (!key) throw new Error('OPENAI_API_KEY not found in .env');
 
@@ -56,10 +60,13 @@ async function generateBeatAudio(text, outFile, voice = 'onyx') {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'tts-1-hd',
+      model: 'gpt-4o-mini-tts',
       input: text,
       voice: voice,
-      speed: 1.02,
+      instructions:
+        'Bicara dalam Bahasa Indonesia yang natural dan hangat, seperti presenter produk yang ramah. ' +
+        'Tempo sedang, artikulasi jelas, intonasi santai dan meyakinkan, tanpa logat asing.',
+      response_format: 'mp3',
     }),
   });
 
@@ -76,13 +83,13 @@ async function generateBeatAudio(text, outFile, voice = 'onyx') {
 const SCENARIOS = {
   kasir: {
     title: 'Layar Kasir POS',
-    url: 'http://localhost:5199/cashier',
-    auth: 'kasir.json',
+    url: `${BASE}/cashier`,
+    auth: process.env.SHOWCASE_CASHIER_AUTH || 'kasir.json',
     viewport: { width: 1280, height: 800 },
     beats: [
       {
         id: 'k1',
-        text: 'Pilih menu makanan dan minuman favorit pelanggan langsung ke keranjang kasir.',
+        text: 'Ketuk menu makanan dan minuman, pesanan langsung masuk ke keranjang kasir.',
         action: async (page, durMs) => {
           // Klik menu 1 (Nasi Goreng)
           const menu1 = page.locator('button:has-text("Rp")').nth(0);
@@ -103,36 +110,41 @@ const SCENARIOS = {
       },
       {
         id: 'k2',
-        text: 'Ketik nama pelanggan untuk mencatat nomor meja dan identitas pesanan.',
+        text: 'Isi nama pelanggan dan nomor meja, supaya pesanan mudah diantar.',
         action: async (page, durMs) => {
           const nameInput = page.getByPlaceholder(/nama pelanggan/i).first();
           if (await nameInput.isVisible()) {
             await sleep(300);
             await nameInput.click();
+            await nameInput.pressSequentially('Dimas', { delay: 70 });
+          }
+          const meja = page.getByPlaceholder(/^meja/i).first();
+          if (await meja.isVisible()) {
             await sleep(200);
-            await nameInput.pressSequentially('Dimas & Rina', { delay: 65 });
+            await meja.click();
+            await meja.pressSequentially('5', { delay: 90 });
           }
         },
       },
       {
         id: 'k3',
-        text: 'Terima pembayaran tunai uang pas atau non tunai dengan satu sentuhan.',
+        text: 'Bayar tunai, kartu, atau QRIS dinamis Midtrans yang nominalnya otomatis pas.',
         action: async (page, durMs) => {
+          const tunai = page.getByRole('button', { name: /^Tunai$/i }).first();
+          if (await tunai.isVisible()) { await sleep(300); await tunai.click(); }
           const payBtn = page.getByRole('button', { name: /Uang pas/i }).first();
           if (await payBtn.isVisible()) {
-            await sleep(400);
+            await sleep(500);
             await payBtn.click();
             await sleep(500);
-            const terimaBtn = page.getByRole('button', { name: /^Terima Rp/i }).first();
-            if (await terimaBtn.isVisible()) {
-              await terimaBtn.click();
-            }
+            const bayarBtn = page.getByRole('button', { name: /^(Bayar|Terima)/i }).last();
+            if (await bayarBtn.isEnabled()) await bayarBtn.click();
           }
         },
       },
       {
         id: 'k4',
-        text: 'Struk transaksi thermal otomatis tercetak rapi dan pesanan tercatat di laporan.',
+        text: 'Kembalian tampil besar, struk siap dicetak, dan transaksi langsung tercatat.',
         action: async (page, durMs) => {
           // Tahan dialog struk terlihat sampai narasi selesai
           await sleep(durMs > 1500 ? durMs - 500 : 1000);
@@ -143,14 +155,14 @@ const SCENARIOS = {
 
   qr: {
     title: 'Menu QR Meja Tamu',
-    url: 'http://localhost:5199/s/warkop-nusantara?meja=T3',
+    url: `${BASE}/s/warkop-nusantara?meja=T3`,
     auth: 'customer.json',
     viewport: { width: 390, height: 844 },
     isMobile: true,
     beats: [
       {
         id: 'q1',
-        text: 'Pelanggan memindai QR meja lalu memilih menu langsung dari smartphone.',
+        text: 'Tamu cukup memindai QR di meja, lalu memilih menu dari HP tanpa unduh aplikasi.',
         action: async (page, durMs) => {
           await sleep(400);
           await page.mouse.wheel(0, 180);
@@ -166,7 +178,7 @@ const SCENARIOS = {
       },
       {
         id: 'q2',
-        text: 'Buka keranjang pesanan lalu masukkan nama pemesan.',
+        text: 'Buka keranjang dan tulis nama pemesan.',
         action: async (page, durMs) => {
           const cartBtn = page.getByRole('button', { name: /Lihat pesanan/i });
           if (await cartBtn.isVisible()) {
@@ -184,15 +196,12 @@ const SCENARIOS = {
       },
       {
         id: 'q3',
-        text: 'Kirim pesanan, nomor tiket antrean langsung terbit dan pesanan masuk ke dapur.',
+        text: 'Tamu bisa langsung bayar QRIS dari HP, atau memilih bayar di kasir.',
         action: async (page, durMs) => {
-          const submitBtn = page.getByRole('button', { name: /Kirim pesanan/i });
-          if (await submitBtn.isVisible()) {
-            await sleep(400);
-            await submitBtn.click();
-            await page.locator('[data-testid="queue-code"]').waitFor({ timeout: 8000 }).catch(() => {});
-            await sleep(durMs > 2000 ? durMs - 1500 : 1000);
-          }
+          // Tidak mengirim pesanan (agar tidak membuat pesanan palsu); cukup sorot pilihan bayar
+          await sleep(400);
+          await page.mouse.wheel(0, 200);
+          await sleep(durMs > 2000 ? durMs - 800 : 1000);
         },
       },
     ],
@@ -200,20 +209,20 @@ const SCENARIOS = {
 
   dapur: {
     title: 'Layar Dapur KDS',
-    url: 'http://localhost:5199/kitchen',
+    url: `${BASE}/kitchen`,
     auth: 'admin.json',
     viewport: { width: 1280, height: 800 },
     beats: [
       {
         id: 'd1',
-        text: 'Pesanan lunas dari kasir dan meja seketika tampil di monitor dapur.',
+        text: 'Pesanan yang sudah lunas langsung tampil di layar dapur.',
         action: async (page, durMs) => {
           await sleep(durMs > 1000 ? durMs - 500 : 800);
         },
       },
       {
         id: 'd2',
-        text: 'Koki menandai masakan yang selesai dan menekan tombol siap saji.',
+        text: 'Koki mencentang menu yang selesai, lalu menandai pesanan siap.',
         action: async (page, durMs) => {
           const itemCheckbox = page.locator('article input[type="checkbox"], article button:has-text("Selesai")').first();
           if (await itemCheckbox.isVisible()) {
@@ -229,9 +238,11 @@ const SCENARIOS = {
       },
       {
         id: 'd3',
-        text: 'Status tiket otomatis berpindah ke antrean siap antar pramusaji.',
+        text: 'Di papan antrean, semua pesanan terlihat jelas: menunggu bayar, disiapkan, dan siap diambil.',
         action: async (page, durMs) => {
-          await sleep(durMs > 1500 ? durMs - 500 : 1000);
+          await sleep(300);
+          await page.goto(`${BASE}/antrean`);
+          await sleep(durMs > 1500 ? durMs - 800 : 1000);
         },
       },
     ],
@@ -239,20 +250,20 @@ const SCENARIOS = {
 
   dashboard: {
     title: 'Dashboard Laba & Omset',
-    url: 'http://localhost:5199/admin',
+    url: `${BASE}/admin`,
     auth: 'admin.json',
     viewport: { width: 1280, height: 800 },
     beats: [
       {
         id: 'b1',
-        text: 'Pantau rekap omzet kotor, laba bersih, dan total transaksi hari ini.',
+        text: 'Owner langsung melihat uang masuk, untung hari ini, dan isi laci kasir.',
         action: async (page, durMs) => {
           await sleep(durMs > 1000 ? durMs - 400 : 800);
         },
       },
       {
         id: 'b2',
-        text: 'Analisis grafik tren penjualan jam sibuk dan metode pembayaran favorit.',
+        text: 'Grafik menunjukkan jam ramai, menu terlaris, dan metode bayar favorit.',
         action: async (page, durMs) => {
           await sleep(300);
           await page.mouse.wheel(0, 260);
@@ -261,15 +272,13 @@ const SCENARIOS = {
       },
       {
         id: 'b3',
-        text: 'Buka laporan keuangan lengkap untuk evaluasi omzet harian maupun bulanan.',
+        text: 'Di halaman keuangan, saldo QRIS dan potongan biaya Midtrans dihitung otomatis.',
         action: async (page, durMs) => {
-          const lapNav = page.locator('a[href="/admin/laporan"]').first();
-          if (await lapNav.isVisible()) {
-            await sleep(300);
-            await lapNav.click();
-            await sleep(500);
-            await page.mouse.wheel(0, 180);
-          }
+          await sleep(300);
+          await page.goto(`${BASE}/admin/keuangan`);
+          await page.waitForFunction(() => document.querySelectorAll('.animate-pulse').length === 0, { timeout: 5000 }).catch(() => {});
+          await sleep(800);
+          await page.mouse.wheel(0, 220);
         },
       },
     ],
@@ -277,20 +286,20 @@ const SCENARIOS = {
 
   stok: {
     title: 'Manajemen Stok & Bahan',
-    url: 'http://localhost:5199/admin/stok',
+    url: `${BASE}/admin/stok`,
     auth: 'admin.json',
     viewport: { width: 1280, height: 800 },
     beats: [
       {
         id: 's1',
-        text: 'Kelola stok bahan baku resto dan pantau sisa persediaan secara akurat.',
+        text: 'Pantau sisa bahan baku, lengkap dengan peringatan saat mulai menipis.',
         action: async (page, durMs) => {
           await sleep(durMs > 1000 ? durMs - 400 : 800);
         },
       },
       {
         id: 's2',
-        text: 'Sistem otomatis memotong stok sesuai resep setiap kali ada menu terjual.',
+        text: 'Setiap menu terjual, stok bahan otomatis terpotong sesuai resep.',
         action: async (page, durMs) => {
           await sleep(300);
           await page.mouse.wheel(0, 280);
@@ -299,7 +308,7 @@ const SCENARIOS = {
       },
       {
         id: 's3',
-        text: 'Terhubung langsung ke purchase order pemasok saat persediaan menipis.',
+        text: 'Catat bahan masuk dan bahan terbuang dengan sekali ketuk, supaya modal selalu akurat.',
         action: async (page, durMs) => {
           const beliNav = page.locator('a[href="/admin/pembelian"]').first();
           if (await beliNav.isVisible()) {
@@ -314,20 +323,20 @@ const SCENARIOS = {
 
   pengaturan: {
     title: 'Pengaturan Toko & Struk',
-    url: 'http://localhost:5199/admin/toko',
+    url: `${BASE}/admin/toko`,
     auth: 'admin.json',
     viewport: { width: 1280, height: 800 },
     beats: [
       {
         id: 'p1',
-        text: 'Atur profil resto, alamat outlet, dan persentase pajak PB1 dengan mudah.',
+        text: 'Atur profil toko, pajak, poin member, dan tampilan struk di satu tempat.',
         action: async (page, durMs) => {
           await sleep(durMs > 1000 ? durMs - 400 : 800);
         },
       },
       {
         id: 'p2',
-        text: 'Kustomisasi format cetak struk thermal 58 atau 80 milimeter.',
+        text: 'Struk thermal 58 atau 80 milimeter bisa diatur sesuai selera.',
         action: async (page, durMs) => {
           const strukBtn = page.locator('button[role="tab"]:has-text("Struk"), [data-value="struk"]').first();
           if (await strukBtn.isVisible()) {
@@ -339,16 +348,20 @@ const SCENARIOS = {
       },
       {
         id: 'p3',
-        text: 'Kelola meja makan dan hak akses staf untuk keamanan operasional toko.',
+        text: 'Setiap staf punya PIN sendiri, jadi ganti kasir di tablet cukup beberapa detik.',
         action: async (page, durMs) => {
           await sleep(300);
-          await page.goto('http://localhost:5199/admin/meja');
+          await page.goto(`${BASE}/admin/tim`);
           await sleep(durMs > 1500 ? durMs - 800 : 1000);
         },
       },
     ],
   },
 };
+
+// SHOWCASE_ONLY=kasir,qr -> hanya rekam adegan tertentu
+const ONLY = (process.env.SHOWCASE_ONLY || '').split(',').map((x) => x.trim()).filter(Boolean);
+const ACTIVE = Object.entries(SCENARIOS).filter(([k]) => !ONLY.length || ONLY.includes(k));
 
 async function prewarmCaches(browser) {
   console.log('--- Pre-warming browser caches & storage states ---');
@@ -357,7 +370,7 @@ async function prewarmCaches(browser) {
   {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await page.goto('http://localhost:5199/login');
+    await page.goto(`${BASE}/login`);
     await page.getByLabel('Email').fill('kasir@pos.test');
     await page.getByLabel('Password').fill('kasir12345');
     await page.getByRole('button', { name: 'Masuk' }).click();
@@ -379,18 +392,26 @@ async function prewarmCaches(browser) {
   {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await page.goto('http://localhost:5199/login');
+    await page.goto(`${BASE}/login`);
     await page.getByLabel('Email').fill('admin@pos.test');
     await page.getByLabel('Password').fill('admin12345');
     await page.getByRole('button', { name: 'Masuk' }).click();
     await page.waitForURL(/\/(cashier|kitchen|admin)/, { timeout: 15000 });
-    await page.goto('http://localhost:5199/admin');
+    // Pastikan shift kasir terbuka agar adegan kasir benar-benar membayar
+    await page.goto(`${BASE}/cashier`);
+    await page.waitForSelector('button:has-text("Rp")', { timeout: 15000 }).catch(() => {});
+    const bukaShift = page.locator('button:has-text("Buka Shift")').first();
+    if (await bukaShift.isVisible().catch(() => false)) {
+      await bukaShift.click();
+      await page.waitForTimeout(2000);
+    }
+    await page.goto(`${BASE}/admin`);
     await page.waitForSelector('text=Uang masuk hari ini', { timeout: 15000 }).catch(() => {});
-    await page.goto('http://localhost:5199/kitchen');
+    await page.goto(`${BASE}/kitchen`);
     await page.waitForTimeout(1000);
-    await page.goto('http://localhost:5199/admin/stok');
+    await page.goto(`${BASE}/admin/stok`);
     await page.locator('text=Semua bahan').waitFor({ timeout: 15000 }).catch(() => {});
-    await page.goto('http://localhost:5199/admin/toko');
+    await page.goto(`${BASE}/admin/toko`);
     await page.waitForSelector('text=Pengaturan toko', { timeout: 15000 }).catch(() => {});
     await ctx.storageState({ path: path.join(AUTH_DIR, 'admin.json') });
     await ctx.close();
@@ -400,7 +421,7 @@ async function prewarmCaches(browser) {
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
     const page = await ctx.newPage();
-    await page.goto('http://localhost:5199/s/warkop-nusantara?meja=T3');
+    await page.goto(`${BASE}/s/warkop-nusantara?meja=T3`);
     await page.waitForSelector('button[aria-label^="Tambah"]', { timeout: 15000 });
     await page.waitForTimeout(1000);
     await ctx.storageState({ path: path.join(AUTH_DIR, 'customer.json') });
@@ -416,8 +437,8 @@ async function main() {
   console.log('=====================================================');
 
   // STEP 1: Generate segmented audio for all beats and construct master audios
-  console.log('\n--- Generating OpenAI HD Onyx Voice Beats ---');
-  for (const [key, scen] of Object.entries(SCENARIOS)) {
+  console.log(`\n--- Generating OpenAI voice beats (${VOICE}) ---`);
+  for (const [key, scen] of ACTIVE) {
     console.log(`\n🎙️ Processing Audio for: ${scen.title} (${key})`);
     const beatFiles = [];
     const concatList = [];
@@ -426,7 +447,7 @@ async function main() {
       const beat = scen.beats[i];
       const beatFile = path.join(TMP_DIR, `${key}_beat_${i}.mp3`);
       console.log(`   [Beat ${i + 1}/${scen.beats.length}] "${beat.text.substring(0, 45)}..."`);
-      await generateBeatAudio(beat.text, beatFile, 'onyx');
+      await generateBeatAudio(beat.text, beatFile);
       beat.file = beatFile;
       beat.duration = getDuration(beatFile);
       beat.durMs = Math.round(beat.duration * 1000);
@@ -463,7 +484,7 @@ async function main() {
 
   await prewarmCaches(browser);
 
-  for (const [key, scen] of Object.entries(SCENARIOS)) {
+  for (const [key, scen] of ACTIVE) {
     console.log(`\n🎥 Recording Synced Video: ${scen.title} (${key})`);
     const ctx = await browser.newContext({
       storageState: path.join(AUTH_DIR, scen.auth),
@@ -474,6 +495,7 @@ async function main() {
     });
 
     const page = await ctx.newPage();
+    const recStart = Date.now(); // rekaman video dimulai bersamaan dengan halaman
     await page.goto(scen.url);
     await page.waitForTimeout(1000);
     await page.waitForFunction(() => document.querySelectorAll('.animate-pulse').length === 0, { timeout: 10000 }).catch(() => {});
@@ -518,8 +540,8 @@ async function main() {
       const destVideo = path.join(OUT_DIR, `video-${key}.webm`);
       console.log(`   🎬 Muxing Video + Audio -> ${path.basename(destVideo)}...`);
 
-      // Trim initial load buffer (~0.6s) and set exact duration to match audio
-      const trimStart = '00:00:00.6';
+      // Potong bagian loading: dari awal rekaman sampai beat pertama dimulai (dihitung, bukan tebakan)
+      const trimStart = ((startTime - recStart) / 1000).toFixed(2);
       execSync(
         `ffmpeg -y -ss ${trimStart} -t ${scen.totalAudioDur} -i "${rawVideo}" -i "${scen.masterAudio}" ` +
         `-c:v libvpx-vp9 -b:v 1200k -crf 28 -c:a libopus -b:a 96k -pix_fmt yuv420p "${destVideo}"`,
