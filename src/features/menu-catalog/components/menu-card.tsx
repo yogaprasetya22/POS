@@ -1,4 +1,4 @@
-import { Camera, Play, Plus, Star } from 'lucide-react'
+import { Camera, Plus, Star } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { playableUrl } from '@shared/lib/media-url'
 import { MenuImage } from '@shared/components/menu-image'
@@ -54,15 +54,9 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
   const promoTag = promo && <span className="inline-block rounded-full bg-primary/12 px-2 py-0.5 text-sm font-bold text-primary">{promo}</span>
   const desc = (cls = '') => p.description && <p className={cn('line-clamp-2 text-sm leading-5 text-muted-foreground', cls)}>{p.description}</p>
   const photoCount = new Set([p.image_url, ...(p.images || [])].filter(Boolean)).size
-  const hasVideo = Boolean(p.video_url && p.video_url.trim())
   // penanda: menu ini punya video / beberapa foto (lihat di detail)
-  const mediaBadge = (hasVideo || photoCount > 1) && (
+  const mediaBadge = photoCount > 1 && (
     <span className="pointer-events-none absolute bottom-2 right-2 z-[2] flex gap-1">
-      {hasVideo && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-xs font-bold text-white backdrop-blur">
-          <Play className="size-3 fill-current" aria-hidden /> Video
-        </span>
-      )}
       {photoCount > 1 && (
         <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-xs font-bold text-white backdrop-blur">
           <Camera className="size-3" aria-hidden /> {photoCount}
@@ -177,9 +171,7 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
               </button>
             )}
           </div>
-          {(hasVideo || photoCount > 1) && (
-            <p className="mt-1 font-sans text-sm text-muted-foreground">{hasVideo ? '▶ Ada video' : ''}{hasVideo && photoCount > 1 ? ' · ' : ''}{photoCount > 1 ? `${photoCount} foto` : ''}</p>
-          )}
+          {photoCount > 1 && <p className="mt-1 font-sans text-sm text-muted-foreground">{photoCount} foto</p>}
           </div>
         </article>
       )
@@ -318,12 +310,7 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
           <ReelMedia p={p} priority={priority} />
           {soldOut}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/30" />
-          {hasVideo && (
-            <span className="absolute left-2 top-2 z-[2] inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white backdrop-blur">
-              <Play className="size-3 fill-current" aria-hidden /> Video
-            </span>
-          )}
-          {!hasVideo && star()}
+          {star()}
           {count}
           <div className="absolute inset-x-0 bottom-0 z-[2] flex items-end gap-2 p-3 text-white">
             <div className="min-w-0 flex-1">

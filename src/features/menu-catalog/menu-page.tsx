@@ -107,23 +107,23 @@ export function MenuPage() {
   return (
     <div className={`min-h-dvh w-full pb-28 ${glowBg ? 'bg-transparent' : 'bg-background'}`}>
       <header className={`sticky top-0 z-20 border-b ${glowBg ? 'bg-background/60 backdrop-blur-xl' : 'bg-background'}`}>
-        <div className="mx-auto max-w-6xl px-4 pt-3">
-          <div className="flex items-center gap-3">
-            {data.store.logo_url && <img src={data.store.logo_url} alt="" className="size-12 shrink-0 rounded-2xl border bg-white object-cover" />}
+        <div className="mx-auto max-w-6xl px-4 pt-2.5">
+          <div className="flex items-center gap-2.5">
+            {data.store.logo_url && <img src={data.store.logo_url} alt="" className="size-9 shrink-0 rounded-xl border bg-white object-cover" />}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-extrabold leading-tight">{data.store.name}</h1>
-              {data.store.tagline && <p className="line-clamp-2 text-base leading-5 text-muted-foreground">{data.store.tagline}</p>}
+              <h1 className="truncate text-base font-extrabold leading-tight">{data.store.name}</h1>
+              {data.store.tagline && <p className="truncate text-xs text-muted-foreground">{data.store.tagline}</p>}
             </div>
-            <span className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-base font-bold text-primary-foreground">{table ? `Meja ${table}` : 'Bawa pulang'}</span>
+            <span className="shrink-0 rounded-full bg-primary/12 px-2.5 py-1 text-xs font-bold text-primary">{table ? `Meja ${table}` : 'Bawa pulang'}</span>
           </div>
-          <div className="relative mt-3">
+          <div className="relative mt-2.5">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input
               value={search ?? ''}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari menu"
               aria-label="Cari menu"
-              className="h-11 pl-9 pr-10"
+              className="h-10 rounded-full border-border/60 bg-card/85 pl-9 pr-10 shadow-xs placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-primary/20"
             />
             {search && (
               <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian" className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center text-muted-foreground">
@@ -131,18 +131,22 @@ export function MenuPage() {
               </button>
             )}
           </div>
-          <div className="-mx-4 mt-2 overflow-x-auto px-4 pb-3 scrollbar-none">
+          <div className="-mx-4 mt-2 overflow-x-auto px-4 pb-2.5 scrollbar-none">
             <ToggleGroup
               aria-label="Kategori"
-              className="w-max gap-2"
+              className="w-max gap-1.5"
               value={[category ?? 'all']}
-              onValueChange={(v) => v[0] !== undefined && setCategory(v[0] === 'all' ? null : v[0])}
+              onValueChange={(v) => {
+                if (v[0] === undefined) return
+                setCategory(v[0] === 'all' ? null : v[0])
+                window.scrollTo({ top: 0, behavior: 'smooth' }) // daftar baru selalu mulai dari atas
+              }}
             >
               {[{ id: null, name: 'Semua' }, ...data.categories].map((c) => (
                 <ToggleGroupItem
                   key={c.id ?? 'all'}
                   value={c.id ?? 'all'}
-                  className="relative h-10 rounded-full border bg-card px-4 aria-pressed:border-foreground aria-pressed:bg-transparent aria-pressed:text-background"
+                  className="relative h-8 rounded-full border bg-card px-3.5 text-sm aria-pressed:border-foreground aria-pressed:bg-transparent aria-pressed:text-background"
                 >
                   {category === c.id && <LiquidPill id="menu-cat" />}
                   <span className="relative">{c.name}</span>
@@ -211,7 +215,7 @@ export function MenuPage() {
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
-          className="fixed inset-x-0 bottom-0 z-30 border-t bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          className="fixed inset-x-0 bottom-0 z-30 border-t bg-popover/90 px-4 backdrop-blur-xl pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         >
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <div className="min-w-0 flex-1">

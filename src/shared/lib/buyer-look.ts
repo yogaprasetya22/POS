@@ -103,6 +103,11 @@ export function applyBuyerLook(theme: string | null | undefined, template: Buyer
     vars['--primary'] = 'oklch(0.8 0.12 85)' // emas
     vars['--ring'] = 'oklch(0.8 0.12 85)'
   }
+  if (!dark && vars['--background']) {
+    // panel/sheet (pesanan, detail) & elemen abu-abu ikut nada tema, bukan putih/abu netral
+    vars['--popover'] = `color-mix(in oklch, ${vars['--background']} 55%, white)`
+    for (const k of ['--muted', '--secondary', '--accent']) vars[k] = `color-mix(in oklch, ${vars['--background']} 88%, ${vars['--primary']})`
+  }
   if (dark) {
     vars['--background'] = template === 'mewah' ? 'oklch(0.13 0.005 85)' : 'oklch(0.17 0.012 265)'
     vars['--card'] = template === 'mewah' ? 'oklch(0.19 0.008 85)' : 'oklch(0.23 0.014 265)'

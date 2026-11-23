@@ -396,7 +396,7 @@ export function CheckoutPanel({
                 <p className="font-medium leading-5">
                   {promo.bonusItem.qty}× {promo.bonusItem.name}
                 </p>
-                <p className="text-sm text-emerald-700 dark:text-emerald-400">Gratis dari promo {promo.bonusItem.promoName}</p>
+                <p className="text-sm text-primary">Gratis dari promo {promo.bonusItem.promoName}</p>
               </div>
             </li>
           )}
@@ -411,8 +411,8 @@ export function CheckoutPanel({
           onValueChange={(v) => v[0] !== undefined && setOrderType(v[0] as typeof orderType)}
         >
           {[['DINE_IN', 'Makan di tempat'], ['TAKEAWAY', 'Bawa pulang']].map(([v, l]) => (
-            <ToggleGroupItem key={v} value={v} className="relative h-11 rounded-lg border bg-card aria-pressed:border-foreground aria-pressed:bg-transparent aria-pressed:text-background">
-              {orderType === v && <LiquidPill id="co-type" className="rounded-lg" />}
+            <ToggleGroupItem key={v} value={v} className="relative h-11 rounded-lg border bg-card aria-pressed:border-primary aria-pressed:bg-transparent aria-pressed:text-primary-foreground">
+              {orderType === v && <LiquidPill id="co-type" className="rounded-lg bg-primary" />}
               <span className="relative">{l}</span>
             </ToggleGroupItem>
           ))}
@@ -432,7 +432,7 @@ export function CheckoutPanel({
         </div>
 
         {promo.bonusItem || promo.discount > 0 ? (
-          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100">
+          <p className="rounded-lg bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
             {promo.appliedPromo?.name}: {promo.bonusItem ? `+${promo.bonusItem.qty} gratis, hemat ${rupiah(bonusValue)}` : `hemat ${rupiah(promo.discount)}`}
           </p>
         ) : (
@@ -490,7 +490,7 @@ export function CheckoutPanel({
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <QrCode className="size-3.5 text-primary" /> QRIS Dinamis
                   </span>
-                  <span className="rounded bg-emerald-600/15 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">
+                  <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-extrabold text-primary uppercase tracking-tight">
                     Otomatis
                   </span>
                 </div>
@@ -519,7 +519,7 @@ export function CheckoutPanel({
               </button>
             </div>
             {payMethod === 'QRIS' && (
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-medium pt-0.5">
+              <p className="text-[11px] text-primary flex items-center gap-1 font-medium pt-0.5">
                 <Sparkles className="size-3" /> Nominal harga otomatis terisi saat scan QRIS di HP kamu.
               </p>
             )}
@@ -532,7 +532,7 @@ export function CheckoutPanel({
             <dd className="tabular-nums">{rupiah(grossSubtotal)}</dd>
           </div>
           {totalDiscount > 0 && (
-            <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+            <div className="flex justify-between text-primary">
               <dt>Potongan{promo.bonusItem ? ` (termasuk ${promo.bonusItem.name} gratis)` : ''}</dt>
               <dd className="tabular-nums">-{rupiah(totalDiscount)}</dd>
             </div>

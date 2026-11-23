@@ -359,7 +359,7 @@ export function StoreTab({ store, run, fail }: Props) {
         </TabsContent>
 
         {/* ===== Warna aplikasi ===== */}
-        <TabsContent value="tampilan" className="max-w-3xl space-y-5">
+        <TabsContent value="tampilan" className="space-y-5">
           <SectionCard title="Warna aplikasi" hint="Warna tombol dan menu untuk semua perangkat toko. Langsung tersimpan.">
             <ThemePicker config={config} onSaved={reload} />
           </SectionCard>
@@ -372,21 +372,21 @@ export function StoreTab({ store, run, fail }: Props) {
         </TabsContent>
 
         {/* ===== Dapur ===== */}
-        <TabsContent value="dapur" className="max-w-3xl space-y-5">
+        <TabsContent value="dapur" className="space-y-5">
           <KitchenSettings config={config} onSaved={reload} />
         </TabsContent>
 
-        <TabsContent value="shift" className="max-w-3xl space-y-5">
+        <TabsContent value="shift" className="space-y-5">
           <CashFloatSettings />
           <ShiftNamesSettings />
         </TabsContent>
 
         {/* ===== Pembayaran Midtrans ===== */}
-        <TabsContent value="pembayaran" className="max-w-3xl space-y-5">
+        <TabsContent value="pembayaran" className="space-y-5">
           <MidtransSettings storeId={store.id} />
         </TabsContent>
 
-        <TabsContent value="akses" className="max-w-3xl space-y-5">
+        <TabsContent value="akses" className="space-y-5">
           <PermissionSettings />
         </TabsContent>
 
