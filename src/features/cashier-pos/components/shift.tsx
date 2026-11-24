@@ -1,6 +1,6 @@
 import { getDevice, lockDevice } from '@shared/lib/device-binding'
 import { Banknote, CheckCircle2, Lock, LockOpen, Moon, Sun, TriangleAlert } from 'lucide-react'
-import { useShiftNames } from '@shared/lib/shift-names'
+import { minutesToEnd, suggestShift, useShiftNames } from '@shared/lib/shift-names'
 import { useI18n } from '@shared/i18n'
 import { useEffect, useState } from 'react'
 import { CurrencyInput } from '@shared/components/currency-input'
@@ -45,15 +45,9 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
     if (!touched && handover != null) setCash(String(handover))
   }, [handover, touched])
 
+  // pilih otomatis shift yang jamnya sedang berjalan (atau yang paling dekat mulai); kasir tetap bisa mengganti
   useEffect(() => {
-    if (shiftNames.length > 0 && !shiftName) {
-      const hour = new Date().getHours()
-      const morning = shiftNames.find((s) => s.name.toLowerCase().includes('pagi'))
-      const evening = shiftNames.find((s) => s.name.toLowerCase().includes('sore') || s.name.toLowerCase().includes('malam'))
-      if (hour < 14 && morning) setShiftName(morning.id)
-      else if (hour >= 14 && evening) setShiftName(evening.id)
-      else setShiftName(shiftNames[0].id)
-    }
+    if (shiftNames.length > 0 && !shiftName) setShiftName((suggestShift(shiftNames) ?? shiftNames[0]).id)
   }, [shiftNames, shiftName])
 
   const holder = status?.open && !status.open.mine ? status.open : null
@@ -161,6 +155,7 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
                     >
                       {isPagi ? <Sun className="size-4 shrink-0" /> : <Moon className="size-4 shrink-0" />}
                       <span>{n.name}</span>
+                      {n.start_time && <span className={`text-xs font-medium tabular-nums ${isSelected ? 'opacity-80' : 'opacity-70'}`}>{n.start_time}–{n.end_time}</span>}
                     </button>
                   )
                 })}
@@ -240,6 +235,13 @@ export function OpenShiftCard({ status, role, onOpened }: { status: ShiftStatus 
 /** Baris status shift + akses ke kas masuk/keluar dan tutup shift. */
 export function ShiftBar({ shift, onChange }: { shift: ShiftSummary; onChange: () => void }) {
   const [open, setOpen] = useState(false)
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(t)
+  }, [])
+  const left = shift.planned_start && shift.planned_end ? minutesToEnd(shift.planned_start, shift.planned_end, new Date(shift.opened_at), now) : null
+  const dur = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} jam${m % 60 ? ` ${m % 60} menit` : ''}` : `${m} menit`)
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3 sm:px-4 sm:py-3 shadow-xs">
@@ -254,7 +256,8 @@ export function ShiftBar({ shift, onChange }: { shift: ShiftSummary; onChange: (
                 Shift Kasir Aktif
               </span>
               <span className="hidden text-xs text-muted-foreground sm:inline">
-                · dibuka {timeJakarta(shift.opened_at)}
+                {shift.shift_name ? `· ${shift.shift_name}` : ''}
+                {shift.planned_start ? ` ${shift.planned_start}–${shift.planned_end}` : ''} · dibuka {timeJakarta(shift.opened_at)}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -281,6 +284,23 @@ export function ShiftBar({ shift, onChange }: { shift: ShiftSummary; onChange: (
           <span>Kelola Kas &amp; Tutup Shift</span>
         </Button>
       </div>
+      {left != null && left <= 15 && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`mt-2 flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm ${
+            left < 0 ? 'border-destructive/40 bg-destructive/10 text-destructive' : 'border-amber-400/50 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200'
+          }`}
+        >
+          <TriangleAlert className="size-4 shrink-0" />
+          <span className="flex-1">
+            {left < 0
+              ? `Shift ${shift.shift_name || ''} sudah lewat jam selesai ${shift.planned_end} (${dur(-left)}). Hitung kas lalu tutup shift bila sudah ganti kasir.`
+              : `Shift ${shift.shift_name || ''} selesai jam ${shift.planned_end} (${left} menit lagi). Siapkan hitung kas.`}
+          </span>
+          <span className="shrink-0 font-semibold underline">Tutup shift</span>
+        </button>
+      )}
       {open && <ShiftPanel shift={shift} onClose={() => setOpen(false)} onChange={onChange} />}
     </>
   )

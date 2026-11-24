@@ -83,7 +83,12 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
           {photo('aspect-square', 'w-20 shrink-0 rounded-xl')}
           <div className="min-w-0 flex-1 space-y-0.5">
             <p className="flex flex-wrap items-center gap-x-2 text-base font-semibold leading-5">
-              {p.name} {p.is_featured && ok && <Star className="size-4 fill-amber-400 text-amber-400" aria-label="Andalan" />}
+              {p.name}
+              {p.is_featured && ok && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-extrabold text-amber-950">
+                  <Star className="size-3 fill-current" aria-hidden /> Andalan
+                </span>
+              )}
             </p>
             {desc()}
             <p className="flex flex-wrap items-center gap-2 text-base font-bold">{price}{promoTag}</p>
@@ -360,12 +365,14 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
 
     case 'mewah':
       return (
-        <article className={cn('relative flex gap-4 border-b border-primary/25 bg-transparent py-4', dim)}>
+        <article className={cn('relative flex gap-4 border-b border-primary/25 bg-transparent py-4', p.is_featured && ok && '-mx-3 my-1 rounded-sm border border-primary/50 bg-primary/[0.06] px-3', dim)}>
           {open}
-          {photo('aspect-square', 'w-28 shrink-0 rounded-sm ring-1 ring-primary/40')}
+          {photo('aspect-square', cn('w-28 shrink-0 rounded-sm ring-1 ring-primary/40', p.is_featured && ok && 'ring-2 ring-primary'), p.is_featured && ok && (
+            <span className="absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-r from-primary/90 via-[oklch(0.88_0.1_85)] to-primary/90 py-1 text-center font-serif text-[0.7rem] font-bold uppercase tracking-[0.25em] text-black">★ Signature</span>
+          ))}
           {count}
           <div className="flex min-w-0 flex-1 flex-col">
-            {p.is_featured && ok && <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Signature</p>}
+            {p.is_featured && ok && <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Pilihan chef</p>}
             <p className="line-clamp-2 font-serif text-xl font-semibold leading-6 tracking-wide">{p.name}</p>
             {desc('mt-1 italic')}
             <div className="mt-auto flex items-center justify-between gap-2 pt-2">
@@ -444,8 +451,11 @@ export function MenuCard({ p, t, qty, promo, hero, priority, index, onOpen, onAd
       return (
         <article className={cn('relative flex flex-col bg-card p-3', dim)}>
           {open}
-          <p className="mb-2 font-mono text-xs text-muted-foreground">{String((index ?? 0) + 1).padStart(2, '0')}</p>
-          {photo('aspect-square')}
+          <p className="mb-2 flex items-center justify-between font-mono text-xs text-muted-foreground">
+            {String((index ?? 0) + 1).padStart(2, '0')}
+            {p.is_featured && ok && <span className="bg-[#e4002b] px-1.5 py-0.5 font-sans text-[0.65rem] font-black uppercase tracking-widest text-white">Andalan</span>}
+          </p>
+          {photo('aspect-square', p.is_featured && ok ? 'outline outline-4 -outline-offset-4 outline-[#e4002b]' : '')}
           {count}
           <p className="mt-3 line-clamp-2 text-lg font-black uppercase leading-5 tracking-tight">{p.name}</p>
           {desc('mt-1')}

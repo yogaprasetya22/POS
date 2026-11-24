@@ -1,3 +1,4 @@
+import { hhmm, lateMinutes, minutesToEnd } from '@shared/lib/shift-names'
 import { AlertTriangle, CheckCircle2, Clock, Download, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
@@ -33,8 +34,26 @@ const ShiftRowSchema = z.object({
   forced: z.boolean(),
   reviewed_at: z.string().nullable(),
   shift_name: z.string().default(''),
+  planned_start: z.string().nullable().optional(),
+  planned_end: z.string().nullable().optional(),
 })
 type ShiftRow = z.infer<typeof ShiftRowSchema>
+
+/** Tanda telat buka / lewat jam selesai, dibanding jam jadwal yang disalin saat shift dibuka (toleransi 10 menit). */
+function ScheduleFlags({ s }: { s: ShiftRow }) {
+  if (!s.planned_start || !s.planned_end) return null
+  const start = hhmm(s.planned_start)!, end = hhmm(s.planned_end)!
+  const late = lateMinutes(start, new Date(s.opened_at))
+  const over = -minutesToEnd(start, end, new Date(s.opened_at), s.closed_at ? new Date(s.closed_at) : new Date())
+  const fmt = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} j ${m % 60} m` : `${m} m`)
+  return (
+    <>
+      <span className="tabular-nums">jadwal {start}–{end}</span>
+      {late > 10 && <span className="text-amber-700 dark:text-amber-400">telat buka {fmt(late)}</span>}
+      {over > 10 && <span className="text-amber-700 dark:text-amber-400">{s.closed_at ? 'lewat jadwal' : 'belum ditutup, lewat jadwal'} {fmt(over)}</span>}
+    </>
+  )
+}
 const AuditSchema = z.object({ id: z.number(), user_id: z.string().nullable(), action: z.string(), detail: z.record(z.string(), z.unknown()), created_at: z.string() })
 type AuditRow = z.infer<typeof AuditSchema>
 const ProfileSchema = z.object({ user_id: z.string(), display_name: z.string().nullable().optional(), email: z.string().nullable() })
@@ -428,6 +447,7 @@ export function OpsTab() {
                       <Person email={name(s.opened_by)} />
                       <p className="mt-0.5 flex flex-wrap gap-x-2 pl-[2.625rem] text-xs text-muted-foreground">
                         {s.shift_name && <span className="font-bold text-foreground">Shift {s.shift_name}</span>}
+                        <ScheduleFlags s={s} />
                         {s.forced && <span className="text-amber-700 dark:text-amber-400">ditutup paksa</span>}
                         {s.opening_expected != null && s.opening_cash !== s.opening_expected && <span className="text-amber-700 dark:text-amber-400" title="Modal awal shift ini tidak sama dengan uang yang diserahkan shift sebelumnya">modal awal tidak sama ({signed(s.opening_cash - s.opening_expected)})</span>}
                         {s.note && <span className="max-w-56 truncate" title={s.note}>“{s.note}”</span>}
@@ -465,6 +485,7 @@ export function OpsTab() {
                     <p className="text-sm text-muted-foreground tabular-nums">
                       {day(s.opened_at)} · {clock(s.opened_at)} – {s.closed_at ? clock(s.closed_at) : 'sekarang'}
                     </p>
+                    <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground"><ScheduleFlags s={s} /></p>
                     <div className="flex items-center justify-between text-sm">
                       <Review s={s} />
                       <span className="font-medium text-primary">Lihat rincian</span>

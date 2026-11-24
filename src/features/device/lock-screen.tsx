@@ -42,6 +42,12 @@ export function LockScreen() {
   const secs = fail?.until ? Math.max(0, Math.ceil((new Date(fail.until).getTime() - now) / 1000)) : 0
   const waiting = (fail?.reason === 'LOCKED' || fail?.reason === 'DEVICE_LOCKED') && secs > 0
 
+  // Unduh kode halaman kasir/dapur selagi PIN diketik, supaya setelah PIN benar halaman langsung tampil.
+  useEffect(() => {
+    if (!who) return
+    void (who.role === 'kitchen' ? import('@features/kitchen-kds') : import('@features/cashier-pos')).catch(() => {})
+  }, [who])
+
   const submit = useCallback(async (value: string) => {
     if (!who || value.length < 4 || busy) return
     setBusy(true)
@@ -132,7 +138,7 @@ export function LockScreen() {
               <button type="button" disabled={busy || pin.length === 0} onClick={() => press('del')} className="grid h-16 place-items-center rounded-2xl text-muted-foreground hover:bg-muted disabled:opacity-30" aria-label="Hapus"><Delete className="size-6" /></button>
               <button type="button" disabled={busy || waiting} onClick={() => press('0')} className="h-16 rounded-2xl bg-muted text-2xl font-bold hover:bg-muted/70 active:scale-95 disabled:opacity-40">0</button>
               <Button className="h-16 rounded-2xl text-base font-bold" disabled={busy || waiting || pin.length < 4} onClick={() => void submit(pin)}>
-                {busy ? '…' : 'Masuk'}
+                {busy ? 'Memeriksa PIN…' : 'Masuk'}
               </Button>
             </div>
           </section>

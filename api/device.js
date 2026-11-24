@@ -5,7 +5,7 @@ import { allow, supabaseAdmin, supabaseAnon } from '../server/supabase.js'
  *   { action: 'staff', token }               -> info perangkat + daftar staf ber-PIN
  *   { action: 'login', token, userId, pin }  -> sesi Supabase untuk staf (access + refresh token)
  * Token perangkat & PIN diperiksa di database (device_check_pin). Sesi dibuat dengan service role:
- * generateLink (tanpa mengirim email) -> verifyOtp -> sesi milik staf itu, jadi auth.uid() = kasir.
+ * generateLink (tanpa mengirim email, disiapkan bersamaan dengan cek PIN) -> verifyOtp -> sesi milik staf itu, jadi auth.uid() = kasir.
  */
 
 // Pembatas laju per IP (best-effort, memori instance). Batas keras ada di database.
@@ -40,15 +40,32 @@ export default async function handler(req, res) {
     if (tooMany(ip)) return res.status(429).json({ success: false, error: 'TOO_MANY' })
     if (typeof userId !== 'string' || typeof pin !== 'string') return res.status(400).json({ success: false, error: 'WRONG' })
 
+    // Cek PIN dan siapkan tautan sesi BERSAMAAN (hemat 1-2 perjalanan ke Supabase). Tautan hanya dipakai bila PIN
+    // benar; token-nya tidak pernah dikirim ke perangkat, jadi menyiapkannya lebih dulu tidak membuka celah.
+    const t0 = Date.now()
+    const linkFor = (async () => {
+      const { data: u } = await admin.auth.admin.getUserById(userId)
+      if (!u?.user?.email) return null
+      const { data: l } = await admin.auth.admin.generateLink({ type: 'magiclink', email: u.user.email })
+      return { email: u.user.email, hashed: l?.properties?.hashed_token }
+    })().catch(() => null)
     const { data: check, error } = await admin.rpc('device_check_pin', { p_token: token, p_user: userId, p_pin: pin })
+    const t1 = Date.now()
     if (error) return res.status(500).json({ success: false, error: error.message })
     if (!check?.ok) return res.status(check?.reason === 'UNBOUND' ? 401 : 403).json({ success: false, error: check?.reason ?? 'WRONG', until: check?.until, left: check?.left })
 
-    const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email: check.email })
-    const hashed = link?.properties?.hashed_token
-    if (linkErr || !hashed) return res.status(500).json({ success: false, error: 'Gagal membuat sesi kasir' })
-    const { data: auth, error: otpErr } = await supabaseAnon().auth.verifyOtp({ token_hash: hashed, type: 'email' })
+    let link = await linkFor
+    if (!link?.hashed || link.email !== check.email) {
+      // cadangan: alur lama berurutan
+      const { data: l } = await admin.auth.admin.generateLink({ type: 'magiclink', email: check.email })
+      link = { email: check.email, hashed: l?.properties?.hashed_token }
+    }
+    const t2 = Date.now()
+    if (!link.hashed) return res.status(500).json({ success: false, error: 'Gagal membuat sesi kasir' })
+    const { data: auth, error: otpErr } = await supabaseAnon().auth.verifyOtp({ token_hash: link.hashed, type: 'email' })
     if (otpErr || !auth?.session) return res.status(500).json({ success: false, error: 'Gagal membuat sesi kasir' })
+    // lihat di DevTools → Network → Timing untuk tahu bagian mana yang lambat
+    res.setHeader('Server-Timing', `pin;dur=${t1 - t0}, link;dur=${t2 - t1}, session;dur=${Date.now() - t2}`)
 
     return res.status(200).json({
       success: true,

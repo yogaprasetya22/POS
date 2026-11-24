@@ -125,6 +125,9 @@ export const ShiftSummarySchema = z.object({
   counted_cash: z.number().nullable(),
   difference: z.number().nullable(),
   by_method: z.record(z.string(), z.object({ count: z.number(), total: z.number() })),
+  shift_name: z.string().optional(),
+  planned_start: z.string().nullable().optional(),
+  planned_end: z.string().nullable().optional(),
 })
 export type ShiftSummary = z.infer<typeof ShiftSummarySchema>
 
